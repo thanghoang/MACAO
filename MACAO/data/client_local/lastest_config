@@ -1,0 +1,11 @@
+Sun Dec 22 13:12:48 2019
+Height of Tree: 4
+Number of Blocks: 16
+Bucket Size: 2
+Eviction Rate: 1
+Block Size (B): 4096
+ID Size (B): 8
+Number of Chunks: 512
+Total Size of Data (MB): 0.062622
+Total Size of ORAM (MB): 0.242661
+PRECOMPUTATION MODE: Inactive
