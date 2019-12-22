@@ -499,7 +499,6 @@ int ClientORAM::updatePosMap(TYPE_ID blockID)
 
 int ClientORAM::createRetrievalQuery(int pIdx, TYPE_ID pID)
 {
-    #if defined (RSSS)
         #if defined (XOR_PIR)
             unsigned char*** xor_queries;
             xor_queries= new unsigned char**[(SSS_PRIVACY_LEVEL+1)];
@@ -523,38 +522,13 @@ int ClientORAM::createRetrievalQuery(int pIdx, TYPE_ID pID)
                 memcpy(&retrieval_query_out[i][CLIENT_RETRIEVAL_QUERY_SIZE], xor_queries[(i+1)%(SSS_PRIVACY_LEVEL+1)][1],CLIENT_RETRIEVAL_QUERY_SIZE);
                 memcpy(&retrieval_query_out[i][CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_DATA)], &pID, sizeof(pID));
             }
-        #else
+        #elif defined (RSSS)
                 ORAM::sss_createQuery(pIdx,PATH_LENGTH,retrieval_query_out);
                 for (int i = 0; i < SSS_PRIVACY_LEVEL+1; i++)
                 {
                     memcpy(&retrieval_query_out[i][CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_ID)], &pID, sizeof(pID));
                 }
-        #endif
-    #else //if defined SPDZ
-        #if defined (XOR_PIR)
-            unsigned char*** xor_queries;
-            xor_queries= new unsigned char**[NUM_SERVERS];
-            for(int i = 0 ; i < NUM_SERVERS; i++)
-            {
-                xor_queries[i]= new unsigned char*[NUM_SHARE_PER_SERVER];
-                for(int j = 0 ; j < NUM_SHARE_PER_SERVER; j++)
-                {
-                    xor_queries[i][j] = new unsigned char[CLIENT_RETRIEVAL_QUERY_SIZE];
-                    memset(xor_queries[i][j],0,CLIENT_RETRIEVAL_QUERY_SIZE);
-                }
-            }
-            for(int i = 0 ; i < NUM_SERVERS; i++)
-            {
-                ORAM::xor_createQuery(pIdx,PATH_LENGTH,xor_queries[i]);
-            }
-
-            for (int i = 0; i < NUM_SERVERS; i++)
-            {
-                memcpy(&retrieval_query_out[i][0], xor_queries[i][0], CLIENT_RETRIEVAL_QUERY_SIZE);
-                memcpy(&retrieval_query_out[i][CLIENT_RETRIEVAL_QUERY_SIZE], xor_queries[(i+1)%NUM_SERVERS][1],CLIENT_RETRIEVAL_QUERY_SIZE);
-                memcpy(&retrieval_query_out[i][CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_DATA)], &pID, sizeof(pID));
-            }
-        #else
+        #else //if defined SPDZ
             ORAM::sss_createQuery(pIdx,PATH_LENGTH,retrieval_query_out);
             for (int i = 0; i < NUM_SERVERS; i++)
             {
@@ -562,7 +536,6 @@ int ClientORAM::createRetrievalQuery(int pIdx, TYPE_ID pID)
             }
             
         #endif
-    #endif
     return 0;
 }
     

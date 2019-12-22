@@ -945,9 +945,6 @@ int ServerORAM::preReSharing(int level, int es, int ee)
     int step = ceil((double)DATA_CHUNKS/(double)numThreads);
     int nConcurrBucket;
     
-    
-    
-    
     //computation
     for(int e = es ; e < ee ; e++)
     {

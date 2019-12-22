@@ -39,7 +39,6 @@ static const unsigned long long P = 1073742353; //288230376152137729; //prime fi
 
 
 
-
 //=== SECRET SHARING PARAMETER================================================
 #define NUM_SERVERS 3
 #define SSS_PRIVACY_LEVEL 2
@@ -50,10 +49,13 @@ const TYPE_DATA MAC_KEY[SSS_PRIVACY_LEVEL+1] = {60986730870412112, 1679208338256
 
 //#define XOR_PIR
 #define RSSS
+#define SPDZ
 
 
-#define CORAM_LAYOUT
-//#define TRIPLET_EVICTION
+//#define CORAM_LAYOUT
+#define TRIPLET_EVICTION
+
+
 #define K_ARY 2
 
 
@@ -100,7 +102,7 @@ const int H = HEIGHT;
 //=== SECRET SHARING PARAMETER================================================
 #define NUM_SERVERS 3
 #define PRIVACY_LEVEL 1
-const long long int vandermonde[NUM_SERVERS] = {3 , -3 + P, 1};
+//const long long int vandermonde[NUM_SERVERS] = {3 , -3 + P, 1};
 //const long long int vandermonde[NUM_SERVERS] = {7, -21+P, 35, -35+P, 21, -7+P, 1};
 
 /** Vandermonde Values for Different Number of Servers (7, 5, 3)*/
