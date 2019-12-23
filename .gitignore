@@ -8,8 +8,8 @@
 *.user
 *.userosscache
 *.sln.docstates
-libS3ORAM/data
-libS3ORAM/Debug
+MACAO/data/
+MACAO/Debug/
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -288,3 +288,7 @@ __pycache__/
 *.btm.cs
 *.odx.cs
 *.xsd.cs
+
+# IDE specific files
+.codelite/
+.vscode/

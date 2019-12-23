@@ -1,85 +1,85 @@
 [{
-  "file": "/scratch/MACAO/MACAO/struct_thread_computation.h",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/struct_thread_computation.h -o /scratch/MACAO/MACAO/struct_thread_computation.h.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/struct_thread_loadData.h",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/struct_thread_loadData.h -o /home/sadman/MACAO/MACAO/struct_thread_loadData.h.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/struct_socket.h",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/struct_socket.h -o /scratch/MACAO/MACAO/struct_socket.h.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/Utils.hpp",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/Utils.hpp -o /home/sadman/MACAO/MACAO/Utils.hpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/config.h",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/config.h -o /scratch/MACAO/MACAO/config.h.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/main.cpp",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/main.cpp -o /home/sadman/MACAO/MACAO/main.cpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/ORAM.hpp",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/ORAM.hpp -o /scratch/MACAO/MACAO/ORAM.hpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/ORAM.cpp",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/ORAM.cpp -o /home/sadman/MACAO/MACAO/ORAM.cpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/struct_thread_loadData.h",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/struct_thread_loadData.h -o /scratch/MACAO/MACAO/struct_thread_loadData.h.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/ORAM.hpp",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/ORAM.hpp -o /home/sadman/MACAO/MACAO/ORAM.hpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/ClientBinaryORAMO.cpp",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/ClientBinaryORAMO.cpp -o /scratch/MACAO/MACAO/ClientBinaryORAMO.cpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/ClientBinaryORAMO.cpp",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/ClientBinaryORAMO.cpp -o /home/sadman/MACAO/MACAO/ClientBinaryORAMO.cpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/Utils.cpp",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/Utils.cpp -o /scratch/MACAO/MACAO/Utils.cpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/struct_thread_computation.h",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/struct_thread_computation.h -o /home/sadman/MACAO/MACAO/struct_thread_computation.h.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/ServerKaryORAMC.hpp",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/ServerKaryORAMC.hpp -o /scratch/MACAO/MACAO/ServerKaryORAMC.hpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/config.h",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/config.h -o /home/sadman/MACAO/MACAO/config.h.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/ServerORAM.cpp",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/ServerORAM.cpp -o /scratch/MACAO/MACAO/ServerORAM.cpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/ServerBinaryORAMO.cpp",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/ServerBinaryORAMO.cpp -o /home/sadman/MACAO/MACAO/ServerBinaryORAMO.cpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/ClientORAM.hpp",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/ClientORAM.hpp -o /scratch/MACAO/MACAO/ClientORAM.hpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/ServerKaryORAMC.hpp",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/ServerKaryORAMC.hpp -o /home/sadman/MACAO/MACAO/ServerKaryORAMC.hpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/ServerKaryORAMC.cpp",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/ServerKaryORAMC.cpp -o /scratch/MACAO/MACAO/ServerKaryORAMC.cpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/ServerKaryORAMC.cpp",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/ServerKaryORAMC.cpp -o /home/sadman/MACAO/MACAO/ServerKaryORAMC.cpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/ServerORAM.hpp",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/ServerORAM.hpp -o /scratch/MACAO/MACAO/ServerORAM.hpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/ClientORAM.cpp",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/ClientORAM.cpp -o /home/sadman/MACAO/MACAO/ClientORAM.cpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/ORAM.cpp",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/ORAM.cpp -o /scratch/MACAO/MACAO/ORAM.cpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/ServerORAM.cpp",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/ServerORAM.cpp -o /home/sadman/MACAO/MACAO/ServerORAM.cpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/ClientKaryORAMC.cpp",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/ClientKaryORAMC.cpp -o /scratch/MACAO/MACAO/ClientKaryORAMC.cpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/Utils.cpp",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/Utils.cpp -o /home/sadman/MACAO/MACAO/Utils.cpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/ServerBinaryORAMO.hpp",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/ServerBinaryORAMO.hpp -o /scratch/MACAO/MACAO/ServerBinaryORAMO.hpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/ClientKaryORAMC.cpp",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/ClientKaryORAMC.cpp -o /home/sadman/MACAO/MACAO/ClientKaryORAMC.cpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/Utils.hpp",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/Utils.hpp -o /scratch/MACAO/MACAO/Utils.hpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/ServerORAM.hpp",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/ServerORAM.hpp -o /home/sadman/MACAO/MACAO/ServerORAM.hpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/main.cpp",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/main.cpp -o /scratch/MACAO/MACAO/main.cpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/ClientBinaryORAMO.hpp",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/ClientBinaryORAMO.hpp -o /home/sadman/MACAO/MACAO/ClientBinaryORAMO.hpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/ServerBinaryORAMO.cpp",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/ServerBinaryORAMO.cpp -o /scratch/MACAO/MACAO/ServerBinaryORAMO.cpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/ClientORAM.hpp",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/ClientORAM.hpp -o /home/sadman/MACAO/MACAO/ClientORAM.hpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/ClientBinaryORAMO.hpp",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/ClientBinaryORAMO.hpp -o /scratch/MACAO/MACAO/ClientBinaryORAMO.hpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/struct_socket.h",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/struct_socket.h -o /home/sadman/MACAO/MACAO/struct_socket.h.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/ClientORAM.cpp",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/ClientORAM.cpp -o /scratch/MACAO/MACAO/ClientORAM.cpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/ServerBinaryORAMO.hpp",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/ServerBinaryORAMO.hpp -o /home/sadman/MACAO/MACAO/ServerBinaryORAMO.hpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/ClientKaryORAMC.hpp",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/ClientKaryORAMC.hpp -o /scratch/MACAO/MACAO/ClientKaryORAMC.hpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
+  "file": "/home/sadman/MACAO/MACAO/ClientKaryORAMC.hpp",
+  "directory": "/home/sadman/MACAO/MACAO",
+  "command": "clang  -c /home/sadman/MACAO/MACAO/ClientKaryORAMC.hpp -o /home/sadman/MACAO/MACAO/ClientKaryORAMC.hpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }]
