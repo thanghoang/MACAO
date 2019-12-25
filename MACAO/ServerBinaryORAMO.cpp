@@ -48,8 +48,9 @@ int ServerBinaryORAMO::prepareEvictComputation()
         for (TYPE_INDEX i = 0 ; i < EVICT_MAT_NUM_ROW; i++)
         {
             memcpy(this->vecEvictMatrix[0][y][i], &evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
-            
-            memcpy(this->vecEvictMatrix[1][y][i], &client_evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
+            #if defined(RSSS)
+                memcpy(this->vecEvictMatrix[1][y][i], &client_evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
+            #endif
             currBufferIdx += EVICT_MAT_NUM_COL*sizeof(TYPE_DATA);
         }
     }
@@ -109,8 +110,9 @@ int ServerBinaryORAMO::evict(zmq::socket_t& socket)
         TYPE_ID readBucketIDS[2] = {curSrcIdx, curDestIdx};
         
         this->readBucket_evict_reverse(readBucketIDS,this->serverNo,this->vecEvictPath_db[0],this->vecEvictPath_MAC[0]);
-        this->readBucket_evict_reverse(readBucketIDS,(this->serverNo+1)%3,this->vecEvictPath_db[1],this->vecEvictPath_MAC[1]);
-        
+        #if defined(RSSS)
+            this->readBucket_evict_reverse(readBucketIDS,(this->serverNo+1)%3,this->vecEvictPath_db[1],this->vecEvictPath_MAC[1]);
+        #endif
 		auto end = time_now;
         
 		long load_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
@@ -171,12 +173,15 @@ int ServerBinaryORAMO::evict(zmq::socket_t& socket)
         if(h < H-1)
         {
             this->copyBucket(this->serverNo,curSrcIdx,siblIdx[h]);
-            this->copyBucket((this->serverNo+1)%3,curSrcIdx,siblIdx[h]);
+            #if defined(RSSS)
+                this->copyBucket((this->serverNo+1)%3,curSrcIdx,siblIdx[h]);
+            #endif
         }
         
         this->writeBucket_reverse_mode(curDestIdx,serverNo,vecReShares[0][serverNo],vecReShares_MAC[0][serverNo]);
-        this->writeBucket_reverse_mode(curDestIdx,(serverNo+1)%3,vecReShares[0][(serverNo+1)%3],vecReShares_MAC[0][(serverNo+1)%3]);
-   
+        #if defined(RSSS)
+            this->writeBucket_reverse_mode(curDestIdx,(serverNo+1)%3,vecReShares[0][(serverNo+1)%3],vecReShares_MAC[0][(serverNo+1)%3]);
+        #endif
         end = time_now;
         server_logs[12] += std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
         

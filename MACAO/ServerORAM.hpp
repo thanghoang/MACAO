@@ -32,6 +32,14 @@ protected:
 #else
     unsigned char** retrieval_answer_block;
     unsigned char** retrieval_answer_mac;
+    #if defined(SPDZ)
+        zz_p** RetrievalShares_a;
+        zz_p* RetrievalShares_b;
+        zz_p* RetrievalShares_c;
+        
+        unsigned char* retrieval_reshares_out =new unsigned char[PATH_LENGTH*BLOCK_SIZE+PATH_LENGTH*sizeof(TYPE_DATA)];
+        unsigned char** retrieval_reshares_in = new unsigned char*[NUM_SERVERS-1];
+    #endif 
 #endif
     
     unsigned char* retrieval_answer_out;
@@ -59,7 +67,17 @@ protected:
     unsigned char** reshares_in;
     unsigned char** reshares_out; //shares_buffer_out;
     
-    
+    #if defined(SPDZ)
+        vector<zz_p**> vecShares_a;
+        vector<zz_p***> vecShares_b;
+        vector<zz_p**> vecShares_c;
+        
+        
+        vector<zz_p**> vecShares_a_MAC;
+        vector<zz_p***> vecShares_b_MAC;
+        
+        vector<zz_p**> vecShares_c_MAC;
+    #endif
     TYPE_INDEX n_evict;
         
     
@@ -132,6 +150,7 @@ public:
     int updateRoot(int shareID, unsigned long long replaceWriteIdx, unsigned char* input, unsigned char* mac); 
     int copyBucket(int shareID, TYPE_ID srcBucketID, TYPE_ID destBucketID); 
     int writeBucket(TYPE_ID bucketID, int shareID, unsigned char* input); //to be updated with MAC
+    int writeBucket(TYPE_ID bucketID, int shareID, unsigned char* input, unsigned char* mac); //to be updated with MAC
     int writeBucket_reverse_mode(int bucketID, int shareID, zz_p ** data, zz_p** mac);
     
     
@@ -149,8 +168,12 @@ public:
     static unsigned long int thread_max;
     static char timestamp[16];
 
-
-
+    #if defined(SPDZ)
+        //only in SPDZ without XOR
+        unsigned char* EVICT_PATH_CACHE_OUT;
+        unsigned char* EVICT_PATH_CACHE_IN;
+    #endif
+    
 };
 
 #endif // SERVERORAM_HPP

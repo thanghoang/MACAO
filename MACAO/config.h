@@ -37,24 +37,27 @@ static inline std::string to_string(T value)
 
 static const unsigned long long P = 1073742353; //288230376152137729; //prime field - should have length equal to the defined TYPE_DATA
 
-
-
-//=== SECRET SHARING PARAMETER================================================
-#define NUM_SERVERS 3
-#define SSS_PRIVACY_LEVEL 2
-
-const TYPE_DATA GLOBAL_MAC_KEY = 12574462961634974;
-const TYPE_DATA MAC_KEY[SSS_PRIVACY_LEVEL+1] = {60986730870412112, 16792083382561605, -65204351291338743};
-
-
 //#define XOR_PIR
-#define RSSS
+//#define RSSS
 #define SPDZ
 
+//=== SECRET SHARING PARAMETER================================================
+#if defined(RSSS)
+    #define NUM_SERVERS 3
+    #define SSS_PRIVACY_LEVEL 2
+    const TYPE_DATA GLOBAL_MAC_KEY = 12574462961634974;
+    const TYPE_DATA MAC_KEY[SSS_PRIVACY_LEVEL+1] = {60986730870412112, 16792083382561605, -65204351291338743};
+#else // SPDZ
+    #define NUM_SERVERS 4
+    #define SSS_PRIVACY_LEVEL 3
+    const TYPE_DATA GLOBAL_MAC_KEY = 683828274;// 12574462961634974;
+    const TYPE_DATA MAC_KEY[SSS_PRIVACY_LEVEL+1] = {881602428, 951697459, 998013093, 998013093};// {805873168, 951697459,};//{881602428, 951697459, 998013093};
+#endif
 
-//#define CORAM_LAYOUT
-#define TRIPLET_EVICTION
+#define PRIVACY_LEVEL 1
 
+#define CORAM_LAYOUT
+//#define TRIPLET_EVICTION
 
 #define K_ARY 2
 
@@ -63,8 +66,13 @@ const TYPE_DATA MAC_KEY[SSS_PRIVACY_LEVEL+1] = {60986730870412112, 1679208338256
 
 #define NTL_LIB //disable it if compiled for android
 //=== PARAMETERS ============================================================
-#define BLOCK_SIZE 4096
-#define HEIGHT 4
+#if defined(RSSS)
+    #define BLOCK_SIZE 4096
+    #define HEIGHT 4
+#else // SPDZ
+    #define BLOCK_SIZE 32
+    #define HEIGHT 3
+#endif
 
 
 #if defined(CORAM_LAYOUT)
@@ -100,8 +108,6 @@ const int H = HEIGHT;
 
 
 //=== SECRET SHARING PARAMETER================================================
-#define NUM_SERVERS 3
-#define PRIVACY_LEVEL 1
 //const long long int vandermonde[NUM_SERVERS] = {3 , -3 + P, 1};
 //const long long int vandermonde[NUM_SERVERS] = {7, -21+P, 35, -35+P, 21, -7+P, 1};
 
@@ -113,7 +119,11 @@ const int H = HEIGHT;
 //=== SERVER INFO ============================================================
 
 	//SERVER IP ADDRESSES
-const std::string SERVER_ADDR[NUM_SERVERS] = {"tcp://localhost", "tcp://localhost", "tcp://localhost"};//, "tcp://localhost", "tcp://localhost", "tcp://localhost", "tcp://localhost"}; 	
+#if defined(RSSS)
+    const std::string SERVER_ADDR[NUM_SERVERS] = {"tcp://localhost", "tcp://localhost", "tcp://localhost"};//, "tcp://localhost", "tcp://localhost", "tcp://localhost", "tcp://localhost"}; 	
+#else // SPDZ
+    const std::string SERVER_ADDR[NUM_SERVERS] = {"tcp://localhost", "tcp://localhost", "tcp://localhost", "tcp://localhost"};//, "tcp://localhost", "tcp://localhost", "tcp://localhost", "tcp://localhost"}; 	
+#endif
 #define SERVER_PORT 25555        //define the first port to generate incremental ports for client-server /server-server communications
 
 //============================================================================
@@ -193,12 +203,14 @@ const TYPE_INDEX N_leaf = pow(K_ARY,H);
 
 
 
-
-//IF USING RSSS
-const int NUM_MULT = 3;
-const int NUM_SHARE_PER_SERVER = 2;
-
-
+#if defined(RSSS)
+    const int NUM_MULT = 3;
+    const int NUM_SHARE_PER_SERVER = 2;
+    //const int NUM_REPL = 2;
+#else // SPDZ
+    const int NUM_MULT = 3;
+    const int NUM_SHARE_PER_SERVER = 1;   
+#endif
 
 
 
@@ -219,7 +231,11 @@ const int NUM_SHARE_PER_SERVER = 2;
 #else
     const unsigned long long CLIENT_RETRIEVAL_QUERY_SIZE = (H+1)*BUCKET_SIZE*sizeof(TYPE_DATA); 
     const unsigned long long CLIENT_RETRIEVAL_OUT_LENGTH = sizeof(TYPE_ID) + CLIENT_RETRIEVAL_QUERY_SIZE;
-    const unsigned long long SERVER_RETRIEVAL_REPLY_LENGTH =  2*BLOCK_SIZE;
+    #if defined (RSSS)
+        const unsigned long long SERVER_RETRIEVAL_REPLY_LENGTH = 2*BLOCK_SIZE;
+    #else // SPDZ
+        const unsigned long long SERVER_RETRIEVAL_REPLY_LENGTH = BLOCK_SIZE;
+    #endif
 #endif
 
 
@@ -233,7 +249,12 @@ const unsigned long long BUCKET_DATA_SIZE = BUCKET_SIZE*BLOCK_SIZE;
 #if defined (CORAM_LAYOUT)
 
     const unsigned long long CLIENT_EVICTION_OUT_LENGTH =  2*(BLOCK_SIZE*2+ (H+1)*evictMatSize*sizeof(TYPE_DATA)) +sizeof(TYPE_INDEX) ;//  for OnionORAM -> (H+1)*evictMatSize*sizeof(TYPE_DATA) + sizeof(TYPE_INDEX);
-    const unsigned long long SERVER_RESHARE_IN_OUT_LENGTH =  2*2*(2*(BUCKET_SIZE+1)*BLOCK_SIZE); // 1st2: MAC, 2nd2: for 2 shares for RSSS, / server -> for onion ORAM:  BUCKET_SIZE*sizeof(TYPE_DATA)*DATA_CHUNKS
+    
+    #if defined (RSSS)
+        const unsigned long long SERVER_RESHARE_IN_OUT_LENGTH =  2*2*(2*(BUCKET_SIZE+1)*BLOCK_SIZE); // 1st2: MAC, 2nd2: for 2 shares for RSSS, / server -> for onion ORAM:  BUCKET_SIZE*sizeof(TYPE_DATA)*DATA_CHUNKS
+    #else // SPDZ 
+        const unsigned long long SERVER_RESHARE_IN_OUT_LENGTH =  2*((BUCKET_SIZE+1) * BLOCK_SIZE + (evictMatSize*sizeof(TYPE_DATA) )); // 1st 2: e num concurrent evict
+    #endif
     
     
     const int NUM_CONCURR_EVICT = 2; // THIS IS FOR EVICTION COMPUTATION IN TWO PARALLEL PATH
@@ -245,7 +266,11 @@ const unsigned long long BUCKET_DATA_SIZE = BUCKET_SIZE*BLOCK_SIZE;
     const int EVICT_MAT_NUM_ROW = BUCKET_SIZE+1;
 #else
     const unsigned long long CLIENT_EVICTION_OUT_LENGTH =  ((H+1)*evictMatSize*sizeof(TYPE_DATA)) +sizeof(TYPE_INDEX) ;//  for OnionORAM -> (H+1)*evictMatSize*sizeof(TYPE_DATA) + sizeof(TYPE_INDEX);
-    const unsigned long long SERVER_RESHARE_IN_OUT_LENGTH =  2*2*((BUCKET_SIZE*BLOCK_SIZE)); // 1st2: MAC, 2nd2: for 2 shares for RSSS / server -> for onion ORAM:  BUCKET_SIZE*sizeof(TYPE_DATA)*DATA_CHUNKS
+    #if defined (RSSS)
+        const unsigned long long SERVER_RESHARE_IN_OUT_LENGTH =  2*2*((BUCKET_SIZE*BLOCK_SIZE)); // 1st2: MAC, 2nd2: for 2 shares for RSSS / server -> for onion ORAM:  BUCKET_SIZE*sizeof(TYPE_DATA)*DATA_CHUNKS
+    #else // SPDZ
+        const unsigned long long SERVER_RESHARE_IN_OUT_LENGTH =  (2*BUCKET_SIZE*BLOCK_SIZE)+evictMatSize*sizeof(TYPE_DATA); //1st2: mat_input_len
+    #endif
     
     const int NUM_CONCURR_EVICT = 1;
     

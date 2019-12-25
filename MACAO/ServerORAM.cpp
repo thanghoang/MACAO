@@ -52,7 +52,7 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
     
     
     
-#if defined(XOR_PIR) 
+#if defined(XOR_PIR) && defined(RSSS)
     this->retrieval_query = new unsigned char*[NUM_SHARE_PER_SERVER];
     this->retrieval_path_db = new zz_p**[NUM_SHARE_PER_SERVER];
     this->retrieval_path_mac = new zz_p**[NUM_SHARE_PER_SERVER];
@@ -86,8 +86,14 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
         
     
     }
-#else //#if defined(RSSS)
+#else //#if defined(RSSS) or defined(SPDZ)
     
+    #if defined(SPDZ)
+        for(int s = 0 ; s < NUM_SERVERS-1; s++)
+        {
+            retrieval_reshares_in[s] = new unsigned char[PATH_LENGTH*BLOCK_SIZE+PATH_LENGTH*sizeof(TYPE_DATA)];
+        }
+    #endif
     this->retrieval_query = new unsigned char*[NUM_SHARE_PER_SERVER];
     this->retrieval_path_db = new zz_p**[NUM_SHARE_PER_SERVER];
     this->retrieval_path_mac = new zz_p**[NUM_SHARE_PER_SERVER];
@@ -112,6 +118,16 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
     }
     
     //#endif
+    #if defined(SPDZ)
+        this->RetrievalShares_a = new zz_p*[DATA_CHUNKS];
+        this->RetrievalShares_b = new zz_p[PATH_LENGTH];
+        this->RetrievalShares_c = new zz_p[DATA_CHUNKS];
+           
+        for(int i = 0 ; i < DATA_CHUNKS; i++)
+        {
+            RetrievalShares_a[i] = new zz_p[PATH_LENGTH];
+        }
+    #endif
     
 #endif
     
@@ -146,17 +162,40 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
     for(int i = 0 ; i < NUM_CONCURR_EVICT*NUM_SHARE_PER_SERVER; i++)
     {
         zz_p*** evictMatrix = new zz_p**[H+1];
+        
+        #if defined(SPDZ)
+            zz_p*** shares_b = new zz_p**[H+1];
+            zz_p*** shares_b_MAC = new zz_p**[H+1];
+        #endif
+        
         for(TYPE_INDEX y = 0 ; y < H+1; y++)
         {
             evictMatrix[y] = new zz_p*[EVICT_MAT_NUM_ROW];
+            #if defined(SPDZ)
+                shares_b[y] = new zz_p*[EVICT_MAT_NUM_ROW];
+                shares_b_MAC[y] = new zz_p*[EVICT_MAT_NUM_ROW];
+            #endif
             for(TYPE_INDEX i = 0 ; i < EVICT_MAT_NUM_ROW; i++)
             {
                 evictMatrix[y][i] = new zz_p[EVICT_MAT_NUM_COL];
+                #if defined(SPDZ)
+                    shares_b[y][i] = new zz_p[EVICT_MAT_NUM_COL];
+                    shares_b_MAC[y][i] = new zz_p[EVICT_MAT_NUM_COL];
+                #endif
             }
         }
         this->vecEvictMatrix.push_back(evictMatrix);
-        
-        
+        #if defined(SPDZ)
+            this->vecShares_b.push_back(shares_b);
+            
+            this->vecShares_b_MAC.push_back(shares_b_MAC);
+            
+            zz_p **shares_a = new zz_p*[DATA_CHUNKS];
+            zz_p **shares_c = new zz_p*[DATA_CHUNKS];
+            
+            zz_p **shares_a_MAC = new zz_p*[DATA_CHUNKS];
+            zz_p **shares_c_MAC = new zz_p*[DATA_CHUNKS];
+        #endif
         zz_p **evictPath_db = new zz_p*[DATA_CHUNKS];
         zz_p **evictPath_MAC = new zz_p*[DATA_CHUNKS];
         
@@ -164,9 +203,23 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
         {
             evictPath_db[k]  = new zz_p[MAT_PRODUCT_INPUT_DB_LENGTH];
             evictPath_MAC[k]  = new zz_p[MAT_PRODUCT_INPUT_DB_LENGTH];	
+            #if defined(SPDZ)
+                shares_a[k]  = new zz_p[MAT_PRODUCT_INPUT_DB_LENGTH];
+                shares_c[k]  = new zz_p[MAT_PRODUCT_INPUT_DB_LENGTH];
+                
+                shares_a_MAC[k]  = new zz_p[MAT_PRODUCT_INPUT_DB_LENGTH];
+                shares_c_MAC[k]  = new zz_p[MAT_PRODUCT_INPUT_DB_LENGTH];
+            #endif
         }
         this->vecEvictPath_db.push_back(evictPath_db);
         this->vecEvictPath_MAC.push_back(evictPath_MAC);
+        #if defined(SPDZ)
+            this->vecShares_a.push_back(shares_a);
+            this->vecShares_c.push_back(shares_c);
+            
+            this->vecShares_a_MAC.push_back(shares_a_MAC);
+            this->vecShares_c_MAC.push_back(shares_c_MAC);
+        #endif
     }
     for(int i = 0 ; i < NUM_CONCURR_EVICT ; i++)
     {
@@ -443,7 +496,7 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
         }
     }
 
-#else
+#elif defined(RSSS)
     
     //#if defined(RSSS) //will try to merge this with recvClientEvictData
 
@@ -542,13 +595,147 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
         memcpy(&retrieval_answer_out[0],dotProd_output[0],BLOCK_SIZE);
         memcpy(&retrieval_answer_out[BLOCK_SIZE],dotProd_mac_output[0],BLOCK_SIZE);
     //#endif
+
+#else // SPDZ
+ for(int j = 0, u = 0; j < H+1; j++, u+=BUCKET_SIZE)
+    {
+        this->readBucket_reverse(fullPathIdx[j], j, serverNo,retrieval_path_db[0],retrieval_path_mac[0]);
+    }
+    //serialize retrieval query
+    zz_p** retrieval_query = new zz_p*[NUM_SHARE_PER_SERVER];   //to be changed to unsigned char later
+    for(int i = 0 ; i < NUM_SHARE_PER_SERVER; i++)
+    {
+        retrieval_query[i] = new zz_p[CLIENT_RETRIEVAL_QUERY_SIZE/sizeof(TYPE_DATA)];
+    }
+    memcpy(retrieval_query[0], retrieval_query_in, CLIENT_RETRIEVAL_QUERY_SIZE);
+
     
+    zz_p** dotProd_output = new zz_p*[NUM_SHARE_PER_SERVER];
+    zz_p** dotProd_mac_output = new zz_p*[NUM_SHARE_PER_SERVER];
+    
+    for(int i = 0 ; i < NUM_MULT; i++)
+    {
+        dotProd_output[i] = new zz_p[DATA_CHUNKS];
+        dotProd_mac_output[i] = new zz_p[DATA_CHUNKS];
+    }
+    
+
+  
+    unsigned long long currBufferIdx =  0;
+    for(int i = 0 ; i < DATA_CHUNKS; i++)
+    {
+        for(int j = 0 ; j < PATH_LENGTH; j++)
+        {
+            this->retrieval_path_db[0][i][j] -= this->RetrievalShares_a[i][j];
+        }
+        memcpy(&retrieval_reshares_out[currBufferIdx], this->retrieval_path_db[0][i], sizeof(TYPE_DATA)*(PATH_LENGTH));
+        currBufferIdx+=sizeof(TYPE_DATA)*(PATH_LENGTH);
+            
+    }
+    for(int i = 0 ; i < PATH_LENGTH; i++)
+    {
+        retrieval_query[0][i] -= this->RetrievalShares_b[i];
+            
+        memcpy(&retrieval_reshares_out[currBufferIdx], &retrieval_query[0][i], sizeof(TYPE_DATA));
+        currBufferIdx+=sizeof(TYPE_DATA);
+    }
+   
+    for(int s = 0 ; s < NUM_SERVERS-1;s++)
+    {
+       cout<< "	[evict] Creating Threads for Receiving Ports..." << endl;
+        recvSocket_args[s] = struct_socket(s, NULL, 0, retrieval_reshares_in[s], PATH_LENGTH*BLOCK_SIZE+PATH_LENGTH*sizeof(TYPE_DATA), NULL,false);
+        pthread_create(&thread_recv[s], NULL, &ServerORAM::thread_socket_func, (void*)&recvSocket_args[s]);
+        
+        cout<< "	[evict] Creating Threads for Sending Shares..."<< endl;;
+        sendSocket_args[s] = struct_socket(s, retrieval_reshares_out  , PATH_LENGTH*BLOCK_SIZE+PATH_LENGTH*sizeof(TYPE_DATA), NULL, 0, NULL, true);
+        pthread_create(&thread_send[s], NULL, &ServerORAM::thread_socket_func, (void*)&sendSocket_args[s]);
+    }
+    
+    
+    
+    for(int s = 0 ; s < NUM_SERVERS-1;s++)
+    {
+        pthread_join(thread_recv[s],NULL);
+        pthread_join(thread_send[s],NULL);
+    }
+            
+    //recover rho & epsilon
+    currBufferIdx = 0;
+    for(int i = 0 ; i < DATA_CHUNKS; i++)
+    {
+        for(int j = 0 ; j < PATH_LENGTH; j++)
+        {
+            for(int s = 0 ; s < NUM_SERVERS-1;s++)
+            {
+                this->retrieval_path_db[0][i][j] += *((zz_p*)&retrieval_reshares_in[s][currBufferIdx]);
+            }
+            currBufferIdx += sizeof(TYPE_DATA);
+        }
+    }
+    
+    for(int i = 0 ; i < PATH_LENGTH; i++)
+    {
+        for(int s = 0 ; s < NUM_SERVERS-1; s++)
+        {
+            retrieval_query[0][i] += *((zz_p*)&retrieval_reshares_in[s][currBufferIdx]);
+        }
+        currBufferIdx += sizeof(TYPE_DATA);
+    }
+
+    int endIdx;
+    int step = ceil((double)DATA_CHUNKS/(double)numThreads);
+
+    for(int i = 0, startIdx = 0 ; i < numThreads; i ++, startIdx+=step)
+    {
+        if(startIdx+step > DATA_CHUNKS)
+            endIdx = DATA_CHUNKS;   
+        else
+            endIdx = startIdx+step;
+        
+        
+        vecComp_args[0][i] = THREAD_COMPUTATION(startIdx, endIdx, this->retrieval_path_db[0], PATH_LENGTH, 1, RetrievalShares_b, dotProd_output[0]);
+        pthread_create(&vecThread_compute[0][i], NULL, &ServerORAM::thread_retrieval_by_dotProd_func, (void*)&vecComp_args[0][i]);
+        
+        vecComp_args[1][i] = THREAD_COMPUTATION(startIdx, endIdx, RetrievalShares_a,  PATH_LENGTH, 1, retrieval_query[0],  dotProd_output[1]);
+        pthread_create(&vecThread_compute[1][i], NULL, &ServerORAM::thread_retrieval_by_dotProd_func, (void*)&vecComp_args[1][i]);
+        
+        vecComp_args[2][i] = THREAD_COMPUTATION(startIdx, endIdx, this->retrieval_path_db[0], PATH_LENGTH, 1, retrieval_query[0], dotProd_output[2]);
+        pthread_create(&vecThread_compute[2][i], NULL, &ServerORAM::thread_retrieval_by_dotProd_func, (void*)&vecComp_args[2][i]);
+        
+        
+        
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(i, &cpuset);
+        
+            
+        pthread_setaffinity_np(vecThread_compute[0][i], sizeof(cpu_set_t), &cpuset);
+        pthread_setaffinity_np(vecThread_compute[1][i], sizeof(cpu_set_t), &cpuset);
+        pthread_setaffinity_np(vecThread_compute[2][i], sizeof(cpu_set_t), &cpuset);
+    }
+    for(int i  = 0 ; i <numThreads ; i++)
+    {
+            pthread_join(vecThread_compute[0][i],NULL);
+            pthread_join(vecThread_compute[1][i],NULL);
+            pthread_join(vecThread_compute[2][i],NULL);
+    }
+    //sum all together
+
+    for(int i = 0 ; i < DATA_CHUNKS; i++)
+    {
+       dotProd_output[0][i] += dotProd_output[1][i] + RetrievalShares_c[i];
+       
+       if(this->serverNo == 0)
+       {
+           dotProd_output[0][i] += dotProd_output[2][i];
+            //dotProd_mac_output[0][i] += dotProd_mac_output[j][i];
+       }
+    }
+    memcpy(&retrieval_answer_out[0],dotProd_output[0],BLOCK_SIZE);
 #endif
 
-	
-	
-    
-    
+
+
     start = time_now;
     socket.send(retrieval_answer_out,SERVER_RETRIEVAL_REPLY_LENGTH);
     end = time_now;
@@ -581,30 +768,31 @@ int ServerORAM::writeRoot(zmq::socket_t& socket)
 	cout<< "	[recvBlock] Block Data RECV in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count() <<endl;
     server_logs[4] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
     
-    
-    //send to other server (this is due to RSS)
-    
-    cout<< "	[evict] Creating Threads for Receiving..." << endl;
-    recvSocket_args[0] = struct_socket(0, NULL, 0, client_write_root_in, BLOCK_SIZE*2, NULL,false);
-    pthread_create(&thread_recv[0], NULL, &thread_socket_func, (void*)&recvSocket_args[0]);
-    
-    cout<< "	[evict] Creating Threads for Sending..."<< endl;;
-    sendSocket_args[0] = struct_socket(1,  write_root_in, BLOCK_SIZE*2, NULL, 0, NULL, true);
-	pthread_create(&thread_send[0], NULL, &thread_socket_func, (void*)&sendSocket_args[0]);
-    
-    cout<< "	[evict] CREATED!" <<endl;
-	cout<< "	[evict] Waiting for Threads..." <<endl;
-	
-    pthread_join(thread_send[0], NULL);
-    pthread_join(thread_recv[0], NULL);
-    
+    #if defined(RSSS)
+        //send to other server (this is due to RSS)
+        
+        cout<< "	[evict] Creating Threads for Receiving..." << endl;
+        recvSocket_args[0] = struct_socket(0, NULL, 0, client_write_root_in, BLOCK_SIZE*2, NULL,false);
+        pthread_create(&thread_recv[0], NULL, &thread_socket_func, (void*)&recvSocket_args[0]);
+        
+        cout<< "	[evict] Creating Threads for Sending..."<< endl;;
+        sendSocket_args[0] = struct_socket(1,  write_root_in, BLOCK_SIZE*2, NULL, 0, NULL, true);
+        pthread_create(&thread_send[0], NULL, &thread_socket_func, (void*)&sendSocket_args[0]);
+        
+        cout<< "	[evict] CREATED!" <<endl;
+        cout<< "	[evict] Waiting for Threads..." <<endl;
+        
+        pthread_join(thread_send[0], NULL);
+        pthread_join(thread_recv[0], NULL);
+    #endif
     
     
     
 	start = time_now;
     this->updateRoot(serverNo,slotIdx,&write_root_in[0],&write_root_in[BLOCK_SIZE]);
-    this->updateRoot((serverNo+1)%3,slotIdx, &client_write_root_in[0], &client_write_root_in[BLOCK_SIZE]);
-    
+    #if defined(RSSS)
+        this->updateRoot((serverNo+1)%3,slotIdx, &client_write_root_in[0], &client_write_root_in[BLOCK_SIZE]);
+    #endif
     end = time_now;
 	cout<< "	[recvBlock] Block STORED in Disk in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count() <<endl;
 	server_logs[5] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
@@ -694,21 +882,22 @@ int ServerORAM::recvClientEvictData(zmq::socket_t& socket)
 	server_logs[6] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
 	
     
-    
-    // send client data to other servers (this is due to RSSS)
-    cout<< "	[evict] Creating Threads for Receiving..." << endl;
-    recvSocket_args[0] = struct_socket(0, NULL, 0, client_evict_in, CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX), NULL,false);
-    pthread_create(&thread_recv[0], NULL, &thread_socket_func, (void*)&recvSocket_args[0]);
-    
-    cout<< "	[evict] Creating Threads for Sending..."<< endl;;
-    sendSocket_args[0] = struct_socket(1,  evict_in, CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX), NULL, 0, NULL, true);
-	pthread_create(&thread_send[0], NULL, &thread_socket_func, (void*)&sendSocket_args[0]);
-    
-    cout<< "	[evict] CREATED!" <<endl;
-	cout<< "	[evict] Waiting for Threads..." <<endl;
-	
-    pthread_join(thread_send[0], NULL);
-    pthread_join(thread_recv[0], NULL);
+    #if defined(RSSS)
+        // send client data to other servers (this is due to RSSS)
+        cout<< "	[evict] Creating Threads for Receiving..." << endl;
+        recvSocket_args[0] = struct_socket(0, NULL, 0, client_evict_in, CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX), NULL,false);
+        pthread_create(&thread_recv[0], NULL, &thread_socket_func, (void*)&recvSocket_args[0]);
+        
+        cout<< "	[evict] Creating Threads for Sending..."<< endl;;
+        sendSocket_args[0] = struct_socket(1,  evict_in, CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX), NULL, 0, NULL, true);
+        pthread_create(&thread_send[0], NULL, &thread_socket_func, (void*)&sendSocket_args[0]);
+        
+        cout<< "	[evict] CREATED!" <<endl;
+        cout<< "	[evict] Waiting for Threads..." <<endl;
+        
+        pthread_join(thread_send[0], NULL);
+        pthread_join(thread_recv[0], NULL);
+    #endif
     
     memcpy(&n_evict, &evict_in[CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX)], sizeof(TYPE_INDEX));
 	
@@ -885,7 +1074,7 @@ int ServerORAM::copyBucket(int shareID, TYPE_ID srcBucketID, TYPE_ID destBucketI
 }
 
 
-
+// FOR RPSS 
 int ServerORAM::writeBucket(TYPE_ID bucketID, int shareID, unsigned char* input)
 {
     string path = myStoragePath +  to_string(shareID) + "/" + to_string(bucketID);
@@ -897,6 +1086,33 @@ int ServerORAM::writeBucket(TYPE_ID bucketID, int shareID, unsigned char* input)
     }
     fwrite(input,1, BUCKET_SIZE*BLOCK_SIZE, f);
     fclose(f);
+    return 0;
+}
+
+// FOR SPDZ
+int ServerORAM::writeBucket(TYPE_ID bucketID, int shareID, unsigned char* input, unsigned char* mac)
+{
+    string path = myStoragePath +  to_string(shareID) + "/" + to_string(bucketID);
+    FILE* f = NULL;
+    if((f = fopen(path.c_str(),"wb+")) == NULL)
+    {
+        cout<< "	[evict] File Cannot be Opened!!" <<endl;
+        exit(0);
+    }
+    fwrite(input,1, BUCKET_SIZE*BLOCK_SIZE, f);
+    fclose(f);
+    
+    string path_MAC = path + "_mac";
+    FILE* f_MAC = NULL;
+    if((f_MAC = fopen(path_MAC.c_str(),"wb+")) == NULL)
+    {
+        cout<< "	[evict] File Cannot be Opened!!" <<endl;
+        exit(0);
+    }
+    fwrite(mac,1, BUCKET_SIZE*BLOCK_SIZE, f_MAC);
+    fclose(f_MAC);
+    
+    
     return 0;
 }
 
@@ -940,129 +1156,165 @@ int ServerORAM::preReSharing(int level, int es, int ee)
 {
     // implement the RSSS multiplication first
     
-    
-    int endIdx;
-    int step = ceil((double)DATA_CHUNKS/(double)numThreads);
-    int nConcurrBucket;
-    
-    //computation
-    for(int e = es ; e < ee ; e++)
-    {
-        for(int j = 0 ; j < NUM_MULT; j++)
+    #if defined(RSSS)
+        int endIdx;
+        int step = ceil((double)DATA_CHUNKS/(double)numThreads);
+        int nConcurrBucket;
+        
+        //computation
+        for(int e = es ; e < ee ; e++)
         {
-            for(int i = 0, startIdx = 0 ; i < numThreads; i ++, startIdx+=step)
+            for(int j = 0 ; j < NUM_MULT; j++)
             {
-                if(startIdx+step > DATA_CHUNKS)
-                    endIdx = DATA_CHUNKS;
-                else
-                    endIdx = startIdx+step;
-                
-                vecComp_args[e*NUM_MULT+j][i] = THREAD_COMPUTATION(startIdx, endIdx, this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER+RSSS_MULT_ORDER[j][0]], MAT_PRODUCT_INPUT_DB_LENGTH, MAT_PRODUCT_OUTPUT_LENGTH, this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER+RSSS_MULT_ORDER[j][1]][level], this->vecLocalMatProduct_output[e*NUM_MULT+j]);
-                pthread_create(&vecThread_compute[e*NUM_MULT+j][i], NULL, &ServerORAM::thread_matProd_func, (void*)&vecComp_args[e*NUM_MULT+j][i]);
-            
-            
-                vecComp_MAC_args[e*NUM_MULT+j][i] = THREAD_COMPUTATION(startIdx, endIdx, this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER+RSSS_MULT_ORDER[j][0]], MAT_PRODUCT_INPUT_DB_LENGTH, MAT_PRODUCT_OUTPUT_LENGTH, this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER+RSSS_MULT_ORDER[j][1]][level], this->vecLocalMatProduct_output_MAC[e*NUM_MULT+j]);
-                pthread_create(&vecThread_compute_MAC[e*NUM_MULT+j][i], NULL, &ServerORAM::thread_matProd_func, (void*)&vecComp_MAC_args[e*NUM_MULT+j][i]);
-            
-                cpu_set_t cpuset;
-                CPU_ZERO(&cpuset);
-                CPU_SET(i, &cpuset);
-                pthread_setaffinity_np(vecThread_compute_MAC[e*NUM_MULT+j][i], sizeof(cpu_set_t), &cpuset);
-                
-                pthread_setaffinity_np(vecThread_compute[e*NUM_MULT+j][i], sizeof(cpu_set_t), &cpuset);
-            }
-        }
-    }
-    for(int e = es ; e < ee; e ++)
-    {
-        for(int j = 0 ; j < NUM_MULT; j++)
-        {
-            for(int i  = 0 ; i <numThreads ; i++)
-            {
-                pthread_join(vecThread_compute[e*NUM_MULT+j][i],NULL);
-                
-                pthread_join(vecThread_compute_MAC[e*NUM_MULT+j][i],NULL);
-            }
-        }
-	}
-    //sum all together
-    for(int e = es ; e < ee; e ++)
-    {
-        for(int i = 0 ; i < DATA_CHUNKS; i++)
-        {
-            for(int n = 0 ; n < MAT_PRODUCT_OUTPUT_LENGTH; n++)
-            {
-                for(int j = 1 ; j < NUM_MULT; j++)
+                for(int i = 0, startIdx = 0 ; i < numThreads; i ++, startIdx+=step)
                 {
-                    this->vecLocalMatProduct_output[e*NUM_MULT][i][n] += this->vecLocalMatProduct_output[e*NUM_MULT+j][i][n];
+                    if(startIdx+step > DATA_CHUNKS)
+                        endIdx = DATA_CHUNKS;
+                    else
+                        endIdx = startIdx+step;
                     
-                    //MAC
-                    this->vecLocalMatProduct_output_MAC[e*NUM_MULT][i][n] += this->vecLocalMatProduct_output_MAC[e*NUM_MULT+j][i][n];
+                    vecComp_args[e*NUM_MULT+j][i] = THREAD_COMPUTATION(startIdx, endIdx, this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER+RSSS_MULT_ORDER[j][0]], MAT_PRODUCT_INPUT_DB_LENGTH, MAT_PRODUCT_OUTPUT_LENGTH, this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER+RSSS_MULT_ORDER[j][1]][level], this->vecLocalMatProduct_output[e*NUM_MULT+j]);
+                    pthread_create(&vecThread_compute[e*NUM_MULT+j][i], NULL, &ServerORAM::thread_matProd_func, (void*)&vecComp_args[e*NUM_MULT+j][i]);
+                
+                
+                    vecComp_MAC_args[e*NUM_MULT+j][i] = THREAD_COMPUTATION(startIdx, endIdx, this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER+RSSS_MULT_ORDER[j][0]], MAT_PRODUCT_INPUT_DB_LENGTH, MAT_PRODUCT_OUTPUT_LENGTH, this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER+RSSS_MULT_ORDER[j][1]][level], this->vecLocalMatProduct_output_MAC[e*NUM_MULT+j]);
+                    pthread_create(&vecThread_compute_MAC[e*NUM_MULT+j][i], NULL, &ServerORAM::thread_matProd_func, (void*)&vecComp_MAC_args[e*NUM_MULT+j][i]);
+                
+                    cpu_set_t cpuset;
+                    CPU_ZERO(&cpuset);
+                    CPU_SET(i, &cpuset);
+                    pthread_setaffinity_np(vecThread_compute_MAC[e*NUM_MULT+j][i], sizeof(cpu_set_t), &cpuset);
+                    
+                    pthread_setaffinity_np(vecThread_compute[e*NUM_MULT+j][i], sizeof(cpu_set_t), &cpuset);
                 }
             }
         }
-    }
+        for(int e = es ; e < ee; e ++)
+        {
+            for(int j = 0 ; j < NUM_MULT; j++)
+            {
+                for(int i  = 0 ; i <numThreads ; i++)
+                {
+                    pthread_join(vecThread_compute[e*NUM_MULT+j][i],NULL);
+                    
+                    pthread_join(vecThread_compute_MAC[e*NUM_MULT+j][i],NULL);
+                }
+            }
+        }
+        //sum all together
+        for(int e = es ; e < ee; e ++)
+        {
+            for(int i = 0 ; i < DATA_CHUNKS; i++)
+            {
+                for(int n = 0 ; n < MAT_PRODUCT_OUTPUT_LENGTH; n++)
+                {
+                    for(int j = 1 ; j < NUM_MULT; j++)
+                    {
+                        this->vecLocalMatProduct_output[e*NUM_MULT][i][n] += this->vecLocalMatProduct_output[e*NUM_MULT+j][i][n];
+                        
+                        //MAC
+                        this->vecLocalMatProduct_output_MAC[e*NUM_MULT][i][n] += this->vecLocalMatProduct_output_MAC[e*NUM_MULT+j][i][n];
+                    }
+                }
+            }
+        }
+    #else // SPDZ    
+        unsigned long long currBufferIdx =  0;
+        for(int e = es ; e < ee ; e++)
+        {
+            for(int i = 0 ; i < DATA_CHUNKS; i++)
+            {
+                for(int j = 0 ; j < MAT_PRODUCT_INPUT_DB_LENGTH; j++)
+                {
+                    this->vecEvictPath_db[e][i][j] -= this->vecShares_a[e][i][j];
+                }
+                for(int s = 0 ; s < NUM_SERVERS-1;s++)
+                {
+                    memcpy(&reshares_out[s][currBufferIdx], this->vecEvictPath_db[e][i], sizeof(TYPE_DATA)*(MAT_PRODUCT_INPUT_DB_LENGTH));
+                }
+                currBufferIdx+=sizeof(TYPE_DATA)*(MAT_PRODUCT_INPUT_DB_LENGTH);
+                
+            }
+            for(int i = 0 ; i < EVICT_MAT_NUM_ROW; i++)
+            {
+                for(int j = 0 ; j < EVICT_MAT_NUM_COL; j++)
+                {
+                    this->vecEvictMatrix[e][level][i][j] -= this->vecShares_b[e][level][i][j];
+                }
+                
+                for(int s = 0 ; s < NUM_SERVERS-1;s++)
+                {
+                    memcpy(&reshares_out[s][currBufferIdx], this->vecEvictMatrix[e][level][i], sizeof(TYPE_DATA)*(EVICT_MAT_NUM_COL));
+                }
+                currBufferIdx+=sizeof(TYPE_DATA)*(EVICT_MAT_NUM_COL);
+            }
+        }
+    #endif
 	return 0;
 }
 
 int ServerORAM::reShare(int level, int es, int ee)
 {
-    unsigned long long currBufferIdx = 0;
-    TYPE_DATA shares_BLOCK[NUM_SERVERS];
-    
-    TYPE_DATA shares_MAC[NUM_SERVERS];
-    
+    #if defined(RSSS)
+        unsigned long long currBufferIdx = 0;
+        TYPE_DATA shares_BLOCK[NUM_SERVERS];
+        
+        TYPE_DATA shares_MAC[NUM_SERVERS];
+        
 
-    printf("\n");
-    for(int e = es ; e < ee; e++)
-    {
-        int m = 0;
-        for(int u = 0 ; u <DATA_CHUNKS; u++)
+        printf("\n");
+        for(int e = es ; e < ee; e++)
         {
-            for(TYPE_INDEX j = 0; j < MAT_PRODUCT_OUTPUT_LENGTH; j++)
+            int m = 0;
+            for(int u = 0 ; u <DATA_CHUNKS; u++)
             {
-                ORAM::createShares(this->vecLocalMatProduct_output[e*NUM_MULT][u][j]._zz_p__rep, shares_BLOCK, NULL); // EACH SERVER CALCULATES AND DISTRIBUTES SHARES
-                
-                //MAC
-                ORAM::createShares(this->vecLocalMatProduct_output_MAC[e*NUM_MULT][u][j]._zz_p__rep,shares_MAC,NULL);
-                for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)
+                for(TYPE_INDEX j = 0; j < MAT_PRODUCT_OUTPUT_LENGTH; j++)
                 {
-                    vecReShares[e][k][u][j] = shares_BLOCK[k];
-                    //MAC
-                    vecReShares_MAC[e][k][u][j] = shares_MAC[k];
+                    ORAM::createShares(this->vecLocalMatProduct_output[e*NUM_MULT][u][j]._zz_p__rep, shares_BLOCK, NULL); // EACH SERVER CALCULATES AND DISTRIBUTES SHARES
                     
+                    //MAC
+                    ORAM::createShares(this->vecLocalMatProduct_output_MAC[e*NUM_MULT][u][j]._zz_p__rep,shares_MAC,NULL);
+                    for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)
+                    {
+                        vecReShares[e][k][u][j] = shares_BLOCK[k];
+                        //MAC
+                        vecReShares_MAC[e][k][u][j] = shares_MAC[k];
+                        
+                    }
                 }
-            }
-            memcpy(&reshares_out[0][currBufferIdx], vecReShares[e][(this->serverNo+1)%3][u], sizeof(TYPE_DATA)*(MAT_PRODUCT_OUTPUT_LENGTH));
-            memcpy(&reshares_out[1][currBufferIdx], vecReShares[e][(this->serverNo+3-1)%3][u], sizeof(TYPE_DATA)*(MAT_PRODUCT_OUTPUT_LENGTH));
-            currBufferIdx += ((MAT_PRODUCT_OUTPUT_LENGTH)*sizeof(TYPE_DATA));
+                memcpy(&reshares_out[0][currBufferIdx], vecReShares[e][(this->serverNo+1)%3][u], sizeof(TYPE_DATA)*(MAT_PRODUCT_OUTPUT_LENGTH));
+                memcpy(&reshares_out[1][currBufferIdx], vecReShares[e][(this->serverNo+3-1)%3][u], sizeof(TYPE_DATA)*(MAT_PRODUCT_OUTPUT_LENGTH));
+                currBufferIdx += ((MAT_PRODUCT_OUTPUT_LENGTH)*sizeof(TYPE_DATA));
+                
+                memcpy(&reshares_out[0][currBufferIdx], vecReShares[e][((this->serverNo+1)+1)%3][u], sizeof(TYPE_DATA)*(MAT_PRODUCT_OUTPUT_LENGTH));
+                memcpy(&reshares_out[1][currBufferIdx], vecReShares[e][(this->serverNo+3-1+1)%3][u], sizeof(TYPE_DATA)*(MAT_PRODUCT_OUTPUT_LENGTH));
+                currBufferIdx += ((MAT_PRODUCT_OUTPUT_LENGTH)*sizeof(TYPE_DATA));
             
-            memcpy(&reshares_out[0][currBufferIdx], vecReShares[e][((this->serverNo+1)+1)%3][u], sizeof(TYPE_DATA)*(MAT_PRODUCT_OUTPUT_LENGTH));
-            memcpy(&reshares_out[1][currBufferIdx], vecReShares[e][(this->serverNo+3-1+1)%3][u], sizeof(TYPE_DATA)*(MAT_PRODUCT_OUTPUT_LENGTH));
-            currBufferIdx += ((MAT_PRODUCT_OUTPUT_LENGTH)*sizeof(TYPE_DATA));
-        
-        
-            //MAC
-            memcpy(&reshares_out[0][currBufferIdx], vecReShares_MAC[e][(this->serverNo+1)%3][u], sizeof(TYPE_DATA)*(MAT_PRODUCT_OUTPUT_LENGTH));
-            memcpy(&reshares_out[1][currBufferIdx], vecReShares_MAC[e][(this->serverNo+3-1)%3][u], sizeof(TYPE_DATA)*(MAT_PRODUCT_OUTPUT_LENGTH));
-            currBufferIdx += ((MAT_PRODUCT_OUTPUT_LENGTH)*sizeof(TYPE_DATA));
             
-            memcpy(&reshares_out[0][currBufferIdx], vecReShares_MAC[e][((this->serverNo+1)+1)%3][u], sizeof(TYPE_DATA)*(MAT_PRODUCT_OUTPUT_LENGTH));
-            memcpy(&reshares_out[1][currBufferIdx], vecReShares_MAC[e][(this->serverNo+3-1+1)%3][u], sizeof(TYPE_DATA)*(MAT_PRODUCT_OUTPUT_LENGTH));
-            currBufferIdx += ((MAT_PRODUCT_OUTPUT_LENGTH)*sizeof(TYPE_DATA));
-        
-        } 
-       
-        
-        //currBufferIdx += ((BUCKET_SIZE+1)*BLOCK_SIZE);
-    }
-    
+                //MAC
+                memcpy(&reshares_out[0][currBufferIdx], vecReShares_MAC[e][(this->serverNo+1)%3][u], sizeof(TYPE_DATA)*(MAT_PRODUCT_OUTPUT_LENGTH));
+                memcpy(&reshares_out[1][currBufferIdx], vecReShares_MAC[e][(this->serverNo+3-1)%3][u], sizeof(TYPE_DATA)*(MAT_PRODUCT_OUTPUT_LENGTH));
+                currBufferIdx += ((MAT_PRODUCT_OUTPUT_LENGTH)*sizeof(TYPE_DATA));
+                
+                memcpy(&reshares_out[0][currBufferIdx], vecReShares_MAC[e][((this->serverNo+1)+1)%3][u], sizeof(TYPE_DATA)*(MAT_PRODUCT_OUTPUT_LENGTH));
+                memcpy(&reshares_out[1][currBufferIdx], vecReShares_MAC[e][(this->serverNo+3-1+1)%3][u], sizeof(TYPE_DATA)*(MAT_PRODUCT_OUTPUT_LENGTH));
+                currBufferIdx += ((MAT_PRODUCT_OUTPUT_LENGTH)*sizeof(TYPE_DATA));
+            
+            } 
+           
+            
+            //currBufferIdx += ((BUCKET_SIZE+1)*BLOCK_SIZE);
+        }
+    #else // SPDZ
+        return 0;
+    #endif
     
 }
 
 
 int ServerORAM::postReSharing(int level, int es, int ee)
 {
+    #if defined(RSSS)
     unsigned long long currBufferIdx = 0;
     for(int e = es ; e < ee; e++)
     {
@@ -1091,7 +1343,124 @@ int ServerORAM::postReSharing(int level, int es, int ee)
                 currBufferIdx += sizeof(zz_p);
             }
         }
-    }    
+    }
+    #else // SPDZ
+        //recover rho & epsilon
+        unsigned long currBufferIdx = 0;
+        for(int e = es ; e < ee ; e++)
+        {
+            for(int i = 0 ; i < DATA_CHUNKS; i++)
+            {
+                for(int j = 0 ; j < MAT_PRODUCT_INPUT_DB_LENGTH; j++)
+                {
+                    for(int s = 0 ; s < NUM_SERVERS-1;s++)
+                    {
+                        this->vecEvictPath_db[e][i][j] += *((zz_p*)&reshares_in[s][currBufferIdx]);
+                    }
+                    currBufferIdx += sizeof(TYPE_DATA);
+                }
+            }
+            
+            for(int i = 0 ; i < EVICT_MAT_NUM_ROW; i++)
+            {
+                for(int j = 0 ; j < EVICT_MAT_NUM_COL; j++)
+                {
+                    for(int s = 0 ; s < NUM_SERVERS-1; s++)
+                    {
+                        this->vecEvictMatrix[e][level][i][j] += *((zz_p*)&reshares_in[s][currBufferIdx]);
+                    }
+                    currBufferIdx += sizeof(TYPE_DATA);
+                }
+                
+            }
+        }
+          int endIdx;
+        int step = ceil((double)DATA_CHUNKS/(double)numThreads);
+        
+        for(int e = es ; e < ee ; e++)
+        {
+            for(int i = 0, startIdx = 0 ; i < numThreads; i ++, startIdx+=step)
+            {
+                if(startIdx+step > DATA_CHUNKS)
+                    endIdx = DATA_CHUNKS;   
+                else
+                    endIdx = startIdx+step;
+                    
+                vecComp_args[e*NUM_MULT+0][i] = THREAD_COMPUTATION(startIdx, endIdx, this->vecEvictPath_db[e], MAT_PRODUCT_INPUT_DB_LENGTH, MAT_PRODUCT_OUTPUT_LENGTH, this->vecShares_b[e][level], this->vecLocalMatProduct_output[e*NUM_MULT+0]);
+                pthread_create(&vecThread_compute[e*NUM_MULT+0][i], NULL, &ServerORAM::thread_matProd_func, (void*)&vecComp_args[e*NUM_MULT+0][i]);
+                
+                vecComp_args[e*NUM_MULT+1][i] = THREAD_COMPUTATION(startIdx, endIdx, this->vecShares_a[e], MAT_PRODUCT_INPUT_DB_LENGTH, MAT_PRODUCT_OUTPUT_LENGTH,  this->vecEvictMatrix[e][level],  this->vecLocalMatProduct_output[e*NUM_MULT+1]);
+                pthread_create(&vecThread_compute[e*NUM_MULT+1][i], NULL, &ServerORAM::thread_matProd_func, (void*)&vecComp_args[e*NUM_MULT+1][i]);
+                
+                vecComp_args[e*NUM_MULT+2][i] = THREAD_COMPUTATION(startIdx, endIdx, this->vecEvictPath_db[e], MAT_PRODUCT_INPUT_DB_LENGTH, MAT_PRODUCT_OUTPUT_LENGTH,  this->vecEvictMatrix[e][level], this->vecLocalMatProduct_output[e*NUM_MULT+2]);
+                pthread_create(&vecThread_compute[e*NUM_MULT+2][i], NULL, &ServerORAM::thread_matProd_func, (void*)&vecComp_args[e*NUM_MULT+2][i]);
+                
+                
+                
+                /*vecComp_MAC_args[e*NUM_MULT+j][i] = THREAD_COMPUTATION(startIdx, endIdx, this->vecEvictPath_MAC[e*NUM_MULT+RSSS_MULT_ORDER[j][0]], MAT_PRODUCT_INPUT_DB_LENGTH, MAT_PRODUCT_OUTPUT_LENGTH, this->vecEvictMatrix[e*NUM_MULT+RSSS_MULT_ORDER[j][1]][level], this->vecLocalMatProduct_output_MAC[e*NUM_MULT+j]);
+                pthread_create(&vecThread_compute_MAC[e*NUM_MULT+0][i], NULL, &ServerORAM::thread_matProd_func, (void*)&vecComp_MAC_args[e*NUM_MULT+0][i]);*/
+                
+                vecComp_MAC_args[e*NUM_MULT+0][i] = THREAD_COMPUTATION(startIdx, endIdx, this->vecEvictPath_db[e], MAT_PRODUCT_INPUT_DB_LENGTH, MAT_PRODUCT_OUTPUT_LENGTH, this->vecShares_b_MAC[e][level], this->vecLocalMatProduct_output_MAC[e*NUM_MULT+0]);
+                pthread_create(&vecThread_compute_MAC[e*NUM_MULT+0][i], NULL, &ServerORAM::thread_matProd_func, (void*)&vecComp_MAC_args[e*NUM_MULT+0][i]);
+                
+                vecComp_MAC_args[e*NUM_MULT+1][i] = THREAD_COMPUTATION(startIdx, endIdx, this->vecShares_a_MAC[e], MAT_PRODUCT_INPUT_DB_LENGTH, MAT_PRODUCT_OUTPUT_LENGTH,  this->vecEvictMatrix[e][level],  this->vecLocalMatProduct_output_MAC[e*NUM_MULT+1]);
+                pthread_create(&vecThread_compute_MAC[e*NUM_MULT+1][i], NULL, &ServerORAM::thread_matProd_func, (void*)&vecComp_MAC_args[e*NUM_MULT+1][i]);
+                
+                //vecComp_MAC_args[e*NUM_MULT+2][i] = THREAD_COMPUTATION(startIdx, endIdx, this->vecEvictPath_db[e], MAT_PRODUCT_INPUT_DB_LENGTH, MAT_PRODUCT_OUTPUT_LENGTH,  this->vecEvictMatrix[e][level], this->vecLocalMatProduct_output_MAC[e*NUM_MULT+2]);
+                //pthread_create(&vecThread_compute_MAC[e*NUM_MULT+2][i], NULL, &ServerORAM::thread_matProd_func, (void*)&vecComp_MAC_args[e*NUM_MULT+2][i]);
+                
+                
+                cpu_set_t cpuset;
+                CPU_ZERO(&cpuset);
+                CPU_SET(i, &cpuset);
+                
+                    
+                pthread_setaffinity_np(vecThread_compute[e*NUM_MULT+0][i], sizeof(cpu_set_t), &cpuset);
+                pthread_setaffinity_np(vecThread_compute[e*NUM_MULT+1][i], sizeof(cpu_set_t), &cpuset);
+                pthread_setaffinity_np(vecThread_compute[e*NUM_MULT+2][i], sizeof(cpu_set_t), &cpuset);
+                
+                pthread_setaffinity_np(vecThread_compute_MAC[e*NUM_MULT+0][i], sizeof(cpu_set_t), &cpuset);
+                pthread_setaffinity_np(vecThread_compute_MAC[e*NUM_MULT+1][i], sizeof(cpu_set_t), &cpuset);
+                //pthread_setaffinity_np(vecThread_compute_MAC[e*NUM_MULT+2][i], sizeof(cpu_set_t), &cpuset);
+                
+            }
+        }
+        for(int e = es ; e < ee; e ++)
+        {
+            for(int i  = 0 ; i <numThreads ; i++)
+            {
+                pthread_join(vecThread_compute[e*NUM_MULT+0][i],NULL);
+                pthread_join(vecThread_compute[e*NUM_MULT+1][i],NULL);
+                //if(this->serverNo==0)
+                pthread_join(vecThread_compute[e*NUM_MULT+2][i],NULL);
+                
+                pthread_join(vecThread_compute_MAC[e*NUM_MULT+0][i],NULL);
+                pthread_join(vecThread_compute_MAC[e*NUM_MULT+1][i],NULL);
+                //pthread_join(vecThread_compute_MAC[e*NUM_MULT+2][i],NULL);
+            }
+        }
+        //sum all together
+        for(int e = es ; e < ee; e ++)
+        {
+            for(int i = 0 ; i < DATA_CHUNKS; i++)
+            {
+                for(int n = 0 ; n < MAT_PRODUCT_OUTPUT_LENGTH; n++)
+                {
+                    this->vecReShares[e][this->serverNo][i][n] = this->vecLocalMatProduct_output[e*NUM_MULT+0][i][n] + this->vecLocalMatProduct_output[e*NUM_MULT+1][i][n] + vecShares_c[e][i][n];
+                    
+                    if(this->serverNo == 0)
+                    {
+                        this->vecReShares[e][this->serverNo][i][n] += this->vecLocalMatProduct_output[e*NUM_MULT+2][i][n];
+                    }
+                    
+                    this->vecReShares_MAC[e][this->serverNo][i][n] =  vecShares_c_MAC[e][i][n] + this->vecLocalMatProduct_output_MAC[e*NUM_MULT+0][i][n] + this->vecLocalMatProduct_output_MAC[e*NUM_MULT+1][i][n] +  this->vecLocalMatProduct_output[e*NUM_MULT+2][i][n]*MAC_KEY[this->serverNo] ;
+                    //cout<<this->vecReShares_MAC[e][this->serverNo][i][n]<<endl;
+                    //cin.get();
+                    
+                }
+            }
+        }
+    #endif
 }
 
 
