@@ -29,7 +29,7 @@ protected:
 #if defined(XOR_PIR)
     unsigned char*** retrieval_answer_block;
     unsigned char*** retrieval_answer_mac;
-#else
+#else // RSSS or SPDZ
     unsigned char** retrieval_answer_block;
     unsigned char** retrieval_answer_mac;
     #if defined(SPDZ)
@@ -149,7 +149,6 @@ public:
     int readBucket(TYPE_ID bucketID, int shareID, zz_p** output_data, zz_p** output_mac);
     int updateRoot(int shareID, unsigned long long replaceWriteIdx, unsigned char* input, unsigned char* mac); 
     int copyBucket(int shareID, TYPE_ID srcBucketID, TYPE_ID destBucketID); 
-    int writeBucket(TYPE_ID bucketID, int shareID, unsigned char* input); //to be updated with MAC
     int writeBucket(TYPE_ID bucketID, int shareID, unsigned char* input, unsigned char* mac); //to be updated with MAC
     int writeBucket_reverse_mode(int bucketID, int shareID, zz_p ** data, zz_p** mac);
     

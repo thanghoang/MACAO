@@ -24,7 +24,7 @@ public:
 	static int getFullPathIdx(TYPE_INDEX* fullPath, TYPE_INDEX pathID);
 
     
-	static int precomputeShares(TYPE_DATA input, TYPE_DATA** output, TYPE_INDEX output_size);
+	//static int precomputeShares(TYPE_DATA input, TYPE_DATA** output, TYPE_INDEX output_size);
     
     
     //Circuit-ORAM layout

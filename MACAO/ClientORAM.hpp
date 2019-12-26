@@ -41,19 +41,19 @@ protected:
     //variables for eviction
     TYPE_INDEX numEvict;
     TYPE_DATA*** sharedMatrix;
-#if defined (SPDZ)
-    TYPE_DATA*** sharedMatrixMAC;
-#endif
+//#if defined (SPDZ)
+//    TYPE_DATA*** sharedMatrixMAC;
+//#endif
 	TYPE_DATA** evictMatrix; 
     unsigned char** evict_out;
 
     //thread
 	pthread_t thread_sockets[NUM_SERVERS];
 
-#if defined(PRECOMP_MODE)
-	TYPE_DATA** precompOnes;
-	TYPE_DATA** precompZeros;
-#endif
+//#if defined(PRECOMP_MODE)
+//	TYPE_DATA** precompOnes;
+//	TYPE_DATA** precompZeros;
+//#endif
 
 
 public:

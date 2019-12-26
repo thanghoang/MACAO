@@ -93,6 +93,15 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
         {
             retrieval_reshares_in[s] = new unsigned char[PATH_LENGTH*BLOCK_SIZE+PATH_LENGTH*sizeof(TYPE_DATA)];
         }
+        
+        this->RetrievalShares_a = new zz_p*[DATA_CHUNKS];
+        this->RetrievalShares_b = new zz_p[PATH_LENGTH];
+        this->RetrievalShares_c = new zz_p[DATA_CHUNKS];
+           
+        for(int i = 0 ; i < DATA_CHUNKS; i++)
+        {
+            RetrievalShares_a[i] = new zz_p[PATH_LENGTH];
+        }
     #endif
     this->retrieval_query = new unsigned char*[NUM_SHARE_PER_SERVER];
     this->retrieval_path_db = new zz_p**[NUM_SHARE_PER_SERVER];
@@ -116,18 +125,6 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
             this->retrieval_path_mac[i][j] = new zz_p[PATH_LENGTH];
         }
     }
-    
-    //#endif
-    #if defined(SPDZ)
-        this->RetrievalShares_a = new zz_p*[DATA_CHUNKS];
-        this->RetrievalShares_b = new zz_p[PATH_LENGTH];
-        this->RetrievalShares_c = new zz_p[DATA_CHUNKS];
-           
-        for(int i = 0 ; i < DATA_CHUNKS; i++)
-        {
-            RetrievalShares_a[i] = new zz_p[PATH_LENGTH];
-        }
-    #endif
     
 #endif
     
@@ -1074,22 +1071,7 @@ int ServerORAM::copyBucket(int shareID, TYPE_ID srcBucketID, TYPE_ID destBucketI
 }
 
 
-// FOR RPSS 
-int ServerORAM::writeBucket(TYPE_ID bucketID, int shareID, unsigned char* input)
-{
-    string path = myStoragePath +  to_string(shareID) + "/" + to_string(bucketID);
-    FILE* f = NULL;
-    if((f = fopen(path.c_str(),"wb+")) == NULL)
-    {
-        cout<< "	[evict] File Cannot be Opened!!" <<endl;
-        exit(0);
-    }
-    fwrite(input,1, BUCKET_SIZE*BLOCK_SIZE, f);
-    fclose(f);
-    return 0;
-}
 
-// FOR SPDZ
 int ServerORAM::writeBucket(TYPE_ID bucketID, int shareID, unsigned char* input, unsigned char* mac)
 {
     string path = myStoragePath +  to_string(shareID) + "/" + to_string(bucketID);
@@ -1102,16 +1084,17 @@ int ServerORAM::writeBucket(TYPE_ID bucketID, int shareID, unsigned char* input,
     fwrite(input,1, BUCKET_SIZE*BLOCK_SIZE, f);
     fclose(f);
     
-    string path_MAC = path + "_mac";
-    FILE* f_MAC = NULL;
-    if((f_MAC = fopen(path_MAC.c_str(),"wb+")) == NULL)
-    {
-        cout<< "	[evict] File Cannot be Opened!!" <<endl;
-        exit(0);
-    }
-    fwrite(mac,1, BUCKET_SIZE*BLOCK_SIZE, f_MAC);
-    fclose(f_MAC);
-    
+    #if defined(SPDZ)
+        string path_MAC = path + "_mac";
+        FILE* f_MAC = NULL;
+        if((f_MAC = fopen(path_MAC.c_str(),"wb+")) == NULL)
+        {
+            cout<< "	[evict] File Cannot be Opened!!" <<endl;
+            exit(0);
+        }
+        fwrite(mac,1, BUCKET_SIZE*BLOCK_SIZE, f_MAC);
+        fclose(f_MAC);
+    #endif
     
     return 0;
 }
@@ -1305,9 +1288,8 @@ int ServerORAM::reShare(int level, int es, int ee)
             
             //currBufferIdx += ((BUCKET_SIZE+1)*BLOCK_SIZE);
         }
-    #else // SPDZ
-        return 0;
     #endif
+    return 0;
     
 }
 

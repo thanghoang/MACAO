@@ -45,16 +45,18 @@ static const unsigned long long P = 1073742353; //288230376152137729; //prime fi
 #if defined(RSSS)
     #define NUM_SERVERS 3
     #define SSS_PRIVACY_LEVEL 2
-    const TYPE_DATA GLOBAL_MAC_KEY = 12574462961634974;
-    const TYPE_DATA MAC_KEY[SSS_PRIVACY_LEVEL+1] = {60986730870412112, 16792083382561605, -65204351291338743};
+    //const TYPE_DATA GLOBAL_MAC_KEY = 12574462961634974;
+    //const TYPE_DATA MAC_KEY[SSS_PRIVACY_LEVEL+1] = {60986730870412112, 16792083382561605, -65204351291338743};
 #else // SPDZ
     #define NUM_SERVERS 4
     #define SSS_PRIVACY_LEVEL 3
-    const TYPE_DATA GLOBAL_MAC_KEY = 683828274;// 12574462961634974;
-    const TYPE_DATA MAC_KEY[SSS_PRIVACY_LEVEL+1] = {881602428, 951697459, 998013093, 998013093};// {805873168, 951697459,};//{881602428, 951697459, 998013093};
+    
 #endif
 
-#define PRIVACY_LEVEL 1
+const TYPE_DATA GLOBAL_MAC_KEY = 683828274;// 12574462961634974;
+const TYPE_DATA MAC_KEY[SSS_PRIVACY_LEVEL+1] = {881602428, 951697459, 998013093, 998013093};// {805873168, 951697459,};//{881602428, 951697459, 998013093};
+
+//#define PRIVACY_LEVEL 1
 
 #define CORAM_LAYOUT
 //#define TRIPLET_EVICTION
@@ -66,13 +68,9 @@ static const unsigned long long P = 1073742353; //288230376152137729; //prime fi
 
 #define NTL_LIB //disable it if compiled for android
 //=== PARAMETERS ============================================================
-#if defined(RSSS)
-    #define BLOCK_SIZE 4096
-    #define HEIGHT 4
-#else // SPDZ
-    #define BLOCK_SIZE 32
-    #define HEIGHT 3
-#endif
+
+#define BLOCK_SIZE 4096
+#define HEIGHT 3
 
 
 #if defined(CORAM_LAYOUT)
@@ -101,29 +99,12 @@ static const unsigned long long P = 1073742353; //288230376152137729; //prime fi
 const int H = HEIGHT; 
 
 
-
-//=== MODES ==================================================================
-//#define PRECOMP_MODE //for shares of *0* and *1* precomputation
-//============================================================================
-
-
-//=== SECRET SHARING PARAMETER================================================
-//const long long int vandermonde[NUM_SERVERS] = {3 , -3 + P, 1};
-//const long long int vandermonde[NUM_SERVERS] = {7, -21+P, 35, -35+P, 21, -7+P, 1};
-
-/** Vandermonde Values for Different Number of Servers (7, 5, 3)*/
-//{7, -21+P, 35, -35+P, 21, -7+P, 1};//{5, -10+P, 10, -5+P, 1};//{3, -3+P, 1};
-//============================================================================
-
-
 //=== SERVER INFO ============================================================
 
-	//SERVER IP ADDRESSES
-#if defined(RSSS)
-    const std::string SERVER_ADDR[NUM_SERVERS] = {"tcp://localhost", "tcp://localhost", "tcp://localhost"};//, "tcp://localhost", "tcp://localhost", "tcp://localhost", "tcp://localhost"}; 	
-#else // SPDZ
-    const std::string SERVER_ADDR[NUM_SERVERS] = {"tcp://localhost", "tcp://localhost", "tcp://localhost", "tcp://localhost"};//, "tcp://localhost", "tcp://localhost", "tcp://localhost", "tcp://localhost"}; 	
-#endif
+//SERVER IP ADDRESSES
+
+const std::string SERVER_ADDR[NUM_SERVERS] = {"tcp://localhost", "tcp://localhost", "tcp://localhost" ,"tcp://localhost"};//, "tcp://localhost", "tcp://localhost", "tcp://localhost", "tcp://localhost"}; 	
+
 #define SERVER_PORT 25555        //define the first port to generate incremental ports for client-server /server-server communications
 
 //============================================================================
@@ -206,6 +187,7 @@ const TYPE_INDEX N_leaf = pow(K_ARY,H);
 #if defined(RSSS)
     const int NUM_MULT = 3;
     const int NUM_SHARE_PER_SERVER = 2;
+    const int  RSSS_MULT_ORDER[NUM_MULT][2]= { {0,0}, {0,1}, {1,0}};
     //const int NUM_REPL = 2;
 #else // SPDZ
     const int NUM_MULT = 3;
@@ -284,10 +266,10 @@ const unsigned long long BUCKET_DATA_SIZE = BUCKET_SIZE*BLOCK_SIZE;
 
 
 
-
-const int NUM_XOR_QUERY_PER_SERVER = 2;
+#if defined(XOR_PIR)
+    const int NUM_XOR_QUERY_PER_SERVER = 2;
+#endif
                  
  //rule for RSSS multiplication: 00 01 10
-const int  RSSS_MULT_ORDER[NUM_MULT][2]= { {0,0}, {0,1}, {1,0}};
                                
 #endif /* CONFIG_H_ */

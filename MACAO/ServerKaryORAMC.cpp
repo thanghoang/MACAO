@@ -35,15 +35,12 @@ int ServerKaryORAMC::prepareEvictComputation()
         //holdBlock
         for(int i = 0  ; i < DATA_CHUNKS; i++)
         {
-            #if defined(RSSS)
+            
                 memcpy(this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER][i],&evict_in[currBufferIdx ],sizeof(TYPE_DATA));
                 memcpy(this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER][i],&evict_in[currBufferIdx+BLOCK_SIZE],sizeof(TYPE_DATA));
-                
+            #if defined(RSSS)    
                 memcpy(this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER+1][i],&client_evict_in[currBufferIdx],sizeof(TYPE_DATA));
                 memcpy(this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER+1][i],&client_evict_in[currBufferIdx+BLOCK_SIZE],sizeof(TYPE_DATA));
-            #else // SPDZ
-                memcpy(this->vecEvictPath_db[e][i],&evict_in[currBufferIdx ],sizeof(TYPE_DATA));
-                memcpy(this->vecEvictPath_MAC[e][i],&evict_in[currBufferIdx+BLOCK_SIZE],sizeof(TYPE_DATA));
             #endif 
             currBufferIdx +=sizeof(TYPE_DATA);
         }
@@ -52,12 +49,10 @@ int ServerKaryORAMC::prepareEvictComputation()
         {
             for (TYPE_INDEX i = 0 ; i < EVICT_MAT_NUM_ROW; i++)
             {
-                #if defined(RSSS)
-                    memcpy(this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER][y][i], &evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
                 
+                    memcpy(this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER][y][i], &evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
+                #if defined(RSSS)
                     memcpy(this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER+1][y][i], &client_evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
-                #else // SPDZ
-                    memcpy(this->vecEvictMatrix[e][y][i], &evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
                 #endif
                 currBufferIdx += EVICT_MAT_NUM_COL*sizeof(TYPE_DATA);
             }
@@ -132,11 +127,10 @@ start:
         
         for(int e = es ; e < ee; e++)
         {
+            
+                this->readBucket_evict_reverse(fullEvictPathIdx[e][h], serverNo, this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER],this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER]);
             #if defined(RSSS)
-                this->readBucket_evict_reverse(fullEvictPathIdx[e][h], serverNo%3, this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER],this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER]);
                 this->readBucket_evict_reverse(fullEvictPathIdx[e][h], (serverNo+1)%3, this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER+1],this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER+1]);
-            #else // SPDZ
-                this->readBucket_evict_reverse(fullEvictPathIdx[e][h], serverNo, this->vecEvictPath_db[e],this->vecEvictPath_MAC[e]);
             #endif
         }
         auto end = time_now;
@@ -184,39 +178,28 @@ start:
        //write to file
         
         start = time_now;
-        #if defined(RSSS)
-            for(int e = es ; e < ee; e++)
-            {            
-                this->writeBucket_reverse_mode(fullEvictPathIdx[e][h],serverNo,vecReShares[e][serverNo],vecReShares_MAC[e][serverNo]);
-                this->writeBucket_reverse_mode(fullEvictPathIdx[e][h],(serverNo+1)%3,vecReShares[e][(serverNo+1)%3],vecReShares_MAC[e][(serverNo+1)%3]);
-                
-                
-                for(int j = 0 ; j < DATA_CHUNKS; j++)
-                {
-                    memcpy(this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER][j],&vecReShares[e][this->serverNo][j][BUCKET_SIZE]._zz_p__rep,sizeof(TYPE_DATA));
-                    memcpy(this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER+1][j],&vecReShares[e][(this->serverNo+1)%3][j][BUCKET_SIZE]._zz_p__rep,sizeof(TYPE_DATA));
-                    
-                    // MAC
-                    memcpy(this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER][j],&vecReShares_MAC[e][this->serverNo][j][BUCKET_SIZE]._zz_p__rep,sizeof(TYPE_DATA));
-                    memcpy(this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER+1][j],&vecReShares_MAC[e][(this->serverNo+1)%3][j][BUCKET_SIZE]._zz_p__rep,sizeof(TYPE_DATA));
-                
-                }                
-            }
-        #else // SPDZ
+    
         for(int e = es ; e < ee; e++)
-        {       
-            this->writeBucket_reverse_mode(fullEvictPathIdx[e][h],serverNo,vecReShares[e][this->serverNo],vecReShares_MAC[e][this->serverNo]);
-        
+        {            
+            this->writeBucket_reverse_mode(fullEvictPathIdx[e][h],serverNo,vecReShares[e][serverNo],vecReShares_MAC[e][serverNo]);
+            #if defined(RSSS)
+                this->writeBucket_reverse_mode(fullEvictPathIdx[e][h],(serverNo+1)%3,vecReShares[e][(serverNo+1)%3],vecReShares_MAC[e][(serverNo+1)%3]);
+            #endif
+            
             for(int j = 0 ; j < DATA_CHUNKS; j++)
             {
-                memcpy(this->vecEvictPath_db[e][j],&vecReShares[e][this->serverNo][j][BUCKET_SIZE]._zz_p__rep,sizeof(TYPE_DATA));
-                
+                memcpy(this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER][j],&vecReShares[e][this->serverNo][j][BUCKET_SIZE]._zz_p__rep,sizeof(TYPE_DATA));
                 // MAC
-                memcpy(this->vecEvictPath_MAC[e][j],&vecReShares_MAC[e][this->serverNo][j][BUCKET_SIZE]._zz_p__rep,sizeof(TYPE_DATA));
+                memcpy(this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER][j],&vecReShares_MAC[e][this->serverNo][j][BUCKET_SIZE]._zz_p__rep,sizeof(TYPE_DATA));
                 
+                #if defined(RSSS)
+                    memcpy(this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER+1][j],&vecReShares[e][(this->serverNo+1)%3][j][BUCKET_SIZE]._zz_p__rep,sizeof(TYPE_DATA));
+                    // MAC
+                    memcpy(this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER+1][j],&vecReShares_MAC[e][(this->serverNo+1)%3][j][BUCKET_SIZE]._zz_p__rep,sizeof(TYPE_DATA));
+                #endif
             }                
         }
-        #endif
+    
         end = time_now;
         server_logs[12] += std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
         if (h==0 && es == 0)

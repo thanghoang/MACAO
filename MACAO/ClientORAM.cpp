@@ -13,25 +13,6 @@ zmq::socket_t**  ClientORAM::socket = new zmq::socket_t*[NUM_SERVERS];
 
 ClientORAM::ClientORAM()
 {
-    unsigned int num_xor_queries; 
-    
-    #if defined(RSSS)
-        num_xor_queries = SSS_PRIVACY_LEVEL+1;
-    #else //if defined SPDZ
-        num_xor_queries = NUM_SERVERS;
-    #endif
-    
-    xor_queries= new unsigned char**[num_xor_queries];
-    for(int i = 0 ; i < num_xor_queries; i++)
-    {
-        xor_queries[i]= new unsigned char*[NUM_SHARE_PER_SERVER];
-        for(int j = 0 ; j < NUM_SHARE_PER_SERVER; j++)
-        {
-            xor_queries[i][j] = new unsigned char[PATH_LENGTH/8];
-            memset(xor_queries[i][j],0,PATH_LENGTH/8);
-        }
-	}
-    
     this->pos_map = new TYPE_POS_MAP[NUM_BLOCK+1];
     
     this->metaData = new TYPE_ID*[NUM_NODES];
@@ -99,24 +80,24 @@ ClientORAM::ClientORAM()
     
     thread_socket_args = new struct_socket[NUM_SERVERS];
     
-	#if defined(PRECOMP_MODE) // ================================================================================================
-		this->precompOnes = new TYPE_DATA*[NUM_SERVERS];
-		for (TYPE_INDEX i = 0 ; i < NUM_SERVERS ; i++){
-			this->precompOnes[i] = new TYPE_DATA[PRECOMP_SIZE];
-		}
-		
-		this->precompZeros = new TYPE_DATA*[NUM_SERVERS];
-		for (TYPE_INDEX i = 0 ; i < NUM_SERVERS ; i++){
-			this->precompZeros[i] = new TYPE_DATA[PRECOMP_SIZE];
-		}
-
-		
-		auto start = time_now;
-		ORAM.precomputeShares(0, precompZeros, PRECOMP_SIZE);
-		ORAM.precomputeShares(1, precompOnes, PRECOMP_SIZE);
-		auto end = time_now;
-		cout<< "	[ClientKaryORAMO] " << 2*PRECOMP_SIZE << " Logical Values Precomputed in" << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count()<< " ns"<<endl;
-	#endif //defined(PRECOMP_MODE) ================================================================================================
+//	#if defined(PRECOMP_MODE) // ================================================================================================
+//		this->precompOnes = new TYPE_DATA*[NUM_SERVERS];
+//		for (TYPE_INDEX i = 0 ; i < NUM_SERVERS ; i++){
+//			this->precompOnes[i] = new TYPE_DATA[PRECOMP_SIZE];
+//		}
+//		
+//		this->precompZeros = new TYPE_DATA*[NUM_SERVERS];
+//		for (TYPE_INDEX i = 0 ; i < NUM_SERVERS ; i++){
+//			this->precompZeros[i] = new TYPE_DATA[PRECOMP_SIZE];
+//		}
+//
+//		
+//		auto start = time_now;
+//		ORAM.precomputeShares(0, precompZeros, PRECOMP_SIZE);
+//		ORAM.precomputeShares(1, precompOnes, PRECOMP_SIZE);
+//		auto end = time_now;
+//		cout<< "	[ClientKaryORAMO] " << 2*PRECOMP_SIZE << " Logical Values Precomputed in" << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count()<< " ns"<<endl;
+//	#endif //defined(PRECOMP_MODE) ================================================================================================
 	
     
     
@@ -528,14 +509,8 @@ int ClientORAM::createRetrievalQuery(int pIdx, TYPE_ID pID)
                 memcpy(&retrieval_query_out[i][CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_DATA)], &pID, sizeof(pID));
             }
         #else //if defined SPDZ or RSSS without XOR-PIR
-            unsigned int num_queries;             
-            #if defined(RSSS)
-                num_queries = SSS_PRIVACY_LEVEL+1;
-            #else //if defined SPDZ
-                num_queries = NUM_SERVERS;
-            #endif
             ORAM::sss_createQuery(pIdx,PATH_LENGTH,retrieval_query_out);
-            for (int i = 0; i < num_queries; i++)
+            for (int i = 0; i < NUM_SERVERS; i++)
             {
                 memcpy(&retrieval_query_out[i][CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_ID)], &pID, sizeof(pID));
             }

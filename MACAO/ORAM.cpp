@@ -601,37 +601,37 @@ int ORAM::xor_retrieve(unsigned char* query, zz_p** db, zz_p** db_mac, int start
  * @param output_size: (output) The size of generated shares from the secret
  * @return 0 if successful
  */  
-int ORAM::precomputeShares(TYPE_DATA input, TYPE_DATA** output, TYPE_INDEX output_size)
-{
-    unsigned long long random[PRIVACY_LEVEL];
-	cout << "=================================================================" << endl;
-	cout<< "[ORAM] Precomputing Shares for " << input << endl;
-    boost::progress_display show_progress(output_size);
-    
-	for(int k = 0; k < output_size; k++){
-		for ( int i = 0 ; i < PRIVACY_LEVEL ; i++)
-		{
-        #if defined (NTL_LIB)
-            zz_p rand;
-            NTL::random(rand);
-            memcpy(&random[i], &rand,sizeof(TYPE_DATA));
-        #else
-            random[i] = Utils::_LongRand()+1 % P;
-		#endif
-        }
-		for(unsigned long int i = 1; i <= NUM_SERVERS; i++)
-		{
-			output[i-1][k] = input;
-			for(int j = 1 ; j <= PRIVACY_LEVEL ; j++)
-			{
-				output[i-1][k] = (output[i-1][k] + Utils::mulmod(random[j-1],i)) % P;
-			}
-		}
-		++show_progress;
-	}
-	
-	return 0;
-}
+//int ORAM::precomputeShares(TYPE_DATA input, TYPE_DATA** output, TYPE_INDEX output_size)
+//{
+//    unsigned long long random[PRIVACY_LEVEL];
+//	cout << "=================================================================" << endl;
+//	cout<< "[ORAM] Precomputing Shares for " << input << endl;
+//    boost::progress_display show_progress(output_size);
+//    
+//	for(int k = 0; k < output_size; k++){
+//		for ( int i = 0 ; i < PRIVACY_LEVEL ; i++)
+//		{
+//        #if defined (NTL_LIB)
+//            zz_p rand;
+//            NTL::random(rand);
+//            memcpy(&random[i], &rand,sizeof(TYPE_DATA));
+//        #else
+//            random[i] = Utils::_LongRand()+1 % P;
+//		#endif
+//        }
+//		for(unsigned long int i = 1; i <= NUM_SERVERS; i++)
+//		{
+//			output[i-1][k] = input;
+//			for(int j = 1 ; j <= PRIVACY_LEVEL ; j++)
+//			{
+//				output[i-1][k] = (output[i-1][k] + Utils::mulmod(random[j-1],i)) % P;
+//			}
+//		}
+//		++show_progress;
+//	}
+//	
+//	return 0;
+//}
 
 
 // Circuit-ORAM layout
