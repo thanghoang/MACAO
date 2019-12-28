@@ -13,6 +13,21 @@ zmq::socket_t**  ClientORAM::socket = new zmq::socket_t*[NUM_SERVERS];
 
 ClientORAM::ClientORAM()
 {
+    #if defined(SEEDING)
+        this->prng_client = new prng_state[NUM_SERVERS];
+        
+        for(int i = 0 ; i < NUM_SERVERS; i++)
+        {
+            prng_client[i] = prng_state();
+            
+            sober128_start(&prng_client[i]);
+            
+            sober128_add_entropy((const unsigned char*)CLIENT_SERVER_SEED[i].c_str(),CLIENT_SERVER_SEED[i].size(),&prng_client[i]);
+                
+            sober128_ready(&prng_client[i]);
+            
+        }
+    #endif
     this->pos_map = new TYPE_POS_MAP[NUM_BLOCK+1];
     
     this->metaData = new TYPE_ID*[NUM_NODES];
@@ -445,8 +460,23 @@ int ClientORAM::retrieve(TYPE_ID blockID)
     start = time_now;
     for (int i = 0; i < NUM_SERVERS; i++)
     {
-        thread_socket_args[i] = struct_socket(i, retrieval_query_out[i], CLIENT_RETRIEVAL_OUT_LENGTH, retrieval_in[i], SERVER_RETRIEVAL_REPLY_LENGTH, CMD_RETRIEVE,NULL);
-		pthread_create(&thread_sockets[i], NULL, &ClientORAM::thread_socket_func, (void*)&thread_socket_args[i]);
+        #if defined(SEEDING)
+            #if defined(XOR_PIR)
+                thread_socket_args[i] = struct_socket(i, retrieval_query_out[i], CLIENT_RETRIEVAL_OUT_LENGTH, retrieval_in[i], SERVER_RETRIEVAL_REPLY_LENGTH, CMD_RETRIEVE,NULL);
+            #else
+                if(i==0)
+                {
+                    thread_socket_args[i] = struct_socket(i, retrieval_query_out[i], CLIENT_RETRIEVAL_OUT_LENGTH, retrieval_in[i], SERVER_RETRIEVAL_REPLY_LENGTH, CMD_RETRIEVE,NULL);
+                }
+                else
+                {
+                    thread_socket_args[i] = struct_socket(i, retrieval_query_out[i], sizeof(TYPE_INDEX), retrieval_in[i], SERVER_RETRIEVAL_REPLY_LENGTH, CMD_RETRIEVE,NULL);
+                }
+            #endif
+        #else // RSSS or SPDZ
+            thread_socket_args[i] = struct_socket(i, retrieval_query_out[i], CLIENT_RETRIEVAL_OUT_LENGTH, retrieval_in[i], SERVER_RETRIEVAL_REPLY_LENGTH, CMD_RETRIEVE,NULL);
+		#endif
+        pthread_create(&thread_sockets[i], NULL, &ClientORAM::thread_socket_func, (void*)&thread_socket_args[i]);
     }
       
     for (int i = 0; i < NUM_SERVERS; i++)
@@ -508,12 +538,25 @@ int ClientORAM::createRetrievalQuery(int pIdx, TYPE_ID pID)
                 memcpy(&retrieval_query_out[i][CLIENT_RETRIEVAL_QUERY_SIZE], xor_queries[(i+1)%(SSS_PRIVACY_LEVEL+1)][1],CLIENT_RETRIEVAL_QUERY_SIZE);
                 memcpy(&retrieval_query_out[i][CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_DATA)], &pID, sizeof(pID));
             }
-        #else //if defined SPDZ or RSSS without XOR-PIR
-            ORAM::sss_createQuery(pIdx,PATH_LENGTH,retrieval_query_out);
-            for (int i = 0; i < NUM_SERVERS; i++)
-            {
-                memcpy(&retrieval_query_out[i][CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_ID)], &pID, sizeof(pID));
-            }
+        #else //if defined SPDZ, RSSS, SEEDING without XOR-PIR
+            #if defined(SEEDING)
+                ORAM::sss_createQuery(pIdx,PATH_LENGTH,retrieval_query_out, this->prng_client);
+                for (int i = 0; i < NUM_SERVERS; i++)
+                {
+                    if(i==0)
+                        memcpy(&retrieval_query_out[i][CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_ID)], &pID, sizeof(pID));
+                    else
+                    {
+                        memcpy(&retrieval_query_out[i][0], &pID, sizeof(pID));
+                    }
+                }
+            #else // RSSS or SPDZ
+                ORAM::sss_createQuery(pIdx,PATH_LENGTH,retrieval_query_out);
+                for (int i = 0; i < NUM_SERVERS; i++)
+                {
+                    memcpy(&retrieval_query_out[i][CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_ID)], &pID, sizeof(pID));
+                }
+            #endif
             
         #endif
     return 0;

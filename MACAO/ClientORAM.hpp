@@ -27,7 +27,9 @@ protected:
 	TYPE_INDEX numRead;
 	TYPE_DATA** sharedVector;
     
- 
+    #if defined(SEEDING)
+        prng_state* prng_client;
+    #endif
     
     unsigned char** retrieval_query_out;	
 

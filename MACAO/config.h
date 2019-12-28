@@ -24,6 +24,7 @@
 #include <string>
 #include <sstream>
 #include <bitset>
+#include "tomcrypt.h"
 
 typedef long long TYPE_DATA;
 template <typename T>
@@ -39,22 +40,27 @@ static const unsigned long long P = 1073742353; //288230376152137729; //prime fi
 
 //#define XOR_PIR
 //#define RSSS
-#define SPDZ
+//#define SPDZ
+#define SEEDING
+
+#if defined (SEEDING)
+    static std::string CLIENT_SERVER_SEED[3] = {"abcdefghijklmn", "12345678910112","mnlkjihgfedcba"};
+    static std::string SERVER_SERVER_SEED[3][3] = {{"12110987654321","12131415161718","cjhuipjoqjvcki"} , {"20212223242526", "27282930313233","8102jdcxkjioqu"}, {"34353637383940","41424344454647","10s0219287dakc"}};
+#endif
 
 //=== SECRET SHARING PARAMETER================================================
 #if defined(RSSS)
     #define NUM_SERVERS 3
     #define SSS_PRIVACY_LEVEL 2
-    //const TYPE_DATA GLOBAL_MAC_KEY = 12574462961634974;
-    //const TYPE_DATA MAC_KEY[SSS_PRIVACY_LEVEL+1] = {60986730870412112, 16792083382561605, -65204351291338743};
+    const TYPE_DATA GLOBAL_MAC_KEY = 12574462961634974;
+    const TYPE_DATA MAC_KEY[SSS_PRIVACY_LEVEL+1] = {60986730870412112, 16792083382561605, -65204351291338743};
 #else // SPDZ
     #define NUM_SERVERS 4
     #define SSS_PRIVACY_LEVEL 3
-    
+    const TYPE_DATA GLOBAL_MAC_KEY = 683828274;// 12574462961634974;
+    const TYPE_DATA MAC_KEY[SSS_PRIVACY_LEVEL+1] = {881602428, 951697459, 998013093, 998013093};// {805873168, 951697459,};//{881602428, 951697459, 998013093};
 #endif
 
-const TYPE_DATA GLOBAL_MAC_KEY = 683828274;// 12574462961634974;
-const TYPE_DATA MAC_KEY[SSS_PRIVACY_LEVEL+1] = {881602428, 951697459, 998013093, 998013093};// {805873168, 951697459,};//{881602428, 951697459, 998013093};
 
 //#define PRIVACY_LEVEL 1
 
@@ -69,7 +75,7 @@ const TYPE_DATA MAC_KEY[SSS_PRIVACY_LEVEL+1] = {881602428, 951697459, 998013093,
 #define NTL_LIB //disable it if compiled for android
 //=== PARAMETERS ============================================================
 
-#define BLOCK_SIZE 4096
+#define BLOCK_SIZE 64
 #define HEIGHT 3
 
 
@@ -103,7 +109,11 @@ const int H = HEIGHT;
 
 //SERVER IP ADDRESSES
 
-const std::string SERVER_ADDR[NUM_SERVERS] = {"tcp://localhost", "tcp://localhost", "tcp://localhost" ,"tcp://localhost"};//, "tcp://localhost", "tcp://localhost", "tcp://localhost", "tcp://localhost"}; 	
+#if defined(RSSS)
+    const std::string SERVER_ADDR[NUM_SERVERS] = {"tcp://localhost", "tcp://localhost", "tcp://localhost"};//, "tcp://localhost", "tcp://localhost", "tcp://localhost", "tcp://localhost"}; 	
+#else
+    const std::string SERVER_ADDR[NUM_SERVERS] = {"tcp://localhost", "tcp://localhost", "tcp://localhost" ,"tcp://localhost"};//, "tcp://localhost", "tcp://localhost", "tcp://localhost", "tcp://localhost"}; 	
+#endif
 
 #define SERVER_PORT 25555        //define the first port to generate incremental ports for client-server /server-server communications
 
@@ -232,7 +242,9 @@ const unsigned long long BUCKET_DATA_SIZE = BUCKET_SIZE*BLOCK_SIZE;
 
     const unsigned long long CLIENT_EVICTION_OUT_LENGTH =  2*(BLOCK_SIZE*2+ (H+1)*evictMatSize*sizeof(TYPE_DATA)) +sizeof(TYPE_INDEX) ;//  for OnionORAM -> (H+1)*evictMatSize*sizeof(TYPE_DATA) + sizeof(TYPE_INDEX);
     
-    #if defined (RSSS)
+    #if defined(SEEDING)
+        const unsigned long long SERVER_RESHARE_IN_OUT_LENGTH =  2*2*((BUCKET_SIZE+1)*BLOCK_SIZE); // 1st2: MAC, 2nd2: for 2 shares for RSSS, / server -> for onion ORAM:  BUCKET_SIZE*sizeof(TYPE_DATA)*DATA_CHUNKS
+    #elif defined (RSSS)
         const unsigned long long SERVER_RESHARE_IN_OUT_LENGTH =  2*2*(2*(BUCKET_SIZE+1)*BLOCK_SIZE); // 1st2: MAC, 2nd2: for 2 shares for RSSS, / server -> for onion ORAM:  BUCKET_SIZE*sizeof(TYPE_DATA)*DATA_CHUNKS
     #else // SPDZ 
         const unsigned long long SERVER_RESHARE_IN_OUT_LENGTH =  2*((BUCKET_SIZE+1) * BLOCK_SIZE + (evictMatSize*sizeof(TYPE_DATA) )); // 1st 2: e num concurrent evict
@@ -248,7 +260,9 @@ const unsigned long long BUCKET_DATA_SIZE = BUCKET_SIZE*BLOCK_SIZE;
     const int EVICT_MAT_NUM_ROW = BUCKET_SIZE+1;
 #else
     const unsigned long long CLIENT_EVICTION_OUT_LENGTH =  ((H+1)*evictMatSize*sizeof(TYPE_DATA)) +sizeof(TYPE_INDEX) ;//  for OnionORAM -> (H+1)*evictMatSize*sizeof(TYPE_DATA) + sizeof(TYPE_INDEX);
-    #if defined (RSSS)
+    #if defined(SEEDING)
+        const unsigned long long SERVER_RESHARE_IN_OUT_LENGTH =  2*((BUCKET_SIZE*BLOCK_SIZE)); // 1st2: MAC, 2nd2: for 2 shares for RSSS / server -> for onion ORAM:  BUCKET_SIZE*sizeof(TYPE_DATA)*DATA_CHUNKS
+    #elif defined (RSSS)
         const unsigned long long SERVER_RESHARE_IN_OUT_LENGTH =  2*2*((BUCKET_SIZE*BLOCK_SIZE)); // 1st2: MAC, 2nd2: for 2 shares for RSSS / server -> for onion ORAM:  BUCKET_SIZE*sizeof(TYPE_DATA)*DATA_CHUNKS
     #else // SPDZ
         const unsigned long long SERVER_RESHARE_IN_OUT_LENGTH =  (2*BUCKET_SIZE*BLOCK_SIZE)+evictMatSize*sizeof(TYPE_DATA); //1st2: mat_input_len

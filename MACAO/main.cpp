@@ -33,6 +33,9 @@ unsigned int nthreads = std::thread::hardware_concurrency();
 
 int main(int argc, char **argv)
 {    
+    #if defined(SEEDING)
+        register_prng(&sober128_desc);
+    #endif
     string mkdir_cmd = "mkdir -p ";
     string mkdir_localState = mkdir_cmd + clientLocalDir;
     string mkdir_unsharedData = mkdir_cmd + clientDataDir;
@@ -51,7 +54,9 @@ int main(int argc, char **argv)
     zz_p::init(P);
     //set random seed for NTL
     ZZ seed = conv<ZZ>("123456789101112131415161718192021222324");
-    SetSeed(seed);
+    #if !defined(SEEDING)
+        SetSeed(seed);
+    #endif
     
 	cout << "CLIENT(1) or SERVER(2): ";
 	cin >> choice;

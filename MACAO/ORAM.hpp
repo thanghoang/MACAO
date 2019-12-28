@@ -42,7 +42,7 @@ public:
    // static int getSharedVector(TYPE_DATA* logicVector, TYPE_DATA** sharedVector, int vector_len);
 
     static int createShares(TYPE_DATA secret, TYPE_DATA* secret_shares, TYPE_DATA* mac_shares);
-    
+    static int createShares(TYPE_DATA secret, TYPE_DATA* secret_shares, TYPE_DATA* mac_shares, prng_state* pseudo_state, int secretShareIdx);
     
   
     
@@ -59,7 +59,8 @@ public:
     
     
     static int sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char** output);
-   
+    static int sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char** output, prng_state *prng);
+
 };
     
 #endif // SSORAM_HPP

@@ -17,9 +17,12 @@ protected:
     TYPE_INDEX serverNo;
     TYPE_INDEX others[NUM_SERVERS-1];
     string myStoragePath;
-
     
-    
+    #if defined(SEEDING)
+        prng_state** prng_server;
+        
+        prng_state* prng_client;
+    #endif
     //variables for retrieval
     unsigned char* retrieval_query_in;
     unsigned char** retrieval_query;

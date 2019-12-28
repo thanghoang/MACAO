@@ -29,36 +29,111 @@ ServerKaryORAMC::~ServerKaryORAMC()
 
 int ServerKaryORAMC::prepareEvictComputation()
 {
-    unsigned long long currBufferIdx = 0;
-    for(int e = 0 ; e < 2; e++)
-    {
-        //holdBlock
-        for(int i = 0  ; i < DATA_CHUNKS; i++)
+    #if defined(SEEDING)
+        unsigned long long currBufferIdx = sizeof(TYPE_DATA);
+        unsigned long long tmp = 0;
+        unsigned long long tmp2[EVICT_MAT_NUM_COL];
+        for(int e = 0 ; e < 2; e++)
         {
-            
-                memcpy(this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER][i],&evict_in[currBufferIdx ],sizeof(TYPE_DATA));
-                memcpy(this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER][i],&evict_in[currBufferIdx+BLOCK_SIZE],sizeof(TYPE_DATA));
-            #if defined(RSSS)    
-                memcpy(this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER+1][i],&client_evict_in[currBufferIdx],sizeof(TYPE_DATA));
-                memcpy(this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER+1][i],&client_evict_in[currBufferIdx+BLOCK_SIZE],sizeof(TYPE_DATA));
-            #endif 
-            currBufferIdx +=sizeof(TYPE_DATA);
-        }
-        currBufferIdx += BLOCK_SIZE;
-        for (TYPE_INDEX y = 0 ; y < H+1 ; y++)
-        {
-            for (TYPE_INDEX i = 0 ; i < EVICT_MAT_NUM_ROW; i++)
+            //holdBlock
+            for(int i = 0  ; i < DATA_CHUNKS; i++)
             {
+                if(serverNo==0)
+                {
+                    memcpy(this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER][i],&evict_in[currBufferIdx ],sizeof(TYPE_DATA));
+                    memcpy(this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER][i],&evict_in[currBufferIdx+BLOCK_SIZE],sizeof(TYPE_DATA));
+                }
+                else
+                {
+                    sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[serverNo]);
+                    this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER][i][0] = tmp;               
+                    
+                    sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[serverNo]);
+                    this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER][i][0] = tmp;
+
+                }
                 
-                    memcpy(this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER][y][i], &evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
-                #if defined(RSSS)
-                    memcpy(this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER+1][y][i], &client_evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
-                #endif
-                currBufferIdx += EVICT_MAT_NUM_COL*sizeof(TYPE_DATA);
+                if(serverNo==2)
+                {
+                    memcpy(this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER+1][i],&client_evict_in[currBufferIdx-sizeof(TYPE_DATA)],sizeof(TYPE_DATA));
+                    memcpy(this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER+1][i],&client_evict_in[currBufferIdx+BLOCK_SIZE-sizeof(TYPE_DATA)],sizeof(TYPE_DATA));
+                }
+                else
+                {
+                    sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo+1)%3]);
+                    this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER+1][i][0] = tmp;
+                    
+                    sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo+1)%3]);
+                    this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER+1][i][0] = tmp;
+                }
+                
+                currBufferIdx +=sizeof(TYPE_DATA);
+            }
+            currBufferIdx += BLOCK_SIZE;
+            for (TYPE_INDEX y = 0 ; y < H+1 ; y++)
+            {
+                for (TYPE_INDEX i = 0 ; i < EVICT_MAT_NUM_ROW; i++)
+                {
+                    if(serverNo==0)
+                    {
+                        memcpy(this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER][y][i], &evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
+                    }
+                    else
+                    {
+                        sober128_read((unsigned char*)&tmp2,EVICT_MAT_NUM_COL*sizeof(TYPE_DATA),&prng_client[serverNo]);
+                        for(TYPE_INDEX j = 0 ; j < EVICT_MAT_NUM_COL; j++)
+                        {
+                            this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER][y][i][j] = tmp2[j];
+                        }
+                    }
+                    
+                    if(serverNo==2)
+                    {
+                        memcpy(this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER+1][y][i], &client_evict_in[currBufferIdx-sizeof(TYPE_DATA)], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
+                    }
+                    else
+                    {
+                         sober128_read((unsigned char*)&tmp2,EVICT_MAT_NUM_COL*sizeof(TYPE_DATA),&prng_client[(serverNo+1)%3]);
+                        for(TYPE_INDEX j = 0 ; j < EVICT_MAT_NUM_COL; j++)
+                        {
+                            this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER+1][y][i][j] = tmp2[j];
+                        }
+                    }
+                    currBufferIdx += EVICT_MAT_NUM_COL*sizeof(TYPE_DATA);
+                }
             }
         }
-    }
-    
+    #else 
+        unsigned long long currBufferIdx = 0;
+        for(int e = 0 ; e < 2; e++)
+        {
+            //holdBlock
+            for(int i = 0  ; i < DATA_CHUNKS; i++)
+            {
+                
+                    memcpy(this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER][i],&evict_in[currBufferIdx ],sizeof(TYPE_DATA));
+                    memcpy(this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER][i],&evict_in[currBufferIdx+BLOCK_SIZE],sizeof(TYPE_DATA));
+                #if defined(RSSS)    
+                    memcpy(this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER+1][i],&client_evict_in[currBufferIdx],sizeof(TYPE_DATA));
+                    memcpy(this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER+1][i],&client_evict_in[currBufferIdx+BLOCK_SIZE],sizeof(TYPE_DATA));
+                #endif 
+                currBufferIdx +=sizeof(TYPE_DATA);
+            }
+            currBufferIdx += BLOCK_SIZE;
+            for (TYPE_INDEX y = 0 ; y < H+1 ; y++)
+            {
+                for (TYPE_INDEX i = 0 ; i < EVICT_MAT_NUM_ROW; i++)
+                {
+                    
+                        memcpy(this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER][y][i], &evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
+                    #if defined(RSSS)
+                        memcpy(this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER+1][y][i], &client_evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
+                    #endif
+                    currBufferIdx += EVICT_MAT_NUM_COL*sizeof(TYPE_DATA);
+                }
+            }
+        }
+    #endif
     for(int e = 0 ; e < 2 ; e++)
     {  
         string strEvictPath = ORAM::getEvictString(n_evict);
@@ -113,11 +188,18 @@ start:
         
         //== THREADS FOR LISTENING =======================================================================================
         cout<< "	[evict] Creating Threads for Receiving Ports..." << endl;
-        for(TYPE_INDEX k = 0; k < NUM_SERVERS-1; k++)
-        {
-            recvSocket_args[k] = struct_socket(k, NULL, 0, reshares_in[k], buffer_length, NULL,false);
-            pthread_create(&thread_recv[k], NULL, &ServerORAM::thread_socket_func, (void*)&recvSocket_args[k]);
-        }
+        
+        #if defined(SEEDING)
+        
+            recvSocket_args[0] = struct_socket(0, NULL, 0, reshares_in[0], buffer_length, NULL,false);
+            pthread_create(&thread_recv[0], NULL, &ServerORAM::thread_socket_func, (void*)&recvSocket_args[0]);
+        #else
+            for(TYPE_INDEX k = 0; k < NUM_SERVERS-1; k++)
+            {
+                recvSocket_args[k] = struct_socket(k, NULL, 0, reshares_in[k], buffer_length, NULL,false);
+                pthread_create(&thread_recv[k], NULL, &ServerORAM::thread_socket_func, (void*)&recvSocket_args[k]);
+            }
+        #endif
         cout << "	[evict] CREATED!" << endl;
         //===============================================================================================================
         
@@ -154,20 +236,33 @@ start:
         server_logs[9] += std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
     
 		//== THREADS FOR SENDING ============================================================================================
-		cout<< "	[evict] Creating Threads for Sending Shares..."<< endl;;
-		for (int i = 0; i < NUM_SERVERS-1; i++)
-		{
-			sendSocket_args[i] = struct_socket(i,  reshares_out[i], buffer_length, NULL, 0, NULL, true);
-			pthread_create(&thread_send[i], NULL, &ServerORAM::thread_socket_func, (void*)&sendSocket_args[i]);
-		}
-		cout<< "	[evict] CREATED!" <<endl;
-		//=================================================================================================================
-		cout<< "	[evict] Waiting for Threads..." <<endl;
-		for (int i = 0; i < NUM_SERVERS-1; i++)
-		{
-			pthread_join(thread_send[i], NULL);
-			pthread_join(thread_recv[i], NULL);
-		}
+		cout<< "	[evict] Creating Threads for Sending Shares..."<< endl;
+        #if defined(SEEDING)
+            sendSocket_args[1] = struct_socket(1,  reshares_out[1], buffer_length, NULL, 0, NULL, true);
+            pthread_create(&thread_send[1], NULL, &ServerORAM::thread_socket_func, (void*)&sendSocket_args[1]);
+        
+            cout<< "	[evict] CREATED!" <<endl;
+            //=================================================================================================================
+            cout<< "	[evict] Waiting for Threads..." <<endl;
+            
+            pthread_join(thread_send[1], NULL);
+            pthread_join(thread_recv[0], NULL);
+            
+        #else
+            for (int i = 0; i < NUM_SERVERS-1; i++)
+            {
+                sendSocket_args[i] = struct_socket(i,  reshares_out[i], buffer_length, NULL, 0, NULL, true);
+                pthread_create(&thread_send[i], NULL, &ServerORAM::thread_socket_func, (void*)&sendSocket_args[i]);
+            }
+            cout<< "	[evict] CREATED!" <<endl;
+            //=================================================================================================================
+            cout<< "	[evict] Waiting for Threads..." <<endl;
+            for (int i = 0; i < NUM_SERVERS-1; i++)
+            {
+                pthread_join(thread_send[i], NULL);
+                pthread_join(thread_recv[i], NULL);
+            }
+        #endif
 		cout<< "	[evict] DONE!" <<endl;
 		server_logs[10] += thread_max;
 		thread_max = 0;

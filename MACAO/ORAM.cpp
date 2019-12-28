@@ -196,7 +196,12 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
 
             for(TYPE_INDEX j = 0; j < DATA_CHUNKS; j++)
             {           
-                createShares(bucket[ii][j], data_shares[ii],mac_shares[ii]);         
+                #if defined(SEEDING)
+                    createShares(bucket[ii][j], data_shares[ii],mac_shares[ii],NULL,0);         
+                #else // RSSS or SPDZ
+                    createShares(bucket[ii][j], data_shares[ii],mac_shares[ii]); 
+                #endif
+        
                 for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)  
                 {
                     /*if(bucket[ii][0]==1)
@@ -416,6 +421,58 @@ int ORAM::createShares(TYPE_DATA secret, TYPE_DATA* secret_shares, TYPE_DATA* ma
     
 }
 
+// For Computational
+int ORAM::createShares(TYPE_DATA secret, TYPE_DATA* secret_shares, TYPE_DATA* mac_shares, prng_state* pseudo_state, int secretShareIdx)
+{
+    zz_p rand;
+    zz_p sum;
+    zz_p mac(secret);
+    zz_p sum_mac;
+    unsigned long tmp;
+    sum = 0; 
+    sum_mac = 0;
+    mac = mac * GLOBAL_MAC_KEY;
+    for(int i = 0 ; i < SSS_PRIVACY_LEVEL+1 ; i++)
+    {
+        if(i == secretShareIdx)
+            continue;
+        if(pseudo_state!=NULL)
+        {
+            sober128_read((unsigned char*)&tmp,sizeof(unsigned long long),&pseudo_state[i]);
+            rand = tmp;
+        }
+        else
+        {
+            NTL::random(rand);            
+        }
+    
+        secret_shares[i] = rand._zz_p__rep;
+        sum = sum+secret_shares[i];
+    
+        //MAC
+        if(mac_shares!=NULL)
+        {
+            if(pseudo_state!=NULL)
+            {
+                sober128_read((unsigned char*)&tmp,sizeof(unsigned long long),&pseudo_state[i]);
+                rand = tmp;
+            }
+            else
+            {
+                NTL::random(rand);            
+            }
+            //NTL::random(rand);
+            
+            mac_shares[i] = rand._zz_p__rep;
+            sum_mac += rand;
+        }
+    }
+    secret_shares[secretShareIdx] = (secret - sum)._zz_p__rep;
+    if(mac_shares!=NULL)
+        mac_shares[secretShareIdx] =  (mac - sum_mac)._zz_p__rep;
+    return 0;
+    
+}
 
 
 /**
@@ -480,20 +537,31 @@ int ORAM::xor_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char** 
 {
     int byte_len = ceil((double) DB_SIZE / 8.0);
     
-    ZZ randBits =  RandomBits_ZZ(byte_len*(XOR_PRIVACY_LEVEL)*8);
+    #if defined(SEEDING)
+        ZZ randBits; 
+        
+        for(int i = 1 ; i < XOR_PRIVACY_LEVEL+1; i++)
+        {
+            randBits =  RandomBits_ZZ(byte_len*8);
+            BytesFromZZ(output[i],randBits,byte_len);
+        }
+    #else
+        ZZ randBits =  RandomBits_ZZ(byte_len*(XOR_PRIVACY_LEVEL)*8);
+        
+        unsigned char* pseudo_random_number = new unsigned char[byte_len*(XOR_PRIVACY_LEVEL)];
+        
+        memset(pseudo_random_number,0,byte_len*(XOR_PRIVACY_LEVEL));
+        
+        
+        BytesFromZZ(pseudo_random_number,randBits,byte_len*(XOR_PRIVACY_LEVEL));
+        
+        
+        for(int i = 1 ; i < XOR_PRIVACY_LEVEL+1; i++)
+        {
+            memcpy(output[i],&pseudo_random_number[byte_len*(i-1)],byte_len);
+        }
+    #endif
     
-    unsigned char* pseudo_random_number = new unsigned char[byte_len*(XOR_PRIVACY_LEVEL)];
-    
-    memset(pseudo_random_number,0,byte_len*(XOR_PRIVACY_LEVEL));
-    
-    
-    BytesFromZZ(pseudo_random_number,randBits,byte_len*(XOR_PRIVACY_LEVEL));
-    
-    
-    for(int i = 1 ; i < XOR_PRIVACY_LEVEL+1; i++)
-    {
-        memcpy(output[i],&pseudo_random_number[byte_len*(i-1)],byte_len);
-    }
     memset(output[0],0,byte_len);
     if(idx>=0)
         BIT_SET(&output[0][idx/8],idx%8);
@@ -534,6 +602,41 @@ int ORAM::sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char** 
     {
         memcpy(&output[j][idx*sizeof(TYPE_DATA)],&data_shares[j],sizeof(TYPE_DATA));
     }
+	
+    
+    
+    
+	return 0;
+}
+
+// For Computational 
+int ORAM::sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char** output, prng_state *prng)
+{
+
+    TYPE_DATA data_shares[SSS_PRIVACY_LEVEL+1];
+    TYPE_DATA mac_shares[SSS_PRIVACY_LEVEL+1];
+    
+    for (TYPE_INDEX i = 0; i < DB_SIZE; i++)
+	{
+        if(i==idx)
+        {
+            createShares(1,data_shares, NULL,prng,0); //NULL if using RSSS, if using SPDZ, need to have MAC
+        }
+        else
+        {
+            createShares(0,data_shares, NULL,prng,0); //NULL if using RSSS, if using SPDZ, need to have MAC
+        }
+
+		for (int j = 0; j < SSS_PRIVACY_LEVEL+1; j++)
+        {
+            memcpy(&output[j][i*sizeof(TYPE_DATA)],&data_shares[j],sizeof(TYPE_DATA));
+		}
+	}
+    
+    /*for (int j = 0; j < SSS_PRIVACY_LEVEL+1; j++)
+    {
+        memcpy(&output[j][idx*sizeof(TYPE_DATA)],&data_shares[j],sizeof(TYPE_DATA));
+    }*/
 	
     
     

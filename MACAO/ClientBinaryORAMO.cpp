@@ -113,11 +113,16 @@ int ClientBinaryORAMO::evict()
     {
         for (TYPE_INDEX j = 0; j < evictMatSize; ++j)
         {
-            ORAM::createShares(this->evictMatrix[i][j], data_shares, NULL);
-            for (int k = 0; k < NUM_SERVERS; k++) 
-            {   
-                this->sharedMatrix[k][i][j] = data_shares[k];
-            }
+            #if defined(SEEDING)
+                ORAM::createShares(this->evictMatrix[i][j], data_shares, NULL,prng_client,0);
+                this->sharedMatrix[0][i][j] = data_shares[0];
+            #else // RSSS or SPDZ
+                ORAM::createShares(this->evictMatrix[i][j], data_shares, NULL);
+                for (int k = 0; k < NUM_SERVERS; k++) 
+                {   
+                    this->sharedMatrix[k][i][j] = data_shares[k];
+                }
+            #endif
 			++show_progress;
         }
     }
@@ -129,13 +134,30 @@ int ClientBinaryORAMO::evict()
     start = time_now;
     for (int i = 0; i < NUM_SERVERS; i++)
     {
-        for (TYPE_INDEX y = 0 ; y < H+1; y++)
-        {
-            memcpy(&evict_out[i][y*evictMatSize*sizeof(TYPE_DATA)], &this->sharedMatrix[i][y][0], evictMatSize*sizeof(TYPE_DATA));
-        }
-        memcpy(&evict_out[i][CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX)], &numEvict, sizeof(TYPE_INDEX));
-            
-		thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, NULL,0, CMD_EVICT,  NULL);
+        #if defined(SEEDING)
+            memcpy(&evict_out[i][0], &numEvict, sizeof(TYPE_INDEX));
+                
+            if(i==0)
+            {
+                for (TYPE_INDEX y = 0 ; y < H+1; y++)
+                {
+                    memcpy(&evict_out[i][sizeof(TYPE_INDEX) + y*evictMatSize*sizeof(TYPE_DATA)], &this->sharedMatrix[i][y][0], evictMatSize*sizeof(TYPE_DATA));
+                }
+                thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, NULL,0, CMD_EVICT,  NULL);  
+            }
+            else
+            {
+                thread_socket_args[i] = struct_socket(i, evict_out[i], sizeof(TYPE_DATA), NULL,0, CMD_EVICT,  NULL);  
+            }
+        #else // RSSS or SPDZ
+            for (TYPE_INDEX y = 0 ; y < H+1; y++)
+            {
+                memcpy(&evict_out[i][y*evictMatSize*sizeof(TYPE_DATA)], &this->sharedMatrix[i][y][0], evictMatSize*sizeof(TYPE_DATA));
+            }
+            memcpy(&evict_out[i][CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX)], &numEvict, sizeof(TYPE_INDEX));
+                
+            thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, NULL,0, CMD_EVICT,  NULL);
+        #endif
         pthread_create(&thread_sockets[i], NULL, &ClientBinaryORAMO::thread_socket_func, (void*)&thread_socket_args[i]);
     }
 			
@@ -159,29 +181,56 @@ int ClientBinaryORAMO::writeRoot()
 {
     TYPE_DATA data_shares[NUM_SERVERS];
     TYPE_DATA mac_shares[NUM_SERVERS];
+    #if defined(SEEDING)
+        unsigned long long currBufferIdx = sizeof(TYPE_DATA) ;
+    #else // RSSS or SPDZ
+        unsigned long long currBufferIdx = 0 ;
+    #endif
     
-    unsigned long long currBufferIdx = 0 ;
     for(int u = 0 ; u < DATA_CHUNKS; u++ )
     {
-        ORAM::createShares(recoveredBlock[u]._zz_p__rep, data_shares,mac_shares);
         
-        for(int k = 0; k < NUM_SERVERS; k++) 
-        {
+        #if defined(SEEDING)
+            ORAM::createShares(recoveredBlock[u]._zz_p__rep, data_shares,mac_shares,prng_client,0);
+            int k = 0;                
             memcpy(&write_root_out[k][currBufferIdx], &data_shares[k], sizeof(TYPE_DATA));
             memcpy(&write_root_out[k][currBufferIdx + BLOCK_SIZE], &mac_shares[k], sizeof(TYPE_DATA));
-        }
+        #else // RSSS or SPDZ
+            ORAM::createShares(recoveredBlock[u]._zz_p__rep, data_shares,mac_shares);
+            for(int k = 0; k < NUM_SERVERS; k++) 
+            {
+
+                memcpy(&write_root_out[k][currBufferIdx], &data_shares[k], sizeof(TYPE_DATA));
+                memcpy(&write_root_out[k][currBufferIdx + BLOCK_SIZE], &mac_shares[k], sizeof(TYPE_DATA));
+            }
+        #endif
         currBufferIdx += sizeof(TYPE_DATA);
     }
     for ( int k = 0 ; k < NUM_SERVERS; k++)
     {
-        memcpy(&write_root_out[k][BLOCK_SIZE*2], &numRead, sizeof(TYPE_DATA));
+        #if defined(SEEDING)
+            memcpy(&write_root_out[k][0], &numRead, sizeof(TYPE_DATA));
+        #else // RSSS or SPDZ
+            memcpy(&write_root_out[k][BLOCK_SIZE*2], &numRead, sizeof(TYPE_DATA));
+        #endif
     }
 	// 8. upload the share to numRead-th slot in root bucket
     
     for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++) 
     {
-		thread_socket_args[k] = struct_socket(k, write_root_out[k], BLOCK_SIZE*2+sizeof(TYPE_DATA), NULL, 0, CMD_WRITE_ROOT,NULL);
-
+        #if defined(SEEDING)
+            if(k==0)
+            {
+                thread_socket_args[k] = struct_socket(k, write_root_out[k], BLOCK_SIZE*2+sizeof(TYPE_DATA), NULL, 0, CMD_WRITE_ROOT,NULL);
+            }
+            else
+            {
+                thread_socket_args[k] = struct_socket(k, write_root_out[k], sizeof(TYPE_DATA), NULL, 0, CMD_WRITE_ROOT,NULL);
+            }
+        #else // RSSS or SPDZ
+            thread_socket_args[k] = struct_socket(k, write_root_out[k], BLOCK_SIZE*2+sizeof(TYPE_DATA), NULL, 0, CMD_WRITE_ROOT,NULL);
+        #endif
+        
 		pthread_create(&thread_sockets[k], NULL, &ClientBinaryORAMO::thread_socket_func, (void*)&thread_socket_args[k]);
     }
     
@@ -277,7 +326,13 @@ int ClientBinaryORAMO::getEvictMatrix()
                     if(lstEmptyIdx.size()==0)
                     {
                         cout<< "	[ClientBinaryORAMO] Overflow!!!!. Please check the random generator or select smaller evict_rate"<<endl;
-                        exit(0);
+                        #if defined(SEEDING)
+                            cin.get();
+                            return -1;
+                        #else // RSSS or SPDZ
+                            exit(0);
+                        #endif
+                        
                     }
                     int emptyIdx = lstEmptyIdx[lstEmptyIdx.size()-1];
                     lstEmptyIdx.pop_back();
