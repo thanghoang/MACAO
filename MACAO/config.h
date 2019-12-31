@@ -39,7 +39,7 @@ static inline std::string to_string(T value)
 static const unsigned long long P = 1073742353; //288230376152137729; //prime field - should have length equal to the defined TYPE_DATA
 
 //#define XOR_PIR
-//#define RSSS
+#define RSSS
 //#define SPDZ
 #define SEEDING
 
@@ -55,17 +55,17 @@ static const unsigned long long P = 1073742353; //288230376152137729; //prime fi
     const TYPE_DATA GLOBAL_MAC_KEY = 12574462961634974;
     const TYPE_DATA MAC_KEY[SSS_PRIVACY_LEVEL+1] = {60986730870412112, 16792083382561605, -65204351291338743};
 #else // SPDZ
-    #define NUM_SERVERS 4
-    #define SSS_PRIVACY_LEVEL 3
+    #define NUM_SERVERS 3
+    #define SSS_PRIVACY_LEVEL 2
     const TYPE_DATA GLOBAL_MAC_KEY = 683828274;// 12574462961634974;
-    const TYPE_DATA MAC_KEY[SSS_PRIVACY_LEVEL+1] = {881602428, 951697459, 998013093, 998013093};// {805873168, 951697459,};//{881602428, 951697459, 998013093};
+    const TYPE_DATA MAC_KEY[SSS_PRIVACY_LEVEL+1] = {881602428, 951697459, 998013093};// {805873168, 951697459,};//{881602428, 951697459, 998013093};
 #endif
 
 
 //#define PRIVACY_LEVEL 1
 
-#define CORAM_LAYOUT
-//#define TRIPLET_EVICTION
+//#define CORAM_LAYOUT
+#define TRIPLET_EVICTION
 
 #define K_ARY 2
 
@@ -112,7 +112,7 @@ const int H = HEIGHT;
 #if defined(RSSS)
     const std::string SERVER_ADDR[NUM_SERVERS] = {"tcp://localhost", "tcp://localhost", "tcp://localhost"};//, "tcp://localhost", "tcp://localhost", "tcp://localhost", "tcp://localhost"}; 	
 #else
-    const std::string SERVER_ADDR[NUM_SERVERS] = {"tcp://localhost", "tcp://localhost", "tcp://localhost" ,"tcp://localhost"};//, "tcp://localhost", "tcp://localhost", "tcp://localhost", "tcp://localhost"}; 	
+    const std::string SERVER_ADDR[NUM_SERVERS] = {"tcp://localhost", "tcp://localhost", "tcp://localhost"};//, "tcp://localhost", "tcp://localhost", "tcp://localhost", "tcp://localhost"}; 	
 #endif
 
 #define SERVER_PORT 25555        //define the first port to generate incremental ports for client-server /server-server communications

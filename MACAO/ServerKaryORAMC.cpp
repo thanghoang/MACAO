@@ -210,9 +210,9 @@ start:
         for(int e = es ; e < ee; e++)
         {
             
-                this->readBucket_evict_reverse(fullEvictPathIdx[e][h], serverNo, this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER],this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER]);
+                this->readBucket_evict(fullEvictPathIdx[e][h], serverNo, this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER],this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER], false);
             #if defined(RSSS)
-                this->readBucket_evict_reverse(fullEvictPathIdx[e][h], (serverNo+1)%3, this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER+1],this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER+1]);
+                this->readBucket_evict(fullEvictPathIdx[e][h], (serverNo+1)%3, this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER+1],this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER+1], false);
             #endif
         }
         auto end = time_now;
@@ -276,9 +276,13 @@ start:
     
         for(int e = es ; e < ee; e++)
         {            
-            this->writeBucket_reverse_mode(fullEvictPathIdx[e][h],serverNo,vecReShares[e][serverNo],vecReShares_MAC[e][serverNo]);
+            //this->writeBucket_reverse_mode(fullEvictPathIdx[e][h],serverNo,vecReShares[e][serverNo],vecReShares_MAC[e][serverNo]);
+            this->writeBucket(fullEvictPathIdx[e][h],serverNo,vecReShares[e][serverNo],vecReShares_MAC[e][serverNo],false);
+            
             #if defined(RSSS)
-                this->writeBucket_reverse_mode(fullEvictPathIdx[e][h],(serverNo+1)%3,vecReShares[e][(serverNo+1)%3],vecReShares_MAC[e][(serverNo+1)%3]);
+                //this->writeBucket_reverse_mode(fullEvictPathIdx[e][h],(serverNo+1)%3,vecReShares[e][(serverNo+1)%3],vecReShares_MAC[e][(serverNo+1)%3]);
+                this->writeBucket(fullEvictPathIdx[e][h],(serverNo+1)%3,vecReShares[e][(serverNo+1)%3],vecReShares_MAC[e][(serverNo+1)%3], false);
+            
             #endif
             
             for(int j = 0 ; j < DATA_CHUNKS; j++)
@@ -312,7 +316,7 @@ start:
 
 
 
-int ServerKaryORAMC::readBucket_evict_reverse(TYPE_ID bucketID, int shareID, zz_p** output_data, zz_p** output_mac)
+int ServerKaryORAMC::readBucket_evict(TYPE_ID bucketID, int shareID, zz_p** output_data, zz_p** output_mac, int reverseMode)
 {
     FILE* file_in = NULL;
     string path  = myStoragePath + to_string(shareID) + "/" + to_string(bucketID);
@@ -321,11 +325,21 @@ int ServerKaryORAMC::readBucket_evict_reverse(TYPE_ID bucketID, int shareID, zz_
         cout<< path << " cannot be opened!!" <<endl;
         exit;
     }
-    for(int i = 0 ; i < BUCKET_SIZE; i++)
+    if(reverseMode)
+    {
+        for(int i = 0 ; i < BUCKET_SIZE; i++)
+        {
+            for(int j = 0 ; j < DATA_CHUNKS; j++)
+            {
+                fread(&output_data[j][i+1], 1, sizeof(TYPE_DATA), file_in);
+            }
+        }
+    }
+    else
     {
         for(int j = 0 ; j < DATA_CHUNKS; j++)
         {
-            fread(&output_data[j][i+1], 1, sizeof(TYPE_DATA), file_in);
+            fread(&output_data[j][1], 1, sizeof(TYPE_DATA)*BUCKET_SIZE, file_in);
         }
     }
     fclose(file_in);
@@ -336,11 +350,21 @@ int ServerKaryORAMC::readBucket_evict_reverse(TYPE_ID bucketID, int shareID, zz_
         cout<< path << " cannot be opened!!" <<endl;
         exit;
     }
-    for(int i = 0 ; i < BUCKET_SIZE; i++)
+    if(reverseMode)
+    {
+        for(int i = 0 ; i < BUCKET_SIZE; i++)
+        {
+            for(int j = 0 ; j < DATA_CHUNKS; j++)
+            {
+                fread(&output_mac[j][i+1], 1, sizeof(TYPE_DATA), file_in);
+            }
+        }
+    }
+    else
     {
         for(int j = 0 ; j < DATA_CHUNKS; j++)
         {
-            fread(&output_mac[j][i+1], 1, sizeof(TYPE_DATA), file_in);
+            fread(&output_mac[j][1], 1, sizeof(TYPE_DATA)*BUCKET_SIZE, file_in);
         }
     }
     fclose(file_in);

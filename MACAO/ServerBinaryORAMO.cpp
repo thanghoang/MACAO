@@ -146,9 +146,9 @@ int ServerBinaryORAMO::evict(zmq::socket_t& socket)
 		
         TYPE_ID readBucketIDS[2] = {curSrcIdx, curDestIdx};
         
-        this->readBucket_evict_reverse(readBucketIDS,this->serverNo,this->vecEvictPath_db[0],this->vecEvictPath_MAC[0]);
+        this->readBucket_evict(readBucketIDS,this->serverNo,this->vecEvictPath_db[0],this->vecEvictPath_MAC[0],false);
         #if defined(RSSS)
-            this->readBucket_evict_reverse(readBucketIDS,(this->serverNo+1)%3,this->vecEvictPath_db[1],this->vecEvictPath_MAC[1]);
+            this->readBucket_evict(readBucketIDS,(this->serverNo+1)%3,this->vecEvictPath_db[1],this->vecEvictPath_MAC[1], false);
         #endif
 		auto end = time_now;
         
@@ -225,9 +225,12 @@ int ServerBinaryORAMO::evict(zmq::socket_t& socket)
             #endif
         }
         
-        this->writeBucket_reverse_mode(curDestIdx,serverNo,vecReShares[0][serverNo],vecReShares_MAC[0][serverNo]);
+        //this->writeBucket_reverse_mode(curDestIdx,serverNo,vecReShares[0][serverNo],vecReShares_MAC[0][serverNo]);
+        this->writeBucket(curDestIdx,serverNo,vecReShares[0][serverNo],vecReShares_MAC[0][serverNo], false);
+        
         #if defined(RSSS)
-            this->writeBucket_reverse_mode(curDestIdx,(serverNo+1)%3,vecReShares[0][(serverNo+1)%3],vecReShares_MAC[0][(serverNo+1)%3]);
+            //this->writeBucket_reverse_mode(curDestIdx,(serverNo+1)%3,vecReShares[0][(serverNo+1)%3],vecReShares_MAC[0][(serverNo+1)%3]);
+            this->writeBucket(curDestIdx,(serverNo+1)%3,vecReShares[0][(serverNo+1)%3],vecReShares_MAC[0][(serverNo+1)%3], false);
         #endif
         end = time_now;
         server_logs[12] += std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
@@ -247,7 +250,7 @@ int ServerBinaryORAMO::evict(zmq::socket_t& socket)
 
 
 
-int ServerBinaryORAMO::readBucket_evict_reverse(TYPE_ID bucketIDs[], int shareID, zz_p** output_data, zz_p** output_mac)
+int ServerBinaryORAMO::readBucket_evict(TYPE_ID bucketIDs[], int shareID, zz_p** output_data, zz_p** output_mac, int reverseMode)
 {
     
     FILE* file_in = NULL;
@@ -262,11 +265,21 @@ int ServerBinaryORAMO::readBucket_evict_reverse(TYPE_ID bucketIDs[], int shareID
             cout<< path << " cannot be opened!!" <<endl;
             exit;
         }
-        for(int i = 0 ; i < BUCKET_SIZE; i++)
+        if(reverseMode)
+        {
+            for(int i = 0 ; i < BUCKET_SIZE; i++)
+            {
+                for(int j = 0 ; j < DATA_CHUNKS; j++)
+                {
+                    fread(&output_data[j][s*BUCKET_SIZE+i], 1, sizeof(TYPE_DATA), file_in);
+                }
+            }
+        }
+        else
         {
             for(int j = 0 ; j < DATA_CHUNKS; j++)
             {
-                fread(&output_data[j][s*BUCKET_SIZE+i], 1, sizeof(TYPE_DATA), file_in);
+                fread(&output_data[j][s*BUCKET_SIZE], 1, BUCKET_SIZE*sizeof(TYPE_DATA), file_in);
             }
         }
         fclose(file_in);
@@ -277,11 +290,21 @@ int ServerBinaryORAMO::readBucket_evict_reverse(TYPE_ID bucketIDs[], int shareID
             cout<< path_mac << " cannot be opened!!" <<endl;
             exit;
         }
-        for(int i = 0 ; i < BUCKET_SIZE; i++)
+        if(reverseMode)
+        {
+            for(int i = 0 ; i < BUCKET_SIZE; i++)
+            {
+                for(int j = 0 ; j < DATA_CHUNKS; j++)
+                {
+                    fread(&output_mac[j][s*BUCKET_SIZE+i], 1, sizeof(TYPE_DATA), file_in_mac);
+                }
+            }
+        }
+        else
         {
             for(int j = 0 ; j < DATA_CHUNKS; j++)
             {
-                fread(&output_mac[j][s*BUCKET_SIZE+i], 1, sizeof(TYPE_DATA), file_in_mac);
+                fread(&output_mac[j][s*BUCKET_SIZE], 1, BUCKET_SIZE*sizeof(TYPE_DATA), file_in_mac);
             }
         }
         fclose(file_in_mac);

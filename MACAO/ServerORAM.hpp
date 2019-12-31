@@ -149,14 +149,16 @@ public:
     
     
     // IO functions
-    int readBucket(TYPE_ID bucketID, int shareID, zz_p** output_data, zz_p** output_mac);
-    int updateRoot(int shareID, unsigned long long replaceWriteIdx, unsigned char* input, unsigned char* mac); 
+    //int readBucket(TYPE_ID bucketID, int shareID, zz_p** output_data, zz_p** output_mac);
+    int updateRoot(int shareID, unsigned long long replaceWriteIdx, unsigned char* input, unsigned char* mac, int reverseMode); 
     int copyBucket(int shareID, TYPE_ID srcBucketID, TYPE_ID destBucketID); 
-    int writeBucket(TYPE_ID bucketID, int shareID, unsigned char* input, unsigned char* mac); //to be updated with MAC
-    int writeBucket_reverse_mode(int bucketID, int shareID, zz_p ** data, zz_p** mac);
+    //int writeBucket(TYPE_ID bucketID, int shareID, unsigned char* input, unsigned char* mac); 
+    int writeBucket(int bucketID, int shareID, zz_p ** data, zz_p** mac, int reverseMode);
     
     
-    int readBucket_reverse(TYPE_ID bucketID, int bucketIdx, int shareID, zz_p** output_data, zz_p** output_mac);
+    int readBucket( TYPE_ID bucketID, int BucketIdx, int shareID, 
+                    zz_p** output_data, zz_p** output_mac,
+                    int reverseMode); 
     
     //thread functions
    
