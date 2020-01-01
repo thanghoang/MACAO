@@ -35,10 +35,11 @@ static inline std::string to_string(T value)
     return os.str() ;
 }
 
+//#define REVERSE_STORAGE_LAYOUT // enabled: block _size x bucket_size - disabled: bucket_size x block_size  
 
 static const unsigned long long P = 1073742353; //288230376152137729; //prime field - should have length equal to the defined TYPE_DATA
 
-//#define XOR_PIR
+#define XOR_PIR
 #define RSSS
 //#define SPDZ
 #define SEEDING
@@ -64,8 +65,8 @@ static const unsigned long long P = 1073742353; //288230376152137729; //prime fi
 
 //#define PRIVACY_LEVEL 1
 
-//#define CORAM_LAYOUT
-#define TRIPLET_EVICTION
+#define CORAM_LAYOUT
+//#define TRIPLET_EVICTION
 
 #define K_ARY 2
 

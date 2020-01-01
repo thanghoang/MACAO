@@ -25,7 +25,7 @@ public:
     
     // eviction subroutine
     
-    int readBucket_evict(TYPE_ID bucketID, int shareID, zz_p** output_data, zz_p** output_mac, int reverseMode);
+    int readBucket_evict(TYPE_ID bucketID, int shareID, zz_p** output_data, zz_p** output_mac);
     
     
     int prepareEvictComputation();

@@ -466,7 +466,7 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
                 for(int j = 0; j < H+1; j++)
                 {
                     //this->readBucket(fullPathIdx[j], (serverNo+i)%(SSS_PRIVACY_LEVEL+1),&retrieval_path_db[i][u],&retrieval_path_mac[i][u]);
-                    this->readBucket(fullPathIdx[j], j, (serverNo+i)%(3),retrieval_path_db[i],retrieval_path_mac[i],true);
+                    this->readBucket(fullPathIdx[j], j, (serverNo+i)%(3),retrieval_path_db[i],retrieval_path_mac[i]);
 
                 }
             }
@@ -579,8 +579,8 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
                 {
                     //this->readBucket_reverse(fullPathIdx[j], j, (serverNo)%(3),retrieval_path_db[0],retrieval_path_mac[0]);
                     //this->readBucket_reverse(fullPathIdx[j], j, (serverNo+1)%(3),retrieval_path_db[1],retrieval_path_mac[1]);
-                    this->readBucket(fullPathIdx[j], j, (serverNo)%(3),retrieval_path_db[0],retrieval_path_mac[0], false);
-                    this->readBucket(fullPathIdx[j], j, (serverNo+1)%(3),retrieval_path_db[1],retrieval_path_mac[1], false);
+                    this->readBucket(fullPathIdx[j], j, (serverNo)%(3),retrieval_path_db[0],retrieval_path_mac[0]);
+                    this->readBucket(fullPathIdx[j], j, (serverNo+1)%(3),retrieval_path_db[1],retrieval_path_mac[1]);
                     
                 }
                 //serialize retrieval query
@@ -726,7 +726,7 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
             {
                 //this->readBucket(fullPathIdx[j], (serverNo+i)%(SSS_PRIVACY_LEVEL+1),&retrieval_path_db[i][u],&retrieval_path_mac[i][u]);
                 //this->readBucket_reverse(fullPathIdx[j], (serverNo+i)%(SSS_PRIVACY_LEVEL+1),&retrieval_path_db[i][u],&retrieval_path_mac[i][u]);
-                this->readBucket(fullPathIdx[j], j, (serverNo+i)%(SSS_PRIVACY_LEVEL+1),retrieval_path_db[i],retrieval_path_mac[i],true);
+                this->readBucket(fullPathIdx[j], j, (serverNo+i)%(SSS_PRIVACY_LEVEL+1),retrieval_path_db[i],retrieval_path_mac[i]);
             }
         }
         end = time_now;
@@ -813,8 +813,8 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
             {
                 //this->readBucket_reverse(fullPathIdx[j], j, (serverNo)%(3),retrieval_path_db[0],retrieval_path_mac[0]);
                 //this->readBucket_reverse(fullPathIdx[j], j, (serverNo+1)%(3),retrieval_path_db[1],retrieval_path_mac[1]);
-                this->readBucket(fullPathIdx[j], j, (serverNo)%(3),retrieval_path_db[0],retrieval_path_mac[0],false);
-                this->readBucket(fullPathIdx[j], j, (serverNo+1)%(3),retrieval_path_db[1],retrieval_path_mac[1], false);
+                this->readBucket(fullPathIdx[j], j, (serverNo)%(3),retrieval_path_db[0],retrieval_path_mac[0]);
+                this->readBucket(fullPathIdx[j], j, (serverNo+1)%(3),retrieval_path_db[1],retrieval_path_mac[1]);
                
             }
             //serialize retrieval query
@@ -894,7 +894,7 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
      for(int j = 0, u = 0; j < H+1; j++, u+=BUCKET_SIZE)
         {
            //this->readBucket_reverse(fullPathIdx[j], j, serverNo,retrieval_path_db[0],retrieval_path_mac[0]);
-           this->readBucket(fullPathIdx[j], j, serverNo,retrieval_path_db[0],retrieval_path_mac[0], false);
+           this->readBucket(fullPathIdx[j], j, serverNo,retrieval_path_db[0],retrieval_path_mac[0]);
         }
         //serialize retrieval query
         zz_p** retrieval_query = new zz_p*[NUM_SHARE_PER_SERVER];   //to be changed to unsigned char later
@@ -1111,7 +1111,7 @@ int ServerORAM::writeRoot(zmq::socket_t& socket)
                 memcpy(&write_root_in[sizeof(TYPE_DATA)+i*sizeof(TYPE_DATA)+BLOCK_SIZE],&tmp2,sizeof(TYPE_DATA));
             }
         }
-        this->updateRoot(serverNo,slotIdx,&write_root_in[sizeof(TYPE_DATA)],&write_root_in[BLOCK_SIZE+sizeof(TYPE_DATA)], false);
+        this->updateRoot(serverNo,slotIdx,&write_root_in[sizeof(TYPE_DATA)],&write_root_in[BLOCK_SIZE+sizeof(TYPE_DATA)]);
         if(serverNo==2)
         {
 
@@ -1129,7 +1129,7 @@ int ServerORAM::writeRoot(zmq::socket_t& socket)
                 memcpy(&client_write_root_in[i*sizeof(TYPE_DATA)+BLOCK_SIZE],&tmp2,sizeof(TYPE_DATA));
             }
         }
-        this->updateRoot((serverNo+1)%3,slotIdx, &client_write_root_in[0], &client_write_root_in[BLOCK_SIZE], false);
+        this->updateRoot((serverNo+1)%3,slotIdx, &client_write_root_in[0], &client_write_root_in[BLOCK_SIZE]);
     
     
         end = time_now;
@@ -1169,9 +1169,9 @@ int ServerORAM::writeRoot(zmq::socket_t& socket)
 
 
         start = time_now;
-        this->updateRoot(serverNo,slotIdx,&write_root_in[0],&write_root_in[BLOCK_SIZE], false);
+        this->updateRoot(serverNo,slotIdx,&write_root_in[0],&write_root_in[BLOCK_SIZE]);
         #if defined(RSSS)
-            this->updateRoot((serverNo+1)%3,slotIdx, &client_write_root_in[0], &client_write_root_in[BLOCK_SIZE], false);
+            this->updateRoot((serverNo+1)%3,slotIdx, &client_write_root_in[0], &client_write_root_in[BLOCK_SIZE]);
         #endif
         end = time_now;
         cout<< "	[recvBlock] Block STORED in Disk in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count() <<endl;
@@ -1408,7 +1408,7 @@ int ServerORAM::readBucket(TYPE_ID bucketID, int shareID, zz_p** output_data, zz
 
 
 //only for SSS Retrieval
-int ServerORAM::readBucket(TYPE_ID bucketID, int BucketIdx,  int shareID, zz_p** output_data, zz_p** output_mac, int reverseMode)
+int ServerORAM::readBucket(TYPE_ID bucketID, int BucketIdx,  int shareID, zz_p** output_data, zz_p** output_mac)
 {
     FILE* file_in = NULL;
     string path  = myStoragePath + to_string(shareID) + "/" + to_string(bucketID);
@@ -1417,23 +1417,39 @@ int ServerORAM::readBucket(TYPE_ID bucketID, int BucketIdx,  int shareID, zz_p**
         cout<< path << " cannot be opened!!" <<endl;
         exit;
     }
-    if(reverseMode) //for XOR-PIR only
-    {
-        for(int j = 0 ; j < DATA_CHUNKS; j++)
-        {
+    #if defined (XOR_PIR)
+        #if defined (REVERSE_STORAGE_LAYOUT) 
+            for(int j = 0 ; j < DATA_CHUNKS; j++)
+            {
+                for(int i = 0 ; i < BUCKET_SIZE; i++)
+                {
+                    fread(&output_data[BucketIdx*BUCKET_SIZE+i][j], 1, sizeof(TYPE_DATA), file_in);
+                }
+            }
+        #else
             for(int i = 0 ; i < BUCKET_SIZE; i++)
             {
-                fread(&output_data[BucketIdx*BUCKET_SIZE+i][j], 1, sizeof(TYPE_DATA), file_in);
+                fread(output_data[BucketIdx*BUCKET_SIZE+i], 1, BLOCK_SIZE, file_in);
             }
-        }
-    }
-    else
-    {
-        for(int i = 0 ; i < DATA_CHUNKS; i++)
-        {
-            fread(&output_data[i][BucketIdx*BUCKET_SIZE], 1, BUCKET_SIZE *sizeof(TYPE_DATA), file_in);
-        }
-    }
+        #endif
+    #else
+        #if !defined (REVERSE_STORAGE_LAYOUT)
+            for(int i = 0 ; i < BUCKET_SIZE; i++)
+            {
+                for(int j = 0 ; j < DATA_CHUNKS; j++)
+                {
+                    fread(&output_data[j][BucketIdx*BUCKET_SIZE+i], 1, sizeof(TYPE_DATA), file_in);
+                }
+            }
+        #else
+            for(int i = 0 ; i < DATA_CHUNKS; i++)
+            {
+                fread(&output_data[i][BucketIdx*BUCKET_SIZE], 1, BUCKET_SIZE *sizeof(TYPE_DATA), file_in);
+            }
+            
+        #endif
+    
+    #endif
     fclose(file_in);
 
     path  = myStoragePath + to_string(shareID) + "/" + to_string(bucketID)+ "_mac";
@@ -1442,28 +1458,42 @@ int ServerORAM::readBucket(TYPE_ID bucketID, int BucketIdx,  int shareID, zz_p**
         cout<< path << " cannot be opened!!" <<endl;
         exit;
     }
-    if(reverseMode) //for XOR-PIR only
-    {
-        for(int j = 0 ; j < DATA_CHUNKS; j++)
-        {           
+    
+    #if defined (XOR_PIR)
+        #if defined (REVERSE_STORAGE_LAYOUT) //for XOR-PIR only
+            for(int j = 0 ; j < DATA_CHUNKS; j++)
+            {           
+                for(int i = 0 ; i < BUCKET_SIZE; i++)
+                {
+                    fread(&output_mac[BucketIdx*BUCKET_SIZE + i][j], 1, sizeof(TYPE_DATA), file_in);
+                }
+            }
+        #else
             for(int i = 0 ; i < BUCKET_SIZE; i++)
             {
-            
-                fread(&output_mac[BucketIdx*BUCKET_SIZE + i][j], 1, sizeof(TYPE_DATA), file_in);
+                fread(output_mac[BucketIdx*BUCKET_SIZE + i], 1, BLOCK_SIZE, file_in);
             }
-        }
-    }
-    else
-    {
-        for(int i = 0 ; i < DATA_CHUNKS; i++)
-        {
-            fread(&output_mac[i][BucketIdx*BUCKET_SIZE], 1, BUCKET_SIZE*sizeof(TYPE_DATA), file_in);
-        }
-    }
+        #endif
+    #else
+        #if !defined (REVERSE_STORAGE_LAYOUT)
+            for(int i = 0 ; i < BUCKET_SIZE; i++)
+            {
+                for(int j = 0 ; j < DATA_CHUNKS; j++)
+                {
+                    fread(&output_mac[j][BucketIdx*BUCKET_SIZE + i], 1, sizeof(TYPE_DATA), file_in);
+                }
+            }
+        #else
+            for(int i = 0 ; i < DATA_CHUNKS; i++)
+            {
+                fread(&output_mac[i][BucketIdx*BUCKET_SIZE], 1, BUCKET_SIZE*sizeof(TYPE_DATA), file_in);
+            }
+        #endif
+    #endif
     fclose(file_in);
 }
 
-int ServerORAM::updateRoot(int shareID, unsigned long long slotIdx, unsigned char* input, unsigned char* mac, int reverseMode)
+int ServerORAM::updateRoot(int shareID, unsigned long long slotIdx, unsigned char* input, unsigned char* mac)
 {
     string path = myStoragePath + to_string(shareID) + "/0";
     FILE* f = NULL;
@@ -1472,20 +1502,17 @@ int ServerORAM::updateRoot(int shareID, unsigned long long slotIdx, unsigned cha
         cout<< "	[recvBlock] File Cannot be Opened!!" <<endl;
         exit(0);
     }
-    if (reverseMode)
-    {
+    #if !defined (REVERSE_STORAGE_LAYOUT)
         fseek(f, slotIdx*BLOCK_SIZE,SEEK_SET);
         fwrite(input,1,BLOCK_SIZE,f);
-    }
-    else
-    {
+    #else
         fseek(f, slotIdx*sizeof(TYPE_DATA),SEEK_SET);
         for(int u = 0 ; u < DATA_CHUNKS; u++)
         {
             fwrite(&input[u*sizeof(TYPE_DATA)],1,sizeof(TYPE_DATA),f);
             fseek(f,(BUCKET_SIZE-1)*sizeof(TYPE_DATA),SEEK_CUR);
         }
-    }
+    #endif
     fclose(f);
         
     string path_mac  =  path + "_mac";
@@ -1495,20 +1522,17 @@ int ServerORAM::updateRoot(int shareID, unsigned long long slotIdx, unsigned cha
         cout<< "	[recvBlock] File Cannot be Opened!!" <<endl;
         exit(0);
     }
-    if(reverseMode)
-    {
+    #if !defined (REVERSE_STORAGE_LAYOUT)
         fseek(f_mac, slotIdx*BLOCK_SIZE,SEEK_SET);
         fwrite(mac,1,BLOCK_SIZE,f_mac);
-    }
-    else
-    {
+    #else
         fseek(f_mac, slotIdx*sizeof(TYPE_DATA),SEEK_SET);
         for(int u = 0 ; u < DATA_CHUNKS; u++)
         {
             fwrite(&mac[u*sizeof(TYPE_DATA)],1,sizeof(TYPE_DATA),f_mac);
             fseek(f_mac,(BUCKET_SIZE-1)*sizeof(TYPE_DATA),SEEK_CUR);
         }
-    }
+    #endif
     fclose(f_mac);
     
 }
@@ -2011,7 +2035,7 @@ int ServerORAM::postReSharing(int level, int es, int ee)
 
 
 
-int ServerORAM::writeBucket(int bucketID, int shareID, zz_p ** data, zz_p** mac, int reverseMode)
+int ServerORAM::writeBucket(int bucketID, int shareID, zz_p ** data, zz_p** mac)
 {
     string path = myStoragePath + to_string(shareID) + "/" + to_string(bucketID); 
     FILE *file_out;        
@@ -2028,8 +2052,7 @@ int ServerORAM::writeBucket(int bucketID, int shareID, zz_p ** data, zz_p** mac,
         cout<< path_MAC << " cannot be Opened!!" <<endl;
         exit(0);
     }
-    if(reverseMode)
-    {    
+    #if !defined (REVERSE_STORAGE_LAYOUT)
         for ( int u = 0 ; u < BUCKET_SIZE; u++)
         {
             for(int j = 0 ; j < DATA_CHUNKS; j++)
@@ -2039,16 +2062,14 @@ int ServerORAM::writeBucket(int bucketID, int shareID, zz_p ** data, zz_p** mac,
                 fwrite(&mac[j][u]._zz_p__rep,1,sizeof(TYPE_DATA),file_out_MAC);
             }
         }
-    }
-    else
-    {
+    #else
         for(int j = 0 ; j < DATA_CHUNKS; j++)
         {
             fwrite(data[j],1,sizeof(TYPE_DATA)*BUCKET_SIZE,file_out);
             //MAC
             fwrite(mac[j],1,sizeof(TYPE_DATA)*BUCKET_SIZE,file_out_MAC);
         }
-    }
+    #endif
     fclose(file_out);
     
     //MAC

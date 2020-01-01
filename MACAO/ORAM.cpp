@@ -32,19 +32,26 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
 {
 	int div = ceil(NUM_BLOCK/(double)N_leaf);
 	assert(div <= BUCKET_SIZE && "ERROR: CHECK THE PARAMETERS => LEAVES CANNOT STORE ALL");
-	
-  	TYPE_DATA** bucket = new TYPE_DATA*[DATA_CHUNKS];
-    for (int i = 0 ; i < DATA_CHUNKS; i++ )
+	long long n_col,m_row;
+    #if !defined (REVERSE_STORAGE_LAYOUT)
+        n_col = DATA_CHUNKS; 
+        m_row = BUCKET_SIZE;
+    #else
+         n_col = BUCKET_SIZE; 
+         m_row = DATA_CHUNKS;
+    #endif
+  	TYPE_DATA** bucket = new TYPE_DATA*[m_row];
+    for (int i = 0 ; i < m_row; i++ )
     {
-        bucket[i] = new TYPE_DATA[BUCKET_SIZE];
-        memset(bucket[i],0,sizeof(TYPE_DATA)*BUCKET_SIZE);
+        bucket[i] = new TYPE_DATA[n_col];
+        memset(bucket[i],0,sizeof(TYPE_DATA)*n_col);
     }
     
-    TYPE_DATA** temp = new TYPE_DATA*[DATA_CHUNKS];
-    for (int i = 0 ; i < DATA_CHUNKS; i++)
+    TYPE_DATA** temp = new TYPE_DATA*[m_row];
+    for (int i = 0 ; i < m_row; i++)
     {
-        temp[i] = new TYPE_DATA[BUCKET_SIZE];
-        memset(temp[i],0,sizeof(TYPE_DATA)*BUCKET_SIZE);
+        temp[i] = new TYPE_DATA[n_col];
+        memset(temp[i],0,sizeof(TYPE_DATA)*n_col);
     }
     
     /*TYPE_DATA** bucket = new TYPE_DATA*[BUCKET_SIZE];
@@ -91,9 +98,9 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
             cout<< "[ORAM] File Cannot be Opened!!" <<endl;
             exit(0);
         }
-        for(int ii = 0 ; ii <DATA_CHUNKS; ii++)
+        for(int ii = 0 ; ii <m_row; ii++)
         {
-            fwrite(bucket[ii], 1, BUCKET_SIZE*sizeof(TYPE_DATA), file_out);
+            fwrite(bucket[ii], 1, n_col*sizeof(TYPE_DATA), file_out);
         }
         /*for(int ii = 0 ; ii <BUCKET_SIZE; ii++)
         {
@@ -106,21 +113,26 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
     TYPE_INDEX iter= 0;
     for(TYPE_INDEX i = NUM_NODES - N_leaf ; i < NUM_NODES; i++)
     {
-        memset(bucket[0],0,sizeof(TYPE_DATA)*BUCKET_SIZE);
-        memset(bucket[1],0,sizeof(TYPE_DATA)*BUCKET_SIZE);
-        
-        //for(int j  = 0 ; j < BUCKET_SIZE; j++)
-        //    memset(bucket[j],0,BLOCK_SIZE);
+        #if defined (REVERSE_STORAGE_LAYOUT)
+            memset(bucket[0],0,sizeof(TYPE_DATA)*BUCKET_SIZE);
+            memset(bucket[1],0,sizeof(TYPE_DATA)*BUCKET_SIZE);
+        #else
+            for(int j  = 0 ; j < m_row; j++)
+                memset(bucket[j],0,BLOCK_SIZE);
+        #endif
         
         for(int ii = BUCKET_SIZE/2 ; ii<BUCKET_SIZE; ii++)
         {
             if(iter>=NUM_BLOCK)
                 break;
-                
-            bucket[0][ii] = blockIDs[iter];
-            bucket[1][ii] = blockIDs[iter];
-            //bucket[ii][0] = blockIDs[iter];
-            //bucket[ii][1] = blockIDs[iter];
+            #if defined (REVERSE_STORAGE_LAYOUT)
+                bucket[0][ii] = blockIDs[iter];
+                bucket[1][ii] = blockIDs[iter];
+            #else
+                bucket[ii][0] = blockIDs[iter];
+                bucket[ii][1] = blockIDs[iter];
+            #endif
+            
             pos_map[blockIDs[iter]].pathID = i;
             pos_map[blockIDs[iter]].pathIdx = ii+(BUCKET_SIZE*H)  ;
             metaData[i][ii]= blockIDs[iter];
@@ -134,9 +146,9 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
             cout<< "[ORAM] File Cannot be Opened!!" <<endl;
             exit(0);
         }
-        for(int ii = 0 ; ii < DATA_CHUNKS; ii++)
+        for(int ii = 0 ; ii < m_row; ii++)
         {
-            fwrite(bucket[ii], 1, BUCKET_SIZE*sizeof(TYPE_DATA), file_out);
+            fwrite(bucket[ii], 1, n_col*sizeof(TYPE_DATA), file_out);
         }
         /*
         for(int ii = 0 ; ii < BUCKET_SIZE; ii++)
@@ -156,12 +168,12 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
     
     for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)
     {
-        bucketShares[k] = new TYPE_DATA*[DATA_CHUNKS];
-        bucketMacShares[k] = new TYPE_DATA*[DATA_CHUNKS];
-        for(int i = 0 ; i < DATA_CHUNKS ; i++ )
+        bucketShares[k] = new TYPE_DATA*[m_row];
+        bucketMacShares[k] = new TYPE_DATA*[m_row];
+        for(int i = 0 ; i < m_row ; i++ )
         {
-            bucketShares[k][i] = new TYPE_DATA[BUCKET_SIZE];
-            bucketMacShares[k][i] = new TYPE_DATA[BUCKET_SIZE];
+            bucketShares[k][i] = new TYPE_DATA[n_col];
+            bucketMacShares[k][i] = new TYPE_DATA[n_col];
         }
         /*bucketShares[k] = new TYPE_DATA*[BUCKET_SIZE];
         bucketMacShares[k] = new TYPE_DATA*[BUCKET_SIZE];
@@ -173,8 +185,8 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
     }
         
 		
-    TYPE_DATA data_shares[DATA_CHUNKS][NUM_SERVERS];
-    TYPE_DATA mac_shares[DATA_CHUNKS][NUM_SERVERS];
+    TYPE_DATA data_shares[m_row][NUM_SERVERS];
+    TYPE_DATA mac_shares[m_row][NUM_SERVERS];
     //TYPE_DATA data_shares[BUCKET_SIZE][NUM_SERVERS];
     //TYPE_DATA mac_shares[BUCKET_SIZE][NUM_SERVERS];
     
@@ -192,13 +204,13 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
             cout<< "[ORAM] File Cannot be Opened!!" <<endl;
             exit(0);
         }
-        for(int ii = 0 ; ii < DATA_CHUNKS; ii++)
+        for(int ii = 0 ; ii < m_row; ii++)
         //for(int ii = 0 ; ii < BUCKET_SIZE; ii++)
         {
-            fread(bucket[ii] ,1 , BUCKET_SIZE*sizeof(TYPE_DATA), file_in);
+            fread(bucket[ii] ,1 , n_col*sizeof(TYPE_DATA), file_in);
             //fread(bucket[ii] ,1 , BLOCK_SIZE, file_in);
             
-            for(TYPE_INDEX j = 0; j < BUCKET_SIZE; j++)
+            for(TYPE_INDEX j = 0; j < n_col; j++)
             //for(TYPE_INDEX j = 0; j < DATA_CHUNKS; j++)
             {           
                 #if defined(SEEDING)
@@ -237,11 +249,11 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
                 cout<< path_mac << " Cannot Be Opened!!" <<endl;
                 exit;
             }
-            for(int ii = 0 ; ii< DATA_CHUNKS ; ii++)
+            for(int ii = 0 ; ii< m_row ; ii++)
             //for(int ii = 0 ; ii< BUCKET_SIZE ; ii++)
             {
-                fwrite(bucketShares[k][ii], 1, BUCKET_SIZE*sizeof(TYPE_DATA), file_out);
-                fwrite(bucketMacShares[k][ii], 1, BUCKET_SIZE*sizeof(TYPE_DATA), file_mac_out);
+                fwrite(bucketShares[k][ii], 1, n_col*sizeof(TYPE_DATA), file_out);
+                fwrite(bucketMacShares[k][ii], 1, n_col*sizeof(TYPE_DATA), file_mac_out);
                 //fwrite(bucketShares[k][ii], 1, BLOCK_SIZE, file_out);
                 //fwrite(bucketMacShares[k][ii], 1, BLOCK_SIZE, file_mac_out);
             }
@@ -256,7 +268,7 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
 		
     for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)
     {
-        for(int i = 0 ; i < DATA_CHUNKS; i++)
+        for(int i = 0 ; i < m_row; i++)
         //for(int i = 0 ; i < BUCKET_SIZE; i++)
         {
             delete[] bucketShares[k][i];
@@ -267,7 +279,7 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
     }
     delete[] bucketShares;
     delete[] bucketMacShares;
-    for(int i = 0 ; i < DATA_CHUNKS; i++)
+    for(int i = 0 ; i < m_row; i++)
     //for(int i = 0 ; i < BUCKET_SIZE; i++)
     {
         delete[] bucket[i];
