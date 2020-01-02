@@ -463,7 +463,7 @@ int ClientORAM::retrieve(TYPE_ID blockID)
         #if defined(SEEDING)
             #if defined(XOR_PIR)
                 thread_socket_args[i] = struct_socket(i, retrieval_query_out[i], CLIENT_RETRIEVAL_OUT_LENGTH, retrieval_in[i], SERVER_RETRIEVAL_REPLY_LENGTH, CMD_RETRIEVE,NULL);
-            #else
+            #else // RSSS or SPDZ
                 if(i==0)
                 {
                     thread_socket_args[i] = struct_socket(i, retrieval_query_out[i], CLIENT_RETRIEVAL_OUT_LENGTH, retrieval_in[i], SERVER_RETRIEVAL_REPLY_LENGTH, CMD_RETRIEVE,NULL);
@@ -473,7 +473,7 @@ int ClientORAM::retrieve(TYPE_ID blockID)
                     thread_socket_args[i] = struct_socket(i, retrieval_query_out[i], sizeof(TYPE_INDEX), retrieval_in[i], SERVER_RETRIEVAL_REPLY_LENGTH, CMD_RETRIEVE,NULL);
                 }
             #endif
-        #else // RSSS or SPDZ
+        #else 
             thread_socket_args[i] = struct_socket(i, retrieval_query_out[i], CLIENT_RETRIEVAL_OUT_LENGTH, retrieval_in[i], SERVER_RETRIEVAL_REPLY_LENGTH, CMD_RETRIEVE,NULL);
 		#endif
         pthread_create(&thread_sockets[i], NULL, &ClientORAM::thread_socket_func, (void*)&thread_socket_args[i]);
