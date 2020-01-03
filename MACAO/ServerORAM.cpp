@@ -468,8 +468,6 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
         #endif
     #endif
 
-
-    
     
         start = time_now;
     #if defined(SEEDING)
@@ -480,7 +478,7 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
             {
                 memcpy(retrieval_query[i],&retrieval_query_in[i*CLIENT_RETRIEVAL_QUERY_SIZE], CLIENT_RETRIEVAL_QUERY_SIZE);
             }
-        #elif defined(RSSS)
+        #else
             if(serverNo==0)
             {
                 socket.recv(retrieval_query_in,CLIENT_RETRIEVAL_OUT_LENGTH,0);
@@ -491,15 +489,17 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
                 socket.recv(retrieval_query_in,sizeof(TYPE_DATA),0);
                 memcpy(&pathID, &retrieval_query_in[0], sizeof(pathID));
             }
-
+            
             if(serverNo==0)
             {
-                cout<< "	[evict] Creating Threads for Sending..."<< endl;;
-                sendSocket_args[0] = struct_socket(1,  &retrieval_query_in[0], CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_INDEX), NULL, 0, NULL, true);
-                pthread_create(&thread_send[0], NULL, &thread_socket_func, (void*)&sendSocket_args[0]);
-                pthread_join(thread_send[0], NULL);
-
                 memcpy(retrieval_query[0], retrieval_query_in, CLIENT_RETRIEVAL_QUERY_SIZE);
+                    
+                #if defined(RSSS)
+                    cout<< "	[evict] Creating Threads for Sending..."<< endl;;
+                    sendSocket_args[0] = struct_socket(1,  &retrieval_query_in[0], CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_INDEX), NULL, 0, NULL, true);
+                    pthread_create(&thread_send[0], NULL, &thread_socket_func, (void*)&sendSocket_args[0]);
+                    pthread_join(thread_send[0], NULL);
+                #endif
             }
             else
             {
@@ -509,27 +509,26 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
                     retrieval_query[0][i] = tmp;
                 }
             }
-            if(serverNo==2)
-            {
-                cout<< "	[evict] Creating Threads for Receiving..." << endl;
-                recvSocket_args[0] = struct_socket(0, NULL, 0, transfer_in, CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_INDEX), NULL,false);
-                pthread_create(&thread_recv[0], NULL, &thread_socket_func, (void*)&recvSocket_args[0]);
-                pthread_join(thread_recv[0], NULL);
-                
-                memcpy(retrieval_query[1], transfer_in, CLIENT_RETRIEVAL_QUERY_SIZE);
-            }
-            else
-            {
-                for(int i = 0 ; i < PATH_LENGTH;i++)
+            #if defined(RSSS)
+                if(serverNo==2)
                 {
-                    sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(this->serverNo+1)%3]);
-                    retrieval_query[1][i] = tmp;
+                    cout<< "	[evict] Creating Threads for Receiving..." << endl;
+                    recvSocket_args[0] = struct_socket(0, NULL, 0, transfer_in, CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_INDEX), NULL,false);
+                    pthread_create(&thread_recv[0], NULL, &thread_socket_func, (void*)&recvSocket_args[0]);
+                    pthread_join(thread_recv[0], NULL);
+                    
+                    memcpy(retrieval_query[1], transfer_in, CLIENT_RETRIEVAL_QUERY_SIZE);
                 }
-            }
-        #else //SPDZ
-
+                else
+                {
+                    for(int i = 0 ; i < PATH_LENGTH;i++)
+                    {
+                        sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(this->serverNo+1)%3]);
+                        retrieval_query[1][i] = tmp;
+                    }
+                }
+            #endif
         #endif
-
     #else // NO SEEDING
 
         start = time_now;
@@ -547,7 +546,6 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
                 memcpy(retrieval_query[i],&retrieval_query_in[i*CLIENT_RETRIEVAL_QUERY_SIZE], CLIENT_RETRIEVAL_QUERY_SIZE);
             }
         #else
-        
             memcpy(retrieval_query[0], retrieval_query_in, CLIENT_RETRIEVAL_QUERY_SIZE);
             #if defined(RSSS)
                 // send client data to other servers (this is due to RSSS)
@@ -825,24 +823,24 @@ int ServerORAM::writeRoot(zmq::socket_t& socket)
 
 
         //send to other server (this is due to RSS)
-
-        if(serverNo==2)
-        {
-            cout<< "	[evict] Creating Threads for Receiving..." << endl;
-            recvSocket_args[0] = struct_socket(0, NULL, 0, client_write_root_in, BLOCK_SIZE*2, NULL,false);
-            pthread_create(&thread_recv[0], NULL, &thread_socket_func, (void*)&recvSocket_args[0]);
-            pthread_join(thread_recv[0], NULL);
-        }
-        if(serverNo==0)
-        {
-            cout<< "	[evict] Creating Threads for Sending..."<< endl;;
-            sendSocket_args[0] = struct_socket(1,  &write_root_in[sizeof(TYPE_DATA)], BLOCK_SIZE*2, NULL, 0, NULL, true);
-            pthread_create(&thread_send[0], NULL, &thread_socket_func, (void*)&sendSocket_args[0]);
-            pthread_join(thread_send[0], NULL);
-        }
-        cout<< "	[evict] CREATED!" <<endl;
-        cout<< "	[evict] Waiting for Threads..." <<endl;
-
+        #if defined(RSSS)
+            if(serverNo==2)
+            {
+                cout<< "	[evict] Creating Threads for Receiving..." << endl;
+                recvSocket_args[0] = struct_socket(0, NULL, 0, client_write_root_in, BLOCK_SIZE*2, NULL,false);
+                pthread_create(&thread_recv[0], NULL, &thread_socket_func, (void*)&recvSocket_args[0]);
+                pthread_join(thread_recv[0], NULL);
+            }
+            if(serverNo==0)
+            {
+                cout<< "	[evict] Creating Threads for Sending..."<< endl;;
+                sendSocket_args[0] = struct_socket(1,  &write_root_in[sizeof(TYPE_DATA)], BLOCK_SIZE*2, NULL, 0, NULL, true);
+                pthread_create(&thread_send[0], NULL, &thread_socket_func, (void*)&sendSocket_args[0]);
+                pthread_join(thread_send[0], NULL);
+            }
+            cout<< "	[evict] CREATED!" <<endl;
+            cout<< "	[evict] Waiting for Threads..." <<endl;
+        #endif
 
 
 
@@ -868,26 +866,28 @@ int ServerORAM::writeRoot(zmq::socket_t& socket)
             }
         }
         this->updateRoot(serverNo,slotIdx,&write_root_in[sizeof(TYPE_DATA)],&write_root_in[BLOCK_SIZE+sizeof(TYPE_DATA)]);
-        if(serverNo==2)
-        {
-
-        }
-        else
-        {
-            for(int i = 0 ; i < DATA_CHUNKS;i++)
+        
+        #if defined(RSSS)
+            if(serverNo==2)
             {
-                sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo+1)%3]);
-                tmp2  = tmp;
-                memcpy(&client_write_root_in[i*sizeof(TYPE_DATA)],&tmp2,sizeof(TYPE_DATA));
 
-                sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo+1)%3]);
-                tmp2  = tmp;
-                memcpy(&client_write_root_in[i*sizeof(TYPE_DATA)+BLOCK_SIZE],&tmp2,sizeof(TYPE_DATA));
             }
-        }
-        this->updateRoot((serverNo+1)%3,slotIdx, &client_write_root_in[0], &client_write_root_in[BLOCK_SIZE]);
+            else
+            {
+                for(int i = 0 ; i < DATA_CHUNKS;i++)
+                {
+                    sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo+1)%3]);
+                    tmp2  = tmp;
+                    memcpy(&client_write_root_in[i*sizeof(TYPE_DATA)],&tmp2,sizeof(TYPE_DATA));
 
-
+                    sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo+1)%3]);
+                    tmp2  = tmp;
+                    memcpy(&client_write_root_in[i*sizeof(TYPE_DATA)+BLOCK_SIZE],&tmp2,sizeof(TYPE_DATA));
+                }
+            }
+            this->updateRoot((serverNo+1)%3,slotIdx, &client_write_root_in[0], &client_write_root_in[BLOCK_SIZE]);
+        #endif
+    
         end = time_now;
         cout<< "	[recvBlock] Block STORED in Disk in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count() <<endl;
         server_logs[5] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
@@ -1022,31 +1022,30 @@ int ServerORAM::recvClientEvictData(zmq::socket_t& socket)
         server_logs[6] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
 
 
+        #if defined(RSSS)
+            // send client data to other servers (this is due to RSSS)
+            if(serverNo==2)
+            {
+                cout<< "	[evict] Creating Threads for Receiving..." << endl;
+                recvSocket_args[0] = struct_socket(0, NULL, 0, client_evict_in, CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX), NULL,false);
+                pthread_create(&thread_recv[0], NULL, &thread_socket_func, (void*)&recvSocket_args[0]);
+                pthread_join(thread_recv[0], NULL);
+            }
+            if(serverNo==0)
+            {
+                cout<< "	[evict] Creating Threads for Sending..."<< endl;;
+                sendSocket_args[0] = struct_socket(1,  &evict_in[sizeof(TYPE_DATA)], CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX), NULL, 0, NULL, true);
+                pthread_create(&thread_send[0], NULL, &thread_socket_func, (void*)&sendSocket_args[0]);
+                pthread_join(thread_send[0], NULL);
 
-        // send client data to other servers (this is due to RSSS)
-
-        if(serverNo==2)
-        {
-            cout<< "	[evict] Creating Threads for Receiving..." << endl;
-            recvSocket_args[0] = struct_socket(0, NULL, 0, client_evict_in, CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX), NULL,false);
-            pthread_create(&thread_recv[0], NULL, &thread_socket_func, (void*)&recvSocket_args[0]);
-            pthread_join(thread_recv[0], NULL);
-        }
-        if(serverNo==0)
-        {
-            cout<< "	[evict] Creating Threads for Sending..."<< endl;;
-            sendSocket_args[0] = struct_socket(1,  &evict_in[sizeof(TYPE_DATA)], CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX), NULL, 0, NULL, true);
-            pthread_create(&thread_send[0], NULL, &thread_socket_func, (void*)&sendSocket_args[0]);
-            pthread_join(thread_send[0], NULL);
-
-        }
-        //cout<< "	[evict] CREATED!" <<endl;
-        //cout<< "	[evict] Waiting for Threads..." <<endl;
-
+            }
+        #endif
 
 
 
         memcpy(&n_evict, &evict_in[0], sizeof(TYPE_INDEX));
+        
+        cout <<"N evict:" <<n_evict;
 
     #else
         socket.recv(evict_in, CLIENT_EVICTION_OUT_LENGTH, 0);
@@ -1483,7 +1482,7 @@ int ServerORAM::preReSharing(int level, int es, int ee)
 
 int ServerORAM::reShare(int level, int es, int ee)
 {
-    #if defined(SEEDING)
+    #if defined(SEEDING) && defined(RSSS)
         unsigned long long currBufferIdx = 0;
         TYPE_DATA shares_BLOCK[NUM_SERVERS];
 
@@ -1572,6 +1571,7 @@ int ServerORAM::reShare(int level, int es, int ee)
 
             //currBufferIdx += ((BUCKET_SIZE+1)*BLOCK_SIZE);
         }
+    #else //SPDZ does not need this phase
     #endif
     return 0;
 
@@ -1580,7 +1580,7 @@ int ServerORAM::reShare(int level, int es, int ee)
 
 int ServerORAM::postReSharing(int level, int es, int ee)
 {
-    #if defined(SEEDING)
+    #if (defined(SEEDING) && defined(RSSS))
         unsigned long long currBufferIdx = 0;
         unsigned long long tmp;
         unsigned long long tmp3[MAT_PRODUCT_OUTPUT_LENGTH];
@@ -1640,7 +1640,7 @@ int ServerORAM::postReSharing(int level, int es, int ee)
 
 
         }
-    #elif defined(RSSS)
+    #elif defined(RSSS) //only RSSS
     unsigned long long currBufferIdx = 0;
     for(int e = es ; e < ee; e++)
     {
@@ -1670,7 +1670,7 @@ int ServerORAM::postReSharing(int level, int es, int ee)
             }
         }
     }
-    #else // SPDZ
+    #else // SPDZ with/without-seeding
         //recover rho & epsilon
         unsigned long currBufferIdx = 0;
         for(int e = es ; e < ee ; e++)

@@ -116,7 +116,7 @@ int ClientBinaryORAMO::evict()
             #if defined(SEEDING)
                 ORAM::createShares(this->evictMatrix[i][j], data_shares, NULL,prng_client,0);
                 this->sharedMatrix[0][i][j] = data_shares[0];
-            #else // RSSS or SPDZ
+            #else
                 ORAM::createShares(this->evictMatrix[i][j], data_shares, NULL);
                 for (int k = 0; k < NUM_SERVERS; k++) 
                 {   
@@ -147,9 +147,9 @@ int ClientBinaryORAMO::evict()
             }
             else
             {
-                thread_socket_args[i] = struct_socket(i, evict_out[i], sizeof(TYPE_DATA), NULL,0, CMD_EVICT,  NULL);  
+                thread_socket_args[i] = struct_socket(i, evict_out[i], sizeof(TYPE_INDEX), NULL,0, CMD_EVICT,  NULL);  
             }
-        #else // RSSS or SPDZ
+        #else 
             for (TYPE_INDEX y = 0 ; y < H+1; y++)
             {
                 memcpy(&evict_out[i][y*evictMatSize*sizeof(TYPE_DATA)], &this->sharedMatrix[i][y][0], evictMatSize*sizeof(TYPE_DATA));
@@ -158,6 +158,7 @@ int ClientBinaryORAMO::evict()
                 
             thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, NULL,0, CMD_EVICT,  NULL);
         #endif
+        
         pthread_create(&thread_sockets[i], NULL, &ClientBinaryORAMO::thread_socket_func, (void*)&thread_socket_args[i]);
     }
 			

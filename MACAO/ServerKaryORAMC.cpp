@@ -50,22 +50,22 @@ int ServerKaryORAMC::prepareEvictComputation()
                     
                     sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[serverNo]);
                     this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER][i][0] = tmp;
-
                 }
-                
-                if(serverNo==2)
-                {
-                    memcpy(this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER+1][i],&client_evict_in[currBufferIdx-sizeof(TYPE_DATA)],sizeof(TYPE_DATA));
-                    memcpy(this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER+1][i],&client_evict_in[currBufferIdx+BLOCK_SIZE-sizeof(TYPE_DATA)],sizeof(TYPE_DATA));
-                }
-                else
-                {
-                    sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo+1)%3]);
-                    this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER+1][i][0] = tmp;
-                    
-                    sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo+1)%3]);
-                    this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER+1][i][0] = tmp;
-                }
+                #if defined(RSSS)
+                    if(serverNo==2)
+                    {
+                        memcpy(this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER+1][i],&client_evict_in[currBufferIdx-sizeof(TYPE_DATA)],sizeof(TYPE_DATA));
+                        memcpy(this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER+1][i],&client_evict_in[currBufferIdx+BLOCK_SIZE-sizeof(TYPE_DATA)],sizeof(TYPE_DATA));
+                    }
+                    else
+                    {
+                        sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo+1)%3]);
+                        this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER+1][i][0] = tmp;
+                        
+                        sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo+1)%3]);
+                        this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER+1][i][0] = tmp;
+                    }
+                #endif
                 
                 currBufferIdx +=sizeof(TYPE_DATA);
             }
@@ -86,19 +86,20 @@ int ServerKaryORAMC::prepareEvictComputation()
                             this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER][y][i][j] = tmp2[j];
                         }
                     }
-                    
-                    if(serverNo==2)
-                    {
-                        memcpy(this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER+1][y][i], &client_evict_in[currBufferIdx-sizeof(TYPE_DATA)], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
-                    }
-                    else
-                    {
-                         sober128_read((unsigned char*)&tmp2,EVICT_MAT_NUM_COL*sizeof(TYPE_DATA),&prng_client[(serverNo+1)%3]);
-                        for(TYPE_INDEX j = 0 ; j < EVICT_MAT_NUM_COL; j++)
+                    #if defined(RSSS)
+                        if(serverNo==2)
                         {
-                            this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER+1][y][i][j] = tmp2[j];
+                            memcpy(this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER+1][y][i], &client_evict_in[currBufferIdx-sizeof(TYPE_DATA)], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
                         }
-                    }
+                        else
+                        {
+                            sober128_read((unsigned char*)&tmp2,EVICT_MAT_NUM_COL*sizeof(TYPE_DATA),&prng_client[(serverNo+1)%3]);
+                            for(TYPE_INDEX j = 0 ; j < EVICT_MAT_NUM_COL; j++)
+                            {
+                                this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER+1][y][i][j] = tmp2[j];
+                            }
+                        }
+                    #endif
                     currBufferIdx += EVICT_MAT_NUM_COL*sizeof(TYPE_DATA);
                 }
             }
@@ -189,7 +190,7 @@ start:
         //== THREADS FOR LISTENING =======================================================================================
         cout<< "	[evict] Creating Threads for Receiving Ports..." << endl;
         
-        #if defined(SEEDING)
+        #if defined(SEEDING) && defined(RSSS)
         
             recvSocket_args[0] = struct_socket(0, NULL, 0, reshares_in[0], buffer_length, NULL,false);
             pthread_create(&thread_recv[0], NULL, &ServerORAM::thread_socket_func, (void*)&recvSocket_args[0]);
@@ -237,7 +238,7 @@ start:
     
 		//== THREADS FOR SENDING ============================================================================================
 		cout<< "	[evict] Creating Threads for Sending Shares..."<< endl;
-        #if defined(SEEDING)
+        #if defined(SEEDING) && defined(RSSS)
             sendSocket_args[1] = struct_socket(1,  reshares_out[1], buffer_length, NULL, 0, NULL, true);
             pthread_create(&thread_send[1], NULL, &ServerORAM::thread_socket_func, (void*)&sendSocket_args[1]);
         

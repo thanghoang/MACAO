@@ -40,9 +40,9 @@ static inline std::string to_string(T value)
 static const unsigned long long P = 1073742353; //288230376152137729; //prime field - should have length equal to the defined TYPE_DATA
 
 //#define XOR_PIR
-#define RSSS
-//#define SPDZ
-//#define SEEDING
+//#define RSSS
+#define SPDZ
+#define SEEDING
 
 #if defined (SEEDING)
     static std::string CLIENT_SERVER_SEED[3] = {"abcdefghijklmn", "12345678910112","mnlkjihgfedcba"};
@@ -261,7 +261,7 @@ const unsigned long long BUCKET_DATA_SIZE = BUCKET_SIZE*BLOCK_SIZE;
     const int EVICT_MAT_NUM_ROW = BUCKET_SIZE+1;
 #else
     const unsigned long long CLIENT_EVICTION_OUT_LENGTH =  ((H+1)*evictMatSize*sizeof(TYPE_DATA)) +sizeof(TYPE_INDEX) ;//  for OnionORAM -> (H+1)*evictMatSize*sizeof(TYPE_DATA) + sizeof(TYPE_INDEX);
-    #if defined(SEEDING)
+    #if defined(SEEDING) && defined(RSSS)
         const unsigned long long SERVER_RESHARE_IN_OUT_LENGTH =  2*((BUCKET_SIZE*BLOCK_SIZE)); // 1st2: MAC, 2nd2: for 2 shares for RSSS / server -> for onion ORAM:  BUCKET_SIZE*sizeof(TYPE_DATA)*DATA_CHUNKS
     #elif defined (RSSS)
         const unsigned long long SERVER_RESHARE_IN_OUT_LENGTH =  2*2*((BUCKET_SIZE*BLOCK_SIZE)); // 1st2: MAC, 2nd2: for 2 shares for RSSS / server -> for onion ORAM:  BUCKET_SIZE*sizeof(TYPE_DATA)*DATA_CHUNKS

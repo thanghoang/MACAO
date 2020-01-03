@@ -65,19 +65,20 @@ int ServerBinaryORAMO::prepareEvictComputation()
                         this->vecEvictMatrix[0][y][i][j] = tmp;
                     }
                 }
-                
-                if(serverNo==2)
-                {
-                    memcpy(this->vecEvictMatrix[1][y][i], &client_evict_in[currBufferIdx-sizeof(TYPE_DATA)], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
-                }
-                else
-                {
-                     for(int j = 0 ; j < EVICT_MAT_NUM_COL; j++)
+                #if defined(RSSS)
+                    if(serverNo==2)
                     {
-                        sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo+1)%3]);
-                        this->vecEvictMatrix[1][y][i][j] = tmp;
+                        memcpy(this->vecEvictMatrix[1][y][i], &client_evict_in[currBufferIdx-sizeof(TYPE_DATA)], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
                     }
-                }
+                    else
+                    {
+                         for(int j = 0 ; j < EVICT_MAT_NUM_COL; j++)
+                        {
+                            sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo+1)%3]);
+                            this->vecEvictMatrix[1][y][i][j] = tmp;
+                        }
+                    }
+                #endif
             #else 
                 memcpy(this->vecEvictMatrix[0][y][i], &evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
                 #if defined(RSSS)
@@ -123,7 +124,8 @@ int ServerBinaryORAMO::evict(zmq::socket_t& socket)
         
         //== THREADS FOR LISTENING =======================================================================================
         cout<< "	[evict] Creating Threads for Receiving Ports..." << endl;
-        #if defined(SEEDING)
+        
+        #if defined(SEEDING) && defined(RSSS)
             recvSocket_args[0] = struct_socket(0, NULL, 0, reshares_in[0], SERVER_RESHARE_IN_OUT_LENGTH, NULL,false);
             pthread_create(&thread_recv[0], NULL, &ServerORAM::thread_socket_func, (void*)&recvSocket_args[0]);
         #else 
@@ -133,6 +135,7 @@ int ServerBinaryORAMO::evict(zmq::socket_t& socket)
                 pthread_create(&thread_recv[k], NULL, &ServerORAM::thread_socket_func, (void*)&recvSocket_args[k]);
             }
         #endif
+        
         
 		TYPE_INDEX curSrcIdx = srcIdx[h];
         TYPE_INDEX curDestIdx = destIdx[h];
@@ -175,7 +178,8 @@ int ServerBinaryORAMO::evict(zmq::socket_t& socket)
     
 		//== THREADS FOR SENDING ============================================================================================
 		cout<< "	[evict] Creating Threads for Sending Shares..."<< endl;
-        #if defined(SEEDING)
+        
+        #if defined(SEEDING) && defined(RSSS)
             sendSocket_args[1] = struct_socket(1,  reshares_out[1], SERVER_RESHARE_IN_OUT_LENGTH, NULL, 0, NULL, true);
             pthread_create(&thread_send[1], NULL, &ServerORAM::thread_socket_func, (void*)&sendSocket_args[1]);
             cout<< "	[evict] CREATED!" <<endl;
