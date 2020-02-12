@@ -438,6 +438,7 @@ void ClientORAM::recoverRetrievedBlock()
 
 int ClientORAM::retrieve(TYPE_ID blockID)
 {
+    ORAM::createRetrievalTriplets();
     auto start = time_now;
     auto end = time_now;
     

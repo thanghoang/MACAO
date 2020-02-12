@@ -678,6 +678,9 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
             memcpy(&retrieval_answer_out[BLOCK_SIZE],dotProd_mac_output[0],BLOCK_SIZE);
             
         #else //SPDZ
+            readTriplets(RetrievalShares_a, DATA_CHUNKS, PATH_LENGTH, "/retrieval_triplet_a");
+            readTriplets(RetrievalShares_b, PATH_LENGTH, "/retrieval_triplet_b");
+            readTriplets(RetrievalShares_c, DATA_CHUNKS, "/retrieval_triplet_c");
             unsigned long long currBufferIdx =  0;
             for(int i = 0 ; i < DATA_CHUNKS; i++)
             {
@@ -1832,3 +1835,43 @@ int ServerORAM::writeBucket(int bucketID, int shareID, zz_p ** data, zz_p** mac)
     fclose(file_out_MAC);
 
 }
+
+
+int ServerORAM::readTriplets(zz_p** data, int row, int col, string file_name)
+{
+    FILE* file_in = NULL;
+    string path  = myStoragePath + to_string(serverNo) + file_name;
+    if((file_in = fopen(path.c_str(),"rb")) == NULL)
+    {
+        cout<< path << " cannot be opened!!" <<endl;
+        exit;
+    }
+
+    for(int i = 0 ; i < row; i++)
+    {
+        for(int j = 0 ; j < col; j++)
+        {
+            fread(&data[i][j], 1, sizeof(TYPE_DATA), file_in);
+        }
+    }
+    fclose(file_in);
+} 
+
+
+int ServerORAM::readTriplets(zz_p* data, int length, string file_name)
+{
+    FILE* file_in = NULL;
+    string path  = myStoragePath + to_string(serverNo) + file_name;
+    if((file_in = fopen(path.c_str(),"rb")) == NULL)
+    {
+        cout<< path << " cannot be opened!!" <<endl;
+        exit;
+    }
+
+    for(int i = 0 ; i < length; i++)
+    {
+        fread(&data[i], 1, sizeof(TYPE_DATA), file_in);
+    }
+
+    fclose(file_in);
+} 

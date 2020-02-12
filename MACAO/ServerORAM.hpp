@@ -166,6 +166,11 @@ public:
     static void* thread_matProd_func(void* args);
     static void* thread_retrieval_by_XOR_func(void* args);
     static void* thread_retrieval_by_dotProd_func(void* args);
+
+    int readTriplets(zz_p** triplets, int row, int col, string file_name);
+    int readTriplets(zz_p* triplets, int length, string file_name);
+
+
     //logs
     static unsigned long int server_logs[13]; 
     static unsigned long int thread_max;

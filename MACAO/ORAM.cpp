@@ -917,3 +917,162 @@ int ORAM::prepareTarget(TYPE_INDEX* meta_path, TYPE_INDEX pathID, int *deepest, 
 }
 
 
+int ORAM::createRetrievalTriplets()
+{
+    zz_p** A = new zz_p*[DATA_CHUNKS];
+    zz_p* B = new zz_p[PATH_LENGTH];
+    zz_p* C = new zz_p[DATA_CHUNKS];
+
+    for(int i = 0 ; i < DATA_CHUNKS; i++)
+    {
+        A[i] = new zz_p[PATH_LENGTH];
+    }
+
+    for(int i = 0; i < DATA_CHUNKS; i++)
+    {
+        for(int j = 0; j < PATH_LENGTH; j++)
+        {
+            A[i][j] = rand();
+        }
+    }
+
+    for(int i = 0; i < PATH_LENGTH; i++)
+    {
+        B[i] = rand();
+    }
+
+    perform_dot_product(A, B, C, DATA_CHUNKS, PATH_LENGTH);
+
+    zz_p*** shares_A = new zz_p**[NUM_SERVERS];
+    for(int i = 0; i < NUM_SERVERS; i++)
+    {
+        shares_A[i] = new zz_p*[DATA_CHUNKS];
+        for(int j = 0 ; j < DATA_CHUNKS; j++)
+        {
+            shares_A[i][j] = new zz_p[PATH_LENGTH];
+        }
+    }
+
+    zz_p** shares_B = new zz_p*[NUM_SERVERS];
+    for(int i = 0; i < NUM_SERVERS; i++)
+    {
+        shares_B[i] = new zz_p[PATH_LENGTH];
+    }
+
+    zz_p** shares_C = new zz_p*[NUM_SERVERS];
+    for(int i = 0; i < NUM_SERVERS; i++)
+    {
+        shares_C[i] = new zz_p[DATA_CHUNKS];
+    }
+
+    for(int i = 0; i < DATA_CHUNKS; i++)
+    {
+        for(int j = 0; j < PATH_LENGTH; j++)
+        {
+            TYPE_DATA data_shares[NUM_SERVERS];
+            long x;
+            conv(x, A[i][j]);
+            #if defined(SEEDING)
+                createShares(x, data_shares, NULL, NULL,0);         
+            #else // RSSS or SPDZ
+                createShares(x, data_shares, NULL); 
+            #endif
+
+            for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)  
+            {
+                memcpy(&shares_A[k][i][j], &data_shares[k], sizeof(TYPE_DATA));
+            } 
+        }
+    }
+
+
+    for(int i = 0; i < PATH_LENGTH; i++)
+    {
+        TYPE_DATA data_shares[NUM_SERVERS];
+        long x;
+        conv(x, B[i]);
+        #if defined(SEEDING)
+            createShares(x, data_shares, NULL, NULL,0);         
+        #else // RSSS or SPDZ
+            createShares(x, data_shares, NULL); 
+        #endif
+
+        for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)  
+        {
+            memcpy(&shares_B[k][i], &data_shares[k], sizeof(TYPE_DATA));
+        } 
+    }
+
+    for(int i = 0; i < DATA_CHUNKS; i++)
+    {
+        TYPE_DATA data_shares[NUM_SERVERS];
+        long x;
+        conv(x, C[i]);
+        #if defined(SEEDING)
+            createShares(x, data_shares, NULL, NULL,0);         
+        #else // RSSS or SPDZ
+            createShares(x, data_shares, NULL); 
+        #endif
+
+        for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)  
+        {
+            memcpy(&shares_C[k][i], &data_shares[k], sizeof(TYPE_DATA));
+        } 
+    }
+
+    string path;
+    FILE* file_out = NULL;
+
+    for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++) 
+    {
+        path = rootPath + to_string(k) + "/" + "retrieval_triplet_a";
+        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
+        {
+            cout<< path << " Cannot Be Opened!!" <<endl;
+            exit;
+        }
+        for(int i = 0 ; i< DATA_CHUNKS; i++)
+        {
+            fwrite(shares_A[k][i], 1, PATH_LENGTH*sizeof(TYPE_DATA), file_out);
+        }
+        fclose(file_out);
+    } 
+
+    for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++) 
+    {
+        path = rootPath + to_string(k) + "/" + "retrieval_triplet_b";
+        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
+        {
+            cout<< path << " Cannot Be Opened!!" <<endl;
+            exit;
+        }
+        
+        fwrite(shares_B[k], 1, PATH_LENGTH*sizeof(TYPE_DATA), file_out);
+        fclose(file_out);
+    }
+
+    for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++) 
+    {
+        path = rootPath + to_string(k) + "/" + "retrieval_triplet_c";
+        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
+        {
+            cout<< path << " Cannot Be Opened!!" <<endl;
+            exit;
+        }
+        
+        fwrite(shares_C[k], 1, DATA_CHUNKS*sizeof(TYPE_DATA), file_out);
+        fclose(file_out);
+    } 
+
+	return 0;
+}
+
+
+int ORAM::perform_dot_product(zz_p** A, zz_p* B, zz_p* C, int row, int input_length)
+{
+    for(int l = 0 ; l < row; l++) 
+    {
+        C[l] = InnerProd_LL(A[l], B, input_length, P, zz_p::ll_red_struct());
+    }
+    return 0;
+}
