@@ -168,7 +168,8 @@ ClientORAM::~ClientORAM()
 
 int ClientORAM::init()
 {
-    
+    ORAM::createRetrievalTriplets();
+    ORAM::createEvictionTriplets();
     this->numRead = 0;
     this->numEvict = 0;
 
@@ -438,7 +439,6 @@ void ClientORAM::recoverRetrievedBlock()
 
 int ClientORAM::retrieve(TYPE_ID blockID)
 {
-    ORAM::createRetrievalTriplets();
     auto start = time_now;
     auto end = time_now;
     

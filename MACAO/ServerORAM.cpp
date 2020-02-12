@@ -1452,6 +1452,8 @@ int ServerORAM::preReSharing(int level, int es, int ee)
         unsigned long long currBufferIdx =  0;
         for(int e = es ; e < ee ; e++)
         {
+            readTriplets(this->vecShares_a[e], DATA_CHUNKS, MAT_PRODUCT_INPUT_DB_LENGTH, "/evict_triplet_a");
+            readTriplets(this->vecShares_b[e][level], EVICT_MAT_NUM_ROW, EVICT_MAT_NUM_COL, "/evict_triplet_b");
             for(int i = 0 ; i < DATA_CHUNKS; i++)
             {
                 for(int j = 0 ; j < MAT_PRODUCT_INPUT_DB_LENGTH; j++)
@@ -1771,6 +1773,7 @@ int ServerORAM::postReSharing(int level, int es, int ee)
         //sum all together
         for(int e = es ; e < ee; e ++)
         {
+            readTriplets(this->vecShares_c[e], DATA_CHUNKS, MAT_PRODUCT_OUTPUT_LENGTH, "/evict_triplet_c");
             for(int i = 0 ; i < DATA_CHUNKS; i++)
             {
                 for(int n = 0 ; n < MAT_PRODUCT_OUTPUT_LENGTH; n++)

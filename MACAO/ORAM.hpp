@@ -62,7 +62,9 @@ public:
     static int sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char** output, prng_state *prng);
 
     static int createRetrievalTriplets();
+    static int createEvictionTriplets();
     static int perform_dot_product(zz_p** A, zz_p* B, zz_p* C, int row, int input_length);
+    static int perform_cross_product(zz_p** A, zz_p** B, zz_p** C, int row, int input_length, int output_length);
 
 };
     
