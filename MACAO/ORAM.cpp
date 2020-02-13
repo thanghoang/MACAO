@@ -1306,7 +1306,6 @@ int ORAM::perform_cross_product(zz_p** A, zz_p** B, zz_p** C, int row, int outpu
     {
         for(int k = 0 ; k < output_length; k++)
         {
-            cout<<l<<" " << k<<endl;
             C[l][k] = InnerProd_LL(A[l], B[k], input_length, P, zz_p::ll_red_struct());
         }
     }
