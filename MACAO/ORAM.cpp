@@ -1110,7 +1110,6 @@ int ORAM::createEvictionTriplets(int n)
             A[w][i] = new zz_p[MAT_PRODUCT_INPUT_DB_LENGTH];
             C[w][i] = new zz_p[MAT_PRODUCT_OUTPUT_LENGTH];
         }
-
         for(int i = 0 ; i < EVICT_MAT_NUM_ROW; i++)
         {
             B[w][i] = new zz_p[EVICT_MAT_NUM_COL];
@@ -1131,11 +1130,10 @@ int ORAM::createEvictionTriplets(int n)
                 B[w][i][j] = rand();
             }
         }
-        
         perform_cross_product(A[w], B[w], C[w], DATA_CHUNKS, MAT_PRODUCT_OUTPUT_LENGTH, MAT_PRODUCT_INPUT_DB_LENGTH);
     }
     
-
+    
     zz_p**** shares_A = new zz_p***[NUM_SERVERS];
     zz_p**** shares_C = new zz_p***[NUM_SERVERS];
     for(int k = 0; k < NUM_SERVERS; k++)
@@ -1302,12 +1300,13 @@ int ORAM::perform_dot_product(zz_p** A, zz_p* B, zz_p* C, int row, int input_len
 }
 
 
-int ORAM::perform_cross_product(zz_p** A, zz_p** B, zz_p** C, int row, int input_length, int output_length)
+int ORAM::perform_cross_product(zz_p** A, zz_p** B, zz_p** C, int row, int output_length, int input_length)
 {
     for(int l = 0 ; l < row; l++) 
     {
         for(int k = 0 ; k < output_length; k++)
         {
+            cout<<l<<" " << k<<endl;
             C[l][k] = InnerProd_LL(A[l], B[k], input_length, P, zz_p::ll_red_struct());
         }
     }
