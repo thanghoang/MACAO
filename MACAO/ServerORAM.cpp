@@ -6,7 +6,7 @@
 #include <iostream>
 #include <sys/socket.h>
 #include <sys/types.h>
-
+#include <fcntl.h>
 
 
 zmq::context_t** ServerORAM::context_send = new zmq::context_t*[NUM_SERVERS-1];
@@ -678,6 +678,10 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
             memcpy(&retrieval_answer_out[BLOCK_SIZE],dotProd_mac_output[0],BLOCK_SIZE);
             
         #else //SPDZ
+            readTriplets(RetrievalShares_a, DATA_CHUNKS, PATH_LENGTH, "/retrieval_triplet_a");
+            readTriplets(RetrievalShares_b, PATH_LENGTH, "/retrieval_triplet_b");
+            readTriplets(RetrievalShares_c, DATA_CHUNKS, "/retrieval_triplet_c");
+            
             unsigned long long currBufferIdx =  0;
             for(int i = 0 ; i < DATA_CHUNKS; i++)
             {
@@ -1449,6 +1453,8 @@ int ServerORAM::preReSharing(int level, int es, int ee)
         unsigned long long currBufferIdx =  0;
         for(int e = es ; e < ee ; e++)
         {
+            readTriplets(this->vecShares_a[e], DATA_CHUNKS, MAT_PRODUCT_INPUT_DB_LENGTH, "/evict_triplet_a");
+            readTriplets(this->vecShares_b[e][level], EVICT_MAT_NUM_ROW, EVICT_MAT_NUM_COL, "/evict_triplet_b");
             for(int i = 0 ; i < DATA_CHUNKS; i++)
             {
                 for(int j = 0 ; j < MAT_PRODUCT_INPUT_DB_LENGTH; j++)
@@ -1768,6 +1774,7 @@ int ServerORAM::postReSharing(int level, int es, int ee)
         //sum all together
         for(int e = es ; e < ee; e ++)
         {
+            readTriplets(this->vecShares_c[e], DATA_CHUNKS, MAT_PRODUCT_OUTPUT_LENGTH, "/evict_triplet_c");
             for(int i = 0 ; i < DATA_CHUNKS; i++)
             {
                 for(int n = 0 ; n < MAT_PRODUCT_OUTPUT_LENGTH; n++)
@@ -1832,3 +1839,58 @@ int ServerORAM::writeBucket(int bucketID, int shareID, zz_p ** data, zz_p** mac)
     fclose(file_out_MAC);
 
 }
+
+
+int ServerORAM::readTriplets(zz_p** data, int row, int col, string file_name)
+{
+    FILE* file_in = NULL;
+    string path  = myStoragePath + to_string(serverNo) + file_name;
+    if((file_in = fopen(path.c_str(),"rb")) == NULL)
+    {
+        cout<< path << " cannot be opened!!" <<endl;
+        exit;
+    }
+
+    for(int i = 0 ; i < row; i++)
+    {
+        for(int j = 0 ; j < col; j++)
+        {
+            data[i][j] = 0;
+            fread(&data[i][j], 1, sizeof(TYPE_DATA), file_in);
+        }
+    }
+    fclose(file_in);
+    
+    // use a more efficient method to delete first n bytes from file
+    //string file_pop_cmd = "dd conv=notrunc status=none if=" + path + " bs=1 skip=" + to_string(row*col*sizeof(TYPE_DATA)) +" of=" + path;
+    string file_pop_cmd = "tail -c +" + to_string(row*col*sizeof(TYPE_DATA) + 1) + " " + path + " > tmp" + to_string(serverNo);
+    string move_cmd = "mv tmp" + to_string(serverNo)+ " " + path;
+    system(file_pop_cmd.c_str());
+    system(move_cmd.c_str());
+} 
+
+
+int ServerORAM::readTriplets(zz_p* data, int length, string file_name)
+{
+    FILE* file_in = NULL;
+    string path  = myStoragePath + to_string(serverNo) + file_name;
+    if((file_in = fopen(path.c_str(),"rb")) == NULL)
+    {
+        cout<< path << " cannot be opened!!" <<endl;
+        exit;
+    }
+
+    for(int i = 0 ; i < length; i++)
+    {
+        data[i] = 0;
+        fread(&data[i], 1, sizeof(TYPE_DATA), file_in);
+        //cout<<"from file "<<data[i]<<endl;
+    }
+    fclose(file_in);
+    // use a more efficient method to delete first n bytes from file
+    //string file_pop_cmd = "dd conv=notrunc if=" + path + " bs=1 skip=" + to_string(length*sizeof(TYPE_DATA)) +" of=" + path;
+    string file_pop_cmd = "tail -c +" + to_string(length*sizeof(TYPE_DATA) + 1) + " " + path + " > tmp" + to_string(serverNo);
+    string move_cmd = "mv tmp" + to_string(serverNo)+ " " + path;
+    system(file_pop_cmd.c_str());
+    system(move_cmd.c_str());
+} 

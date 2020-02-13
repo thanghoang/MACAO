@@ -1,1 +1,1 @@
-./Debug/Utils.cpp.o ./Debug/main.cpp.o ./Debug/ORAM.cpp.o ./Debug/ServerKaryORAMC.cpp.o ./Debug/ServerBinaryORAMO.cpp.o ./Debug/ServerORAM.cpp.o ./Debug/ClientORAM.cpp.o ./Debug/ClientBinaryORAMO.cpp.o ./Debug/ClientKaryORAMC.cpp.o
+./Debug/main.cpp.o ./Debug/ORAM.cpp.o ./Debug/ClientBinaryORAMO.cpp.o ./Debug/ServerBinaryORAMO.cpp.o ./Debug/ServerKaryORAMC.cpp.o ./Debug/ClientORAM.cpp.o ./Debug/ServerORAM.cpp.o ./Debug/Utils.cpp.o ./Debug/ClientKaryORAMC.cpp.o

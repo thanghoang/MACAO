@@ -168,7 +168,13 @@ ClientORAM::~ClientORAM()
 
 int ClientORAM::init()
 {
-    
+    ORAM::createRetrievalTriplets(NUM_BLOCK * 10);
+    #if defined(CORAM_LAYOUT)
+        
+        ORAM::createEvictionTriplets(NUM_BLOCK * 10);
+    #else
+        ORAM::createEvictionTriplets(NUM_BLOCK * 10 / EVICT_RATE);
+    #endif
     this->numRead = 0;
     this->numEvict = 0;
 
