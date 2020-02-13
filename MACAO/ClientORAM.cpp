@@ -168,8 +168,8 @@ ClientORAM::~ClientORAM()
 
 int ClientORAM::init()
 {
-    ORAM::createRetrievalTriplets();
-    ORAM::createEvictionTriplets();
+    ORAM::createRetrievalTriplets(NUM_BLOCK * 10);
+    ORAM::createEvictionTriplets(NUM_BLOCK * 10);
     this->numRead = 0;
     this->numEvict = 0;
 
