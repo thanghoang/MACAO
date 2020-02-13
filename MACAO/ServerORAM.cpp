@@ -6,7 +6,7 @@
 #include <iostream>
 #include <sys/socket.h>
 #include <sys/types.h>
-
+#include <fcntl.h>
 
 
 zmq::context_t** ServerORAM::context_send = new zmq::context_t*[NUM_SERVERS-1];
@@ -681,12 +681,14 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
             readTriplets(RetrievalShares_a, DATA_CHUNKS, PATH_LENGTH, "/retrieval_triplet_a");
             readTriplets(RetrievalShares_b, PATH_LENGTH, "/retrieval_triplet_b");
             readTriplets(RetrievalShares_c, DATA_CHUNKS, "/retrieval_triplet_c");
+            
             unsigned long long currBufferIdx =  0;
             for(int i = 0 ; i < DATA_CHUNKS; i++)
             {
                 for(int j = 0 ; j < PATH_LENGTH; j++)
                 {
                     this->retrieval_path_db[0][i][j] -= this->RetrievalShares_a[i][j];
+                    cout<<" a "<<RetrievalShares_a[i][j]<<endl;
                 }
                 memcpy(&retrieval_reshares_out[currBufferIdx], this->retrieval_path_db[0][i], sizeof(TYPE_DATA)*(PATH_LENGTH));
                 currBufferIdx+=sizeof(TYPE_DATA)*(PATH_LENGTH);
@@ -695,6 +697,7 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
             for(int i = 0 ; i < PATH_LENGTH; i++)
             {
                 retrieval_query[0][i] -= this->RetrievalShares_b[i];
+                cout<<" b "<<RetrievalShares_b[i]<<endl;
 
                 memcpy(&retrieval_reshares_out[currBufferIdx], &retrieval_query[0][i], sizeof(TYPE_DATA));
                 currBufferIdx+=sizeof(TYPE_DATA);
@@ -775,6 +778,7 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
             for(int i = 0 ; i < DATA_CHUNKS; i++)
             {
                 dotProd_output[0][i] += dotProd_output[1][i] + RetrievalShares_c[i];
+                cout<<"   c "<<RetrievalShares_c[i]<<endl;
                 if(this->serverNo == 0)
                 {
                     dotProd_output[0][i] += dotProd_output[2][i];
@@ -1452,6 +1456,7 @@ int ServerORAM::preReSharing(int level, int es, int ee)
         unsigned long long currBufferIdx =  0;
         for(int e = es ; e < ee ; e++)
         {
+            cout<<"test "<<e<<" "<<ee<<endl;
             readTriplets(this->vecShares_a[e], DATA_CHUNKS, MAT_PRODUCT_INPUT_DB_LENGTH, "/evict_triplet_a");
             readTriplets(this->vecShares_b[e][level], EVICT_MAT_NUM_ROW, EVICT_MAT_NUM_COL, "/evict_triplet_b");
             for(int i = 0 ; i < DATA_CHUNKS; i++)
@@ -1459,6 +1464,7 @@ int ServerORAM::preReSharing(int level, int es, int ee)
                 for(int j = 0 ; j < MAT_PRODUCT_INPUT_DB_LENGTH; j++)
                 {
                     this->vecEvictPath_db[e][i][j] -= this->vecShares_a[e][i][j];
+                    cout<<"evict a " << this->vecShares_a[e][i][j]<<endl;
                 }
                 for(int s = 0 ; s < NUM_SERVERS-1;s++)
                 {
@@ -1471,6 +1477,7 @@ int ServerORAM::preReSharing(int level, int es, int ee)
             {
                 for(int j = 0 ; j < EVICT_MAT_NUM_COL; j++)
                 {
+                    cout<<"evict b " << this->vecShares_b[e][level][i][j]<<endl;
                     this->vecEvictMatrix[e][level][i][j] -= this->vecShares_b[e][level][i][j];
                 }
 
@@ -1778,6 +1785,7 @@ int ServerORAM::postReSharing(int level, int es, int ee)
             {
                 for(int n = 0 ; n < MAT_PRODUCT_OUTPUT_LENGTH; n++)
                 {
+                    cout<<"evict c "<<vecShares_c[e][i][n]<<endl;
                     this->vecReShares[e][this->serverNo][i][n] = this->vecLocalMatProduct_output[e*NUM_MULT+0][i][n] + this->vecLocalMatProduct_output[e*NUM_MULT+1][i][n] + vecShares_c[e][i][n];
 
                     if(this->serverNo == 0)
@@ -1854,10 +1862,19 @@ int ServerORAM::readTriplets(zz_p** data, int row, int col, string file_name)
     {
         for(int j = 0 ; j < col; j++)
         {
+            data[i][j] = 0;
             fread(&data[i][j], 1, sizeof(TYPE_DATA), file_in);
+            cout<<"check "<<data[i][j]<<endl;
         }
     }
     fclose(file_in);
+    
+    // use a more efficient method to delete first n bytes from file
+    //string file_pop_cmd = "dd conv=notrunc status=none if=" + path + " bs=1 skip=" + to_string(row*col*sizeof(TYPE_DATA)) +" of=" + path;
+    string file_pop_cmd = "tail -c +" + to_string(row*col*sizeof(TYPE_DATA)) + " " + path + " > tmp" + to_string(serverNo);
+    string move_cmd = "mv tmp" + to_string(serverNo)+ " " + path;
+    system(file_pop_cmd.c_str());
+    system(move_cmd.c_str());
 } 
 
 
@@ -1873,8 +1890,15 @@ int ServerORAM::readTriplets(zz_p* data, int length, string file_name)
 
     for(int i = 0 ; i < length; i++)
     {
+        data[i] = 0;
         fread(&data[i], 1, sizeof(TYPE_DATA), file_in);
+        //cout<<"from file "<<data[i]<<endl;
     }
-
     fclose(file_in);
+    // use a more efficient method to delete first n bytes from file
+    //string file_pop_cmd = "dd conv=notrunc if=" + path + " bs=1 skip=" + to_string(length*sizeof(TYPE_DATA)) +" of=" + path;
+    string file_pop_cmd = "tail -c +" + to_string(length*sizeof(TYPE_DATA)) + " " + path + " > tmp" + to_string(serverNo);
+    string move_cmd = "mv tmp" + to_string(serverNo)+ " " + path;
+    system(file_pop_cmd.c_str());
+    system(move_cmd.c_str());
 } 
