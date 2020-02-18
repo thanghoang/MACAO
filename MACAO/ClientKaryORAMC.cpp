@@ -354,12 +354,21 @@ int ClientKaryORAMC::evict()
     {
         #if defined(SEEDING)
             if(i==0)
-                thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, NULL,0, CMD_EVICT,  NULL);
+                #if defined(SPDZ)
+                    thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, retrieval_in[i], 2*sizeof(TYPE_DATA), CMD_EVICT,  NULL);
+                #else // RSSS
+                    thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, retrieval_in[i], 4*sizeof(TYPE_DATA), CMD_EVICT,  NULL);
+                #endif
+
             else
-                thread_socket_args[i] = struct_socket(i, evict_out[i], sizeof(TYPE_INDEX), NULL,0, CMD_EVICT,  NULL);
+                #if defined(SPDZ)
+                    thread_socket_args[i] = struct_socket(i, evict_out[i], sizeof(TYPE_INDEX), lin_rand_com_in[i], 2*sizeof(TYPE_DATA), CMD_EVICT,  NULL);
+                #else // RSSS
+                    thread_socket_args[i] = struct_socket(i, evict_out[i], sizeof(TYPE_INDEX), lin_rand_com_in[i], 4*sizeof(TYPE_DATA), CMD_EVICT,  NULL);
+                #endif
         #else // RSSS or SPDZ    
             #if defined(SPDZ)
-                thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, retrieval_in[i], 2*sizeof(TYPE_DATA), CMD_EVICT,  NULL);
+                thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, lin_rand_com_in[i], 2*sizeof(TYPE_DATA), CMD_EVICT,  NULL);
             #else // RSSS
                 thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, lin_rand_com_in[i], 4*sizeof(TYPE_DATA), CMD_EVICT,  NULL);
             #endif
@@ -381,9 +390,9 @@ int ClientKaryORAMC::evict()
     for(int i = 0; i < NUM_SERVERS; i++)
     {
         #if defined(SPDZ)
-            X1 = *((zz_p*)&retrieval_in[i][0]);
-            Y1 += *((zz_p*)&retrieval_in[i][sizeof(TYPE_DATA)]);
-            cout<<*((zz_p*)&retrieval_in[i][0])<< " "<<*((zz_p*)&retrieval_in[i][sizeof(TYPE_DATA)])<<endl; 	
+            X1 = *((zz_p*)&lin_rand_com_in[i][0]);
+            Y1 += *((zz_p*)&lin_rand_com_in[i][sizeof(TYPE_DATA)]);
+            cout<<*((zz_p*)&lin_rand_com_in[i][0])<< " "<<*((zz_p*)&lin_rand_com_in[i][sizeof(TYPE_DATA)])<<endl; 	
         #else // RSSS
             X1[i] = *((zz_p*)&lin_rand_com_in[i][0]);
             Y1[i] = *((zz_p*)&lin_rand_com_in[i][sizeof(TYPE_DATA)]);
@@ -420,7 +429,7 @@ int ClientKaryORAMC::evict()
         {
             exit(0);
         }
-        //cout<<GLOBAL_MAC_KEY * X1<<" "<< Y1<<" "<<GLOBAL_MAC_KEY * X2 <<" "<<Y2<<endl;
+        cout<<GLOBAL_MAC_KEY * X1[0]<<" "<< Y1[0]<<" "<<GLOBAL_MAC_KEY * X2[0] <<" "<<Y2[0]<<endl;
     #endif
     //exit(0);
     	

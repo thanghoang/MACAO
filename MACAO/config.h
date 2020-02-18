@@ -40,8 +40,8 @@ static inline std::string to_string(T value)
 static const unsigned long long P = 1073742353; //288230376152137729; //prime field - should have length equal to the defined TYPE_DATA
 
 //#define XOR_PIR
-//#define RSSS
-#define SPDZ
+#define RSSS
+//#define SPDZ
 //#define SEEDING
 
 #if defined (SEEDING)

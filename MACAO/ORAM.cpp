@@ -546,7 +546,7 @@ int ORAM::recoverSecret(unsigned char** retrieval_in, zz_p* secret)
     }
     if(GLOBAL_MAC_KEY*X != Y){
         
-        //exit(0);
+        exit(0);
     }
     return 0;
 }

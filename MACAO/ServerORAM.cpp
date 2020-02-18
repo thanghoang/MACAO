@@ -1731,6 +1731,23 @@ int ServerORAM::postReSharing(int level, int es, int ee)
                 }
 
             }
+            TYPE_DATA r1;
+            share_random_number(r1);  
+            
+            for(int u = 0 ; u < DATA_CHUNKS; u ++)
+            {
+                for(int j = 0 ; j < MAT_PRODUCT_OUTPUT_LENGTH ; j++)
+                {
+                    this->X1 += vecReShares[e][this->serverNo][u][j] * r1; 
+                    this->Y1 += vecReShares_MAC[e][this->serverNo][u][j] * r1;
+                    
+                    this->X2 += vecReShares[e][(this->serverNo+1)%3][u][j] * r1; 
+                    this->Y2 += vecReShares_MAC[e][(this->serverNo+1)%3][u][j] * r1;
+                    r1 = (r1 * r1) % P;
+                }
+            }
+            cout<<X1<<" "<<X2<<endl;
+            cin.get();
 
 
         }
