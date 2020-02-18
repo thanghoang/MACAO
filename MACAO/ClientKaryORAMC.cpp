@@ -162,7 +162,6 @@ int ClientKaryORAMC::access(TYPE_ID blockID)
      
     // 6. update position map
     this->updatePosMap(blockID);
-    cout<<" after pos map "<<endl;
     //7. perform eviction
     this->evict();
     

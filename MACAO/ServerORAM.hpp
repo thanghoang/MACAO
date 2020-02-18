@@ -56,6 +56,8 @@ protected:
     
     unsigned char* retrieval_answer_out;
     unsigned char* lin_rand_com_out;
+    unsigned char* random_shares_out;
+    unsigned char** random_shares_in;
     
     
     

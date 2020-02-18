@@ -74,11 +74,16 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
 
 
 
-
+    random_shares_out = new unsigned char[2*sizeof(TYPE_DATA)];
+    random_shares_in = new unsigned char*[NUM_SERVERS-1];
+    for(int i = 0; i < NUM_SERVERS - 1; i++)
+    {
+        random_shares_in[i] = new unsigned char[2*sizeof(TYPE_DATA)];
+    }
     retrieval_answer_out = new unsigned char[SERVER_RETRIEVAL_REPLY_LENGTH];
 
     retrieval_query_in = new unsigned char[CLIENT_RETRIEVAL_OUT_LENGTH];
-
+    lin_rand_com_out = new unsigned char[4*sizeof(TYPE_DATA)];
 
 
 #if defined(XOR_PIR) && defined(RSSS)
@@ -86,7 +91,7 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
     this->retrieval_path_db = new zz_p**[NUM_SHARE_PER_SERVER];
     this->retrieval_path_mac = new zz_p**[NUM_SHARE_PER_SERVER];
 
-
+    
 
     this->retrieval_answer_block = new unsigned char**[NUM_SHARE_PER_SERVER];
     this->retrieval_answer_mac  = new unsigned char**[NUM_SHARE_PER_SERVER];
@@ -137,13 +142,11 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
             RetrievalShares_a_mac[i] = new zz_p[PATH_LENGTH];
         }
 
-        lin_rand_com_out = new unsigned char[2*sizeof(TYPE_DATA)];
     #elif defined(RSSS)
         for(int s = 0 ; s < NUM_SERVERS-1; s++)
         {
             retrieval_reshares_in[s] = new unsigned char[2*sizeof(TYPE_DATA)];
         }
-        lin_rand_com_out = new unsigned char[4*sizeof(TYPE_DATA)];
     #endif
 
     this->retrieval_query = new unsigned char*[NUM_SHARE_PER_SERVER];
@@ -2031,16 +2034,16 @@ int ServerORAM::share_random_number(TYPE_DATA& r1, TYPE_DATA& r2)
 {
     r1 = rand();
     r2 = rand();
-    memcpy(&retrieval_reshares_out[0], &r1, sizeof(TYPE_DATA));
-    memcpy(&retrieval_reshares_out[sizeof(TYPE_DATA)], &r2, sizeof(TYPE_DATA));
+    memcpy(&random_shares_out[0], &r1, sizeof(TYPE_DATA));
+    memcpy(&random_shares_out[sizeof(TYPE_DATA)], &r2, sizeof(TYPE_DATA));
     for(int s = 0 ; s < NUM_SERVERS-1;s++)
     {
         cout<< "	[evict] Creating Threads for Receiving Ports..." << endl;
-        recvSocket_args[s] = struct_socket(s, NULL, 0, retrieval_reshares_in[s], 2*sizeof(TYPE_DATA), NULL,false);
+        recvSocket_args[s] = struct_socket(s, NULL, 0, random_shares_in[s], 2*sizeof(TYPE_DATA), NULL,false);
         pthread_create(&thread_recv[s], NULL, &ServerORAM::thread_socket_func, (void*)&recvSocket_args[s]);
         
         cout<< "	[evict] Creating Threads for Sending Shares..."<< endl;;
-        sendSocket_args[s] = struct_socket(s, retrieval_reshares_out, 2*sizeof(TYPE_DATA), NULL, 0, NULL, true);
+        sendSocket_args[s] = struct_socket(s, random_shares_out, 2*sizeof(TYPE_DATA), NULL, 0, NULL, true);
         pthread_create(&thread_send[s], NULL, &ServerORAM::thread_socket_func, (void*)&sendSocket_args[s]);
     }
     for(int s = 0 ; s < NUM_SERVERS-1;s++)
@@ -2051,8 +2054,8 @@ int ServerORAM::share_random_number(TYPE_DATA& r1, TYPE_DATA& r2)
     
     for(int s = 0 ; s < NUM_SERVERS -1; s++)
     {
-        r1 += *((TYPE_DATA*)&retrieval_reshares_in[s][0]);
-        r2 += *((TYPE_DATA*)&retrieval_reshares_in[s][sizeof(TYPE_DATA)]);
+        r1 += *((TYPE_DATA*)&random_shares_in[s][0]);
+        r2 += *((TYPE_DATA*)&random_shares_in[s][sizeof(TYPE_DATA)]);
         r1 %= P;
         r2 %= P;
     }
@@ -2061,15 +2064,15 @@ int ServerORAM::share_random_number(TYPE_DATA& r1, TYPE_DATA& r2)
 int ServerORAM::share_random_number(TYPE_DATA& r1)
 {
     r1 = rand();
-    memcpy(&retrieval_reshares_out[0], &r1, sizeof(TYPE_DATA));
+    memcpy(&random_shares_out[0], &r1, sizeof(TYPE_DATA));
     for(int s = 0 ; s < NUM_SERVERS-1;s++)
     {
         cout<< "	[evict] Creating Threads for Receiving Ports..." << endl;
-        recvSocket_args[s] = struct_socket(s, NULL, 0, retrieval_reshares_in[s], sizeof(TYPE_DATA), NULL,false);
+        recvSocket_args[s] = struct_socket(s, NULL, 0, random_shares_in[s], sizeof(TYPE_DATA), NULL,false);
         pthread_create(&thread_recv[s], NULL, &ServerORAM::thread_socket_func, (void*)&recvSocket_args[s]);
         
         cout<< "	[evict] Creating Threads for Sending Shares..."<< endl;;
-        sendSocket_args[s] = struct_socket(s, retrieval_reshares_out, sizeof(TYPE_DATA), NULL, 0, NULL, true);
+        sendSocket_args[s] = struct_socket(s, random_shares_out, sizeof(TYPE_DATA), NULL, 0, NULL, true);
         pthread_create(&thread_send[s], NULL, &ServerORAM::thread_socket_func, (void*)&sendSocket_args[s]);
     }
     for(int s = 0 ; s < NUM_SERVERS-1;s++)
@@ -2080,7 +2083,7 @@ int ServerORAM::share_random_number(TYPE_DATA& r1)
     
     for(int s = 0 ; s < NUM_SERVERS -1; s++)
     {
-        r1 += *((TYPE_DATA*)&retrieval_reshares_in[s][0]);
+        r1 += *((TYPE_DATA*)&random_shares_in[s][0]);
         r1 %= P;
     }
 }
