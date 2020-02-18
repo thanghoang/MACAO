@@ -17,6 +17,8 @@ protected:
     TYPE_INDEX serverNo;
     TYPE_INDEX others[NUM_SERVERS-1];
     string myStoragePath;
+
+    zz_p X1, Y1, X2, Y2;
     
     #if defined(SEEDING)
         prng_state** prng_server;
@@ -39,13 +41,21 @@ protected:
         zz_p** RetrievalShares_a;
         zz_p* RetrievalShares_b;
         zz_p* RetrievalShares_c;
+
+        zz_p** RetrievalShares_a_mac;
+        zz_p* RetrievalShares_b_mac;
+        zz_p* RetrievalShares_c_mac;
         
         unsigned char* retrieval_reshares_out =new unsigned char[PATH_LENGTH*BLOCK_SIZE+PATH_LENGTH*sizeof(TYPE_DATA)];
         unsigned char** retrieval_reshares_in = new unsigned char*[NUM_SERVERS-1];
-    #endif 
+    #elif defined(RSSS)
+        unsigned char* retrieval_reshares_out =new unsigned char[2*sizeof(TYPE_DATA)];
+        unsigned char** retrieval_reshares_in = new unsigned char*[NUM_SERVERS-1];
+    #endif
 #endif
     
     unsigned char* retrieval_answer_out;
+    unsigned char* lin_rand_com_out;
     
     
     
@@ -62,6 +72,7 @@ protected:
     
     
     vector<zz_p***> vecEvictMatrix;
+    vector<zz_p***> vecEvictMatrix_MAC;
     
     vector<zz_p**> vecEvictPath_db;
     vector<zz_p**> vecEvictPath_MAC;
@@ -169,6 +180,9 @@ public:
 
     int readTriplets(zz_p** triplets, int row, int col, string file_name);
     int readTriplets(zz_p* triplets, int length, string file_name);
+
+    int share_random_number(TYPE_DATA& r1, TYPE_DATA& r2);
+    int share_random_number(TYPE_DATA& r1);
 
 
     //logs

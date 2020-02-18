@@ -36,6 +36,7 @@ protected:
     
     
     unsigned char** retrieval_in;
+    unsigned char** lin_rand_com_in;
     
 
     
@@ -43,10 +44,11 @@ protected:
     //variables for eviction
     TYPE_INDEX numEvict;
     TYPE_DATA*** sharedMatrix;
+    TYPE_DATA*** sharedMatrix_MAC;
 //#if defined (SPDZ)
 //    TYPE_DATA*** sharedMatrixMAC;
 //#endif
-	TYPE_DATA** evictMatrix; 
+	TYPE_DATA** evictMatrix;
     unsigned char** evict_out;
 
     //thread
@@ -116,11 +118,7 @@ public:
     zz_p** retrievedMacShare;
        
     zz_p* recoveredBlock;
-    zz_p* recoveredMacBlock;
-    
-    
-    
-    
+    zz_p* recoveredMacBlock;    
 };
 
 #endif // CLIENTORAM_HPP

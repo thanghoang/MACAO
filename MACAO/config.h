@@ -40,9 +40,9 @@ static inline std::string to_string(T value)
 static const unsigned long long P = 1073742353; //288230376152137729; //prime field - should have length equal to the defined TYPE_DATA
 
 //#define XOR_PIR
-//#define RSSS
-#define SPDZ
-#define SEEDING
+#define RSSS
+//#define SPDZ
+//#define SEEDING
 
 #if defined (SEEDING)
     static std::string CLIENT_SERVER_SEED[3] = {"abcdefghijklmn", "12345678910112","mnlkjihgfedcba"};
@@ -77,7 +77,7 @@ static const unsigned long long P = 1073742353; //288230376152137729; //prime fi
 //=== PARAMETERS ============================================================
 
 #define BLOCK_SIZE 64
-#define HEIGHT 3
+#define HEIGHT 2
 
 
 #if defined(CORAM_LAYOUT)
@@ -223,11 +223,12 @@ const TYPE_INDEX N_leaf = pow(K_ARY,H);
     const unsigned long long SERVER_RETRIEVAL_REPLY_LENGTH =  2*BLOCK_SIZE*(NUM_SHARE_PER_SERVER);
 #else
     const unsigned long long CLIENT_RETRIEVAL_QUERY_SIZE = (H+1)*BUCKET_SIZE*sizeof(TYPE_DATA); 
-    const unsigned long long CLIENT_RETRIEVAL_OUT_LENGTH = sizeof(TYPE_ID) + CLIENT_RETRIEVAL_QUERY_SIZE;
     #if defined (RSSS)
         const unsigned long long SERVER_RETRIEVAL_REPLY_LENGTH = 2*BLOCK_SIZE;
+        const unsigned long long CLIENT_RETRIEVAL_OUT_LENGTH = sizeof(TYPE_ID) + CLIENT_RETRIEVAL_QUERY_SIZE;
     #else // SPDZ
-        const unsigned long long SERVER_RETRIEVAL_REPLY_LENGTH = BLOCK_SIZE;
+        const unsigned long long SERVER_RETRIEVAL_REPLY_LENGTH = BLOCK_SIZE + 2*sizeof(TYPE_DATA);
+        const unsigned long long CLIENT_RETRIEVAL_OUT_LENGTH = sizeof(TYPE_ID) + 2*CLIENT_RETRIEVAL_QUERY_SIZE;
     #endif
 #endif
 
@@ -240,8 +241,12 @@ const unsigned long long BUCKET_DATA_SIZE = BUCKET_SIZE*BLOCK_SIZE;
 
 
 #if defined (CORAM_LAYOUT)
+    #if defined(RSSS)
+        const unsigned long long CLIENT_EVICTION_OUT_LENGTH =  2*(BLOCK_SIZE*2+ (H+1)*evictMatSize*sizeof(TYPE_DATA)) +sizeof(TYPE_INDEX) ;//  for OnionORAM -> (H+1)*evictMatSize*sizeof(TYPE_DATA) + sizeof(TYPE_INDEX);
 
-    const unsigned long long CLIENT_EVICTION_OUT_LENGTH =  2*(BLOCK_SIZE*2+ (H+1)*evictMatSize*sizeof(TYPE_DATA)) +sizeof(TYPE_INDEX) ;//  for OnionORAM -> (H+1)*evictMatSize*sizeof(TYPE_DATA) + sizeof(TYPE_INDEX);
+    #else // SPDZ
+        const unsigned long long CLIENT_EVICTION_OUT_LENGTH =  2*(BLOCK_SIZE*2+ 2*(H+1)*evictMatSize*sizeof(TYPE_DATA)) +sizeof(TYPE_INDEX) ;//  for OnionORAM -> (H+1)*evictMatSize*sizeof(TYPE_DATA) + sizeof(TYPE_INDEX);
+    #endif
     
     #if defined(SEEDING)
         const unsigned long long SERVER_RESHARE_IN_OUT_LENGTH =  2*2*((BUCKET_SIZE+1)*BLOCK_SIZE); // 1st2: MAC, 2nd2: for 2 shares for RSSS, / server -> for onion ORAM:  BUCKET_SIZE*sizeof(TYPE_DATA)*DATA_CHUNKS

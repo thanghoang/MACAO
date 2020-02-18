@@ -77,6 +77,9 @@ int ServerKaryORAMC::prepareEvictComputation()
                     if(serverNo==0)
                     {
                         memcpy(this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER][y][i], &evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
+                        #if defined(SPDZ)
+                            memcpy(this->vecEvictMatrix_MAC[e*NUM_SHARE_PER_SERVER][y][i], &evict_in[currBufferIdx + EVICT_MAT_NUM_ROW*EVICT_MAT_NUM_COL*sizeof(TYPE_DATA)], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
+                        #endif
                     }
                     else
                     {
@@ -84,7 +87,16 @@ int ServerKaryORAMC::prepareEvictComputation()
                         for(TYPE_INDEX j = 0 ; j < EVICT_MAT_NUM_COL; j++)
                         {
                             this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER][y][i][j] = tmp2[j];
+                            
                         }
+                        #if defined(SPDZ)
+                            sober128_read((unsigned char*)&tmp2,EVICT_MAT_NUM_COL*sizeof(TYPE_DATA),&prng_client[serverNo]);
+                            for(TYPE_INDEX j = 0 ; j < EVICT_MAT_NUM_COL; j++)
+                            {
+                                this->vecEvictMatrix_MAC[e*NUM_SHARE_PER_SERVER][y][i][j] = tmp2[j];
+                                
+                            }
+                        #endif
                     }
                     #if defined(RSSS)
                         if(serverNo==2)
@@ -121,6 +133,7 @@ int ServerKaryORAMC::prepareEvictComputation()
                 currBufferIdx +=sizeof(TYPE_DATA);
             }
             currBufferIdx += BLOCK_SIZE;
+            int x = 0;
             for (TYPE_INDEX y = 0 ; y < H+1 ; y++)
             {
                 for (TYPE_INDEX i = 0 ; i < EVICT_MAT_NUM_ROW; i++)
@@ -131,6 +144,19 @@ int ServerKaryORAMC::prepareEvictComputation()
                         memcpy(this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER+1][y][i], &client_evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
                     #endif
                     currBufferIdx += EVICT_MAT_NUM_COL*sizeof(TYPE_DATA);
+                }
+            }
+            for (TYPE_INDEX y = 0 ; y < H+1 ; y++)
+            {
+                for (TYPE_INDEX i = 0 ; i < EVICT_MAT_NUM_ROW; i++)
+                {
+                    #if defined(SPDZ)
+                        memcpy(this->vecEvictMatrix_MAC[e*NUM_SHARE_PER_SERVER][y][i], &evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
+                        currBufferIdx += EVICT_MAT_NUM_COL*sizeof(TYPE_DATA);
+                    #else // RSSS 
+                        //memcpy(this->vecEvictMatrix_MAC[e*NUM_SHARE_PER_SERVER+1][y][i], &client_evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
+                    #endif
+                    
                 }
             }
         }
@@ -158,10 +184,13 @@ int ServerKaryORAMC::prepareEvictComputation()
  
 int ServerKaryORAMC::evict(zmq::socket_t& socket)
 {
+    this->X1 = 0; 
+    this->Y1 = 0;
+    this->X2 = 0; 
+    this->Y2 = 0;
     recvClientEvictData(socket);
     
     prepareEvictComputation();  
-
     
     int es = 0, ee  = 1;
     unsigned long long buffer_length;
@@ -271,8 +300,8 @@ start:
 		cout << "	[evict] Post Resharing Computation..." << endl;
         
         this->postReSharing(h,es,ee);
-       //write to file
-        
+
+        //write to file
         start = time_now;
     
         for(int e = es ; e < ee; e++)
@@ -309,7 +338,18 @@ start:
             goto start;
         }
     }
-    socket.send((unsigned char*)CMD_SUCCESS,sizeof(CMD_SUCCESS));
+    memcpy(&lin_rand_com_out[0], &this->X1, sizeof(TYPE_DATA));
+    memcpy(&lin_rand_com_out[sizeof(TYPE_DATA)], &this->Y1, sizeof(TYPE_DATA));
+    #if defined(RSSS)
+        memcpy(&lin_rand_com_out[2*sizeof(TYPE_DATA)], &this->X2, sizeof(TYPE_DATA));
+        memcpy(&lin_rand_com_out[3*sizeof(TYPE_DATA)], &this->Y2, sizeof(TYPE_DATA));
+    #endif
+    
+    #if defined(SPDZ)
+        socket.send(lin_rand_com_out,2*sizeof(TYPE_DATA));
+    #else // RSSS
+        socket.send(lin_rand_com_out,4*sizeof(TYPE_DATA));
+    #endif
 	cout<< "	[evict] ACK is SENT!" <<endl;
 
     return 0;

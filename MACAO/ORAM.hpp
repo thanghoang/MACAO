@@ -49,8 +49,9 @@ public:
     //static int recoverSecret(CHUNK** shares, TYPE_DATA* secret);
     
     static int recoverSecret(zz_p** secret_shares, zz_p** mac_shares, zz_p* secret, zz_p* mac);
+    static int recoverSecret(unsigned char** retrieval_in, zz_p* secret);
     static int recoverSecret(unsigned char** retrieval_in, zz_p* secret, zz_p* mac);
-    
+
     static int xor_reconstruct(unsigned char** input, zz_p* output, zz_p* output_mac);
     
     static int xor_retrieve(unsigned char* query, zz_p** db, zz_p** db_mac, int start_db_idx, int end_db_idx, unsigned char* output, unsigned char* output_mac);

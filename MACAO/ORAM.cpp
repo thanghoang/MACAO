@@ -526,6 +526,31 @@ int ORAM::recoverSecret(zz_p** secret_shares, zz_p** mac_shares, zz_p* secret, z
  * @param result: (output) Recovered secret from given shares
  * @return 0 if successful
  */  
+int ORAM::recoverSecret(unsigned char** retrieval_in, zz_p* secret)
+{
+    for( int i = 0, ii=0 ; i < BLOCK_SIZE ; i+=sizeof(zz_p), ii++)
+    {
+        secret[ii] = 0;
+        for(int j = 0 ; j < SSS_PRIVACY_LEVEL+1; j++)
+        {
+            secret[ii] += *((zz_p*)&retrieval_in[j][i]);
+            
+        }
+    }
+    zz_p X, Y;
+    Y = 0;
+    for(int i = 0 ; i < SSS_PRIVACY_LEVEL+1; i++)
+    {
+        X = *((zz_p*)&retrieval_in[i][BLOCK_SIZE]);
+        Y += *((zz_p*)&retrieval_in[i][BLOCK_SIZE + sizeof(zz_p)]);
+    }
+    if(GLOBAL_MAC_KEY*X != Y){
+        
+        //exit(0);
+    }
+    return 0;
+}
+
 int ORAM::recoverSecret(unsigned char** retrieval_in, zz_p* secret, zz_p* mac)
 {
     for( int i = 0, ii=0 ; i < BLOCK_SIZE ; i+=sizeof(zz_p), ii++)
@@ -548,7 +573,6 @@ int ORAM::recoverSecret(unsigned char** retrieval_in, zz_p* secret, zz_p* mac)
     
     return 0;
 }
-
 
 int ORAM::xor_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char** output)
 {
@@ -607,22 +631,25 @@ int ORAM::sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char** 
     
     for (TYPE_INDEX i = 0; i < DB_SIZE; i++)
 	{
-		createShares(0,data_shares, NULL); 
+		createShares(0,data_shares, mac_shares); 
         
 		for (int j = 0; j < SSS_PRIVACY_LEVEL+1; j++)
         {
             memcpy(&output[j][i*sizeof(TYPE_DATA)],&data_shares[j],sizeof(TYPE_DATA));
+            #if defined(SPDZ)
+                memcpy(&output[j][DB_SIZE*sizeof(TYPE_DATA) + i*sizeof(TYPE_DATA)],&mac_shares[j],sizeof(TYPE_DATA));
+            #endif
 		}
 	}
-    createShares(1,data_shares, NULL); 
+    createShares(1,data_shares, mac_shares); 
     for (int j = 0; j < SSS_PRIVACY_LEVEL+1; j++)
     {
         memcpy(&output[j][idx*sizeof(TYPE_DATA)],&data_shares[j],sizeof(TYPE_DATA));
+        #if defined(SPDZ)
+            memcpy(&output[j][DB_SIZE*sizeof(TYPE_DATA) + idx*sizeof(TYPE_DATA)],&mac_shares[j],sizeof(TYPE_DATA));
+        #endif
     }
 	
-    
-    
-    
 	return 0;
 }
 
@@ -637,16 +664,27 @@ int ORAM::sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char** 
 	{
         if(i==idx)
         {
-            createShares(1,data_shares, NULL,prng,0); //NULL if using RSSS, if using SPDZ, need to have MAC
+            #if defined(SPDZ)
+                createShares(1,data_shares, mac_shares,prng,0); //NULL if using RSSS, if using SPDZ, need to have MAC
+            #else
+                createShares(1,data_shares, NULL,prng,0);
+            #endif
         }
         else
         {
-            createShares(0,data_shares, NULL,prng,0); //NULL if using RSSS, if using SPDZ, need to have MAC
+            #if defined(SPDZ)
+                createShares(0,data_shares, mac_shares,prng,0); //NULL if using RSSS, if using SPDZ, need to have MAC
+            #else
+                createShares(0,data_shares, NULL,prng,0);
+            #endif
         }
-
+        
 		for (int j = 0; j < SSS_PRIVACY_LEVEL+1; j++)
         {
             memcpy(&output[j][i*sizeof(TYPE_DATA)],&data_shares[j],sizeof(TYPE_DATA));
+            #if defined(SPDZ)
+                memcpy(&output[j][DB_SIZE*sizeof(TYPE_DATA) + i*sizeof(TYPE_DATA)],&mac_shares[j],sizeof(TYPE_DATA));
+            #endif
 		}
 	}
     
@@ -951,54 +989,66 @@ int ORAM::createRetrievalTriplets(int n)
 
 
     zz_p**** shares_A = new zz_p***[NUM_SERVERS];
+    zz_p**** shares_A_mac = new zz_p***[NUM_SERVERS];
     for(int k = 0; k < NUM_SERVERS; k++)
     {
         shares_A[k] = new zz_p**[n];
+        shares_A_mac[k] = new zz_p**[n];
         for(int i = 0 ; i < n; i++)
         {
             shares_A[k][i] = new zz_p*[DATA_CHUNKS];
+            shares_A_mac[k][i] = new zz_p*[DATA_CHUNKS];
             for(int j = 0; j < DATA_CHUNKS; j++)
             {
                 shares_A[k][i][j] = new zz_p[PATH_LENGTH];
+                shares_A_mac[k][i][j] = new zz_p[PATH_LENGTH];
             }
         }
     }
     zz_p*** shares_B = new zz_p**[NUM_SERVERS];
+    zz_p*** shares_B_mac = new zz_p**[NUM_SERVERS];
     for(int k = 0; k < NUM_SERVERS; k++)
     {
         shares_B[k] = new zz_p*[n];
+        shares_B_mac[k] = new zz_p*[n];
         for(int i = 0; i < n; i++)
         {
             shares_B[k][i] = new zz_p[PATH_LENGTH];
+            shares_B_mac[k][i] = new zz_p[PATH_LENGTH];
         }
     }
     zz_p*** shares_C = new zz_p**[NUM_SERVERS];
+    zz_p*** shares_C_mac = new zz_p**[NUM_SERVERS];
     for(int k = 0; k < NUM_SERVERS; k++)
     {
         shares_C[k] = new zz_p*[n];
+        shares_C_mac[k] = new zz_p*[n];
         for(int i = 0; i < n; i++)
         {
             shares_C[k][i] = new zz_p[DATA_CHUNKS];
+            shares_C_mac[k][i] = new zz_p[DATA_CHUNKS];
         }
     }
+    TYPE_DATA data_shares[NUM_SERVERS];
+    TYPE_DATA mac_shares[NUM_SERVERS];
     for(int w = 0; w < n; w++)
     {
         for(int i = 0; i < DATA_CHUNKS; i++)
         {
             for(int j = 0; j < PATH_LENGTH; j++)
             {
-                TYPE_DATA data_shares[NUM_SERVERS];
                 long x;
                 conv(x, A[w][i][j]);
                 #if defined(SEEDING)
-                    createShares(x, data_shares, NULL, NULL,0);         
+                    createShares(x, data_shares, mac_shares, NULL,0);         
                 #else // RSSS or SPDZ
-                    createShares(x, data_shares, NULL); 
+                    createShares(x, data_shares, mac_shares); 
                 #endif
 
                 for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)  
                 {
                     memcpy(&shares_A[k][w][i][j], &data_shares[k], sizeof(TYPE_DATA));
+                    memcpy(&shares_A_mac[k][w][i][j], &mac_shares[k], sizeof(TYPE_DATA));
                 } 
             }
         }
@@ -1006,35 +1056,36 @@ int ORAM::createRetrievalTriplets(int n)
 
         for(int i = 0; i < PATH_LENGTH; i++)
         {
-            TYPE_DATA data_shares[NUM_SERVERS];
             long x;
             conv(x, B[w][i]);
             #if defined(SEEDING)
-                createShares(x, data_shares, NULL, NULL,0);         
+                createShares(x, data_shares, NULL, NULL,0);     
+                createShares(x, mac_shares, NULL, NULL,0);         
             #else // RSSS or SPDZ
-                createShares(x, data_shares, NULL); 
+                createShares(x, data_shares, mac_shares); 
             #endif
 
             for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)  
             {
                 memcpy(&shares_B[k][w][i], &data_shares[k], sizeof(TYPE_DATA));
+                memcpy(&shares_B_mac[k][w][i], &mac_shares[k], sizeof(TYPE_DATA));
             } 
         }
 
         for(int i = 0; i < DATA_CHUNKS; i++)
         {
-            TYPE_DATA data_shares[NUM_SERVERS];
             long x;
             conv(x, C[w][i]);
             #if defined(SEEDING)
-                createShares(x, data_shares, NULL, NULL,0);         
+                createShares(x, data_shares, mac_shares, NULL,0);         
             #else // RSSS or SPDZ
-                createShares(x, data_shares, NULL); 
+                createShares(x, data_shares, mac_shares); 
             #endif
 
             for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)  
             {
                 memcpy(&shares_C[k][w][i], &data_shares[k], sizeof(TYPE_DATA));
+                memcpy(&shares_C_mac[k][w][i], &mac_shares[k], sizeof(TYPE_DATA));
             } 
         } 
     }
@@ -1058,6 +1109,22 @@ int ORAM::createRetrievalTriplets(int n)
             }
         }
         fclose(file_out);
+
+
+        path = rootPath + to_string(k) + "/" + "retrieval_triplet_a_mac";
+        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
+        {
+            cout<< path << " Cannot Be Opened!!" <<endl;
+            exit;
+        }
+        for(int i = 0; i < n; i++)
+        {
+            for(int j = 0 ; j< DATA_CHUNKS; j++)
+            {
+                fwrite(shares_A_mac[k][i][j], 1, PATH_LENGTH*sizeof(TYPE_DATA), file_out);
+            }
+        }
+        fclose(file_out);
     } 
 
     for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++) 
@@ -1072,6 +1139,19 @@ int ORAM::createRetrievalTriplets(int n)
         for(int i = 0; i < n; i++)
         {
             fwrite(shares_B[k][i], 1, PATH_LENGTH*sizeof(TYPE_DATA), file_out);
+        }
+        fclose(file_out);
+
+        path = rootPath + to_string(k) + "/" + "retrieval_triplet_b_mac";
+        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
+        {
+            cout<< path << " Cannot Be Opened!!" <<endl;
+            exit;
+        }
+        
+        for(int i = 0; i < n; i++)
+        {
+            fwrite(shares_B_mac[k][i], 1, PATH_LENGTH*sizeof(TYPE_DATA), file_out);
         }
         fclose(file_out);
     }
@@ -1089,6 +1169,18 @@ int ORAM::createRetrievalTriplets(int n)
             fwrite(shares_C[k][i], 1, DATA_CHUNKS*sizeof(TYPE_DATA), file_out);
         }
         fclose(file_out);
+
+        path = rootPath + to_string(k) + "/" + "retrieval_triplet_c_mac";
+        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
+        {
+            cout<< path << " Cannot Be Opened!!" <<endl;
+            exit;
+        }
+        for(int i = 0; i < n; i++)
+        {
+            fwrite(shares_C_mac[k][i], 1, DATA_CHUNKS*sizeof(TYPE_DATA), file_out);
+        }
+        fclose(file_out);
     }
 	return 0;
 }
@@ -1096,6 +1188,7 @@ int ORAM::createRetrievalTriplets(int n)
 
 int ORAM::createEvictionTriplets(int n)
 {
+    srand(time(NULL));
     zz_p*** A = new zz_p**[n];
     zz_p*** B = new zz_p**[n];
     zz_p*** C = new zz_p**[n];
@@ -1136,35 +1229,49 @@ int ORAM::createEvictionTriplets(int n)
     
     zz_p**** shares_A = new zz_p***[NUM_SERVERS];
     zz_p**** shares_C = new zz_p***[NUM_SERVERS];
+    zz_p**** shares_A_MAC = new zz_p***[NUM_SERVERS];
+    zz_p**** shares_C_MAC = new zz_p***[NUM_SERVERS];
     for(int k = 0; k < NUM_SERVERS; k++)
     {
         shares_A[k] = new zz_p**[n];
         shares_C[k] = new zz_p**[n];
+        shares_A_MAC[k] = new zz_p**[n];
+        shares_C_MAC[k] = new zz_p**[n];
         for(int i = 0 ; i < n; i++)
         {
             shares_A[k][i] = new zz_p*[DATA_CHUNKS];
             shares_C[k][i] = new zz_p*[DATA_CHUNKS];
+            shares_A_MAC[k][i] = new zz_p*[DATA_CHUNKS];
+            shares_C_MAC[k][i] = new zz_p*[DATA_CHUNKS];
             for(int j = 0; j < DATA_CHUNKS; j++)
             {
                 shares_A[k][i][j] = new zz_p[MAT_PRODUCT_INPUT_DB_LENGTH];
                 shares_C[k][i][j] = new zz_p[MAT_PRODUCT_OUTPUT_LENGTH];
+                shares_A_MAC[k][i][j] = new zz_p[MAT_PRODUCT_INPUT_DB_LENGTH];
+                shares_C_MAC[k][i][j] = new zz_p[MAT_PRODUCT_OUTPUT_LENGTH];
             }
         }
     }
 
     zz_p**** shares_B = new zz_p***[NUM_SERVERS];
+    zz_p**** shares_B_MAC = new zz_p***[NUM_SERVERS];
     for(int k = 0; k < NUM_SERVERS; k++)
     {
         shares_B[k] = new zz_p**[n];
+        shares_B_MAC[k] = new zz_p**[n];
         for(int i = 0 ; i < n; i++)
         {
             shares_B[k][i] = new zz_p*[EVICT_MAT_NUM_ROW];
+            shares_B_MAC[k][i] = new zz_p*[EVICT_MAT_NUM_ROW];
             for(int j = 0; j < EVICT_MAT_NUM_ROW; j++)
             {
                 shares_B[k][i][j] = new zz_p[EVICT_MAT_NUM_COL];
+                shares_B_MAC[k][i][j] = new zz_p[EVICT_MAT_NUM_COL];
             }
         }
     }
+    TYPE_DATA data_shares[NUM_SERVERS];
+    TYPE_DATA mac_shares[NUM_SERVERS];
 
     for(int w = 0; w < n; w++)
     {
@@ -1172,18 +1279,18 @@ int ORAM::createEvictionTriplets(int n)
         {
             for(int j = 0; j < MAT_PRODUCT_INPUT_DB_LENGTH; j++)
             {
-                TYPE_DATA data_shares[NUM_SERVERS];
                 long x;
                 conv(x, A[w][i][j]);
                 #if defined(SEEDING)
                     createShares(x, data_shares, NULL, NULL,0);         
                 #else // RSSS or SPDZ
-                    createShares(x, data_shares, NULL); 
+                    createShares(x, data_shares, mac_shares); 
                 #endif
 
                 for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)  
                 {
                     memcpy(&shares_A[k][w][i][j], &data_shares[k], sizeof(TYPE_DATA));
+                    memcpy(&shares_A_MAC[k][w][i][j], &mac_shares[k], sizeof(TYPE_DATA));
                 } 
             }
         }
@@ -1192,18 +1299,18 @@ int ORAM::createEvictionTriplets(int n)
         {
             for(int j = 0; j < EVICT_MAT_NUM_COL; j++)
             {
-                TYPE_DATA data_shares[NUM_SERVERS];
                 long x;
                 conv(x, B[w][i][j]);
                 #if defined(SEEDING)
                     createShares(x, data_shares, NULL, NULL,0);         
                 #else // RSSS or SPDZ
-                    createShares(x, data_shares, NULL); 
+                    createShares(x, data_shares, mac_shares); 
                 #endif
 
                 for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)  
                 {
                     memcpy(&shares_B[k][w][i][j], &data_shares[k], sizeof(TYPE_DATA));
+                    memcpy(&shares_B_MAC[k][w][i][j], &mac_shares[k], sizeof(TYPE_DATA));
                 } 
             }
         }
@@ -1212,18 +1319,18 @@ int ORAM::createEvictionTriplets(int n)
         {
             for(int j = 0; j < MAT_PRODUCT_OUTPUT_LENGTH; j++)
             {
-                TYPE_DATA data_shares[NUM_SERVERS];
                 long x;
                 conv(x, C[w][i][j]);
                 #if defined(SEEDING)
                     createShares(x, data_shares, NULL, NULL,0);         
                 #else // RSSS or SPDZ
-                    createShares(x, data_shares, NULL); 
+                    createShares(x, data_shares, mac_shares); 
                 #endif
 
                 for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)  
                 {
                     memcpy(&shares_C[k][w][i][j], &data_shares[k], sizeof(TYPE_DATA));
+                    memcpy(&shares_C_MAC[k][w][i][j], &mac_shares[k], sizeof(TYPE_DATA));
                 } 
             }
         }
@@ -1249,6 +1356,21 @@ int ORAM::createEvictionTriplets(int n)
             }
         }
         fclose(file_out);
+
+        path = rootPath + to_string(k) + "/" + "evict_triplet_a_mac";
+        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
+        {
+            cout<< path << " Cannot Be Opened!!" <<endl;
+            exit;
+        }
+        for(int i = 0; i < n; i++)
+        {
+            for(int j = 0 ; j< DATA_CHUNKS; j++)
+            {
+                fwrite(shares_A_MAC[k][i][j], 1, MAT_PRODUCT_INPUT_DB_LENGTH*sizeof(TYPE_DATA), file_out);
+            }
+        }
+        fclose(file_out);
     } 
 
     for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++) 
@@ -1267,6 +1389,21 @@ int ORAM::createEvictionTriplets(int n)
             }
         }
         fclose(file_out);
+
+        path = rootPath + to_string(k) + "/" + "evict_triplet_b_mac";
+        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
+        {
+            cout<< path << " Cannot Be Opened!!" <<endl;
+            exit;
+        }
+        for(int i = 0; i < n; i++)
+        {
+            for(int j = 0 ; j < EVICT_MAT_NUM_ROW; j++)
+            {
+                fwrite(shares_B_MAC[k][i][j], 1, EVICT_MAT_NUM_COL*sizeof(TYPE_DATA), file_out);
+            }
+        }
+        fclose(file_out);
     } 
 
     for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++) 
@@ -1282,6 +1419,21 @@ int ORAM::createEvictionTriplets(int n)
             for(int j = 0 ; j < DATA_CHUNKS; j++)
             {
                 fwrite(shares_C[k][i][j], 1, MAT_PRODUCT_OUTPUT_LENGTH*sizeof(TYPE_DATA), file_out);
+            }
+        }
+        fclose(file_out);
+
+        path = rootPath + to_string(k) + "/" + "evict_triplet_c_mac";
+        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
+        {
+            cout<< path << " Cannot Be Opened!!" <<endl;
+            exit;
+        }
+        for(int i = 0; i < n; i++)
+        {
+            for(int j = 0 ; j < DATA_CHUNKS; j++)
+            {
+                fwrite(shares_C_MAC[k][i][j], 1, MAT_PRODUCT_OUTPUT_LENGTH*sizeof(TYPE_DATA), file_out);
             }
         }
         fclose(file_out);

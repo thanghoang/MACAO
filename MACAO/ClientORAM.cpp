@@ -39,10 +39,16 @@ ClientORAM::ClientORAM()
     
     retrievedShare = new zz_p*[NUM_SERVERS];
 	retrievedMacShare = new zz_p*[NUM_SERVERS];
+    lin_rand_com_in = new unsigned char*[NUM_SERVERS];
     for(int k = 0 ; k < NUM_SERVERS; k++)
     {
         retrievedShare[k] = new zz_p[DATA_CHUNKS];
         retrievedMacShare[k] = new zz_p[DATA_CHUNKS];
+        #if defined(SPDZ)
+            lin_rand_com_in[k] = new unsigned char[2* sizeof(TYPE_DATA)];
+        #else //RSSS
+            lin_rand_com_in[k] = new unsigned char[4* sizeof(TYPE_DATA)];
+        #endif
     }
     
     
@@ -57,12 +63,15 @@ ClientORAM::ClientORAM()
     }
     
 	this->sharedMatrix = new TYPE_DATA**[NUM_SERVERS];
+    this->sharedMatrix_MAC = new TYPE_DATA**[NUM_SERVERS];
 	for (TYPE_INDEX i = 0 ; i < NUM_SERVERS; i++)
 	{
 		this->sharedMatrix[i] = new TYPE_DATA*[H+1];
+        this->sharedMatrix_MAC[i] = new TYPE_DATA*[H+1];
 		for(TYPE_INDEX j = 0 ; j < H+1; j++)
 		{
 			this->sharedMatrix[i][j] = new TYPE_DATA[evictMatSize];
+            this->sharedMatrix_MAC[i][j] = new TYPE_DATA[evictMatSize];
 		}
 	}
 
@@ -168,10 +177,10 @@ ClientORAM::~ClientORAM()
 
 int ClientORAM::init()
 {
-    ORAM::createRetrievalTriplets(NUM_BLOCK * 10);
+    ORAM::createRetrievalTriplets(NUM_BLOCK * 200);
     #if defined(CORAM_LAYOUT)
         
-        ORAM::createEvictionTriplets(NUM_BLOCK * 10);
+        ORAM::createEvictionTriplets(NUM_BLOCK * 200);
     #else
         ORAM::createEvictionTriplets(NUM_BLOCK * 10 / EVICT_RATE);
     #endif
@@ -419,7 +428,11 @@ void ClientORAM::recoverRetrievedBlock()
     ORAM::recoverSecret(retrievedShare,retrievedMacShare,recoveredBlock,recoveredMacBlock);
 #else // if defined RSSS or SPDZ
 
-    ORAM::recoverSecret(retrieval_in,recoveredBlock,recoveredMacBlock);
+    #if defined(SPDZ)
+        ORAM::recoverSecret(retrieval_in,recoveredBlock);
+    #else
+        ORAM::recoverSecret(retrieval_in,recoveredBlock,recoveredMacBlock);
+    #endif
 #endif
 
     
@@ -462,7 +475,6 @@ int ClientORAM::retrieve(TYPE_ID blockID)
 	exp_logs[1] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
 	
 	// 4. send to server & receive the answer
-    
     start = time_now;
     for (int i = 0; i < NUM_SERVERS; i++)
     {

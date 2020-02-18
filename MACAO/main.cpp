@@ -137,11 +137,12 @@ int main(int argc, char **argv)
 		cin.ignore();
 		cin.clear();
 		cout << endl<<endl<<endl;
-        for(int j = 0 ; j < 1 ; j++)
+        for(int j = 0 ; j < 10 ; j++)
         {
             for(int i = 1 ; i < NUM_BLOCK+1; i++)
             {
-                client->access(i);
+                cout<<"idx "<<j<<" "<<i<<endl;
+                client->access(1);
                 //cin.get();
             }
         }

@@ -162,7 +162,7 @@ int ClientKaryORAMC::access(TYPE_ID blockID)
      
     // 6. update position map
     this->updatePosMap(blockID);
-    
+    cout<<" after pos map "<<endl;
     //7. perform eviction
     this->evict();
     
@@ -186,6 +186,7 @@ int ClientKaryORAMC::evict()
             memcpy(&evict_out[i][CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX)], &numEvict, sizeof(TYPE_INDEX));
         #endif
     }
+    
     #if defined(SEEDING)
         unsigned long long currBufferIdx = sizeof(TYPE_INDEX);
     #else
@@ -214,15 +215,23 @@ int ClientKaryORAMC::evict()
             
             boost::progress_display show_progress((H+1)*evictMatSize);
             TYPE_DATA matrixShares[NUM_SERVERS];
+            TYPE_DATA matrixShares_MAC[NUM_SERVERS];
             start = time_now;
             for (TYPE_INDEX i = 0; i < H+1; ++i) 
             {
                 for (TYPE_INDEX j = 0; j < evictMatSize; j++)
                 {
-                    ORAM::createShares(this->evictMatrix[i][j], matrixShares, NULL);
+                    #if defined(SPDZ)
+                        ORAM::createShares(this->evictMatrix[i][j], matrixShares, matrixShares_MAC);
+                    #else //RSSS
+                        ORAM::createShares(this->evictMatrix[i][j], matrixShares, NULL);
+                    #endif
                     for (int k = 0; k < NUM_SERVERS; k++) 
                     {   
                         this->sharedMatrix[k][i][j] = matrixShares[k];
+                        #if defined(SPDZ)
+                            this->sharedMatrix_MAC[k][i][j] = matrixShares_MAC[k];
+                        #endif
                     }
                     ++show_progress;
                 }
@@ -284,16 +293,22 @@ int ClientKaryORAMC::evict()
             
             boost::progress_display show_progress((H+1)*evictMatSize);
             TYPE_DATA matrixShares[NUM_SERVERS];
+            TYPE_DATA matrixShares_MAC[NUM_SERVERS];
             start = time_now;
             for (TYPE_INDEX i = 0; i < H+1; ++i) 
             {
                 for (TYPE_INDEX j = 0; j < evictMatSize; j++)
                 {
-                    ORAM::createShares(this->evictMatrix[i][j], matrixShares, NULL,prng_client,0);
-                    for (int k = 0; k < NUM_SERVERS; k++) 
-                    {   
-                        this->sharedMatrix[k][i][j] = matrixShares[k];
-                    }
+                    #if defined(SPDZ)
+                        ORAM::createShares(this->evictMatrix[i][j], matrixShares, matrixShares_MAC,prng_client,0);
+                    #else // RSSS
+                        ORAM::createShares(this->evictMatrix[i][j], matrixShares, NULL,prng_client,0);
+                    #endif
+                    //for (int k = 0; k < NUM_SERVERS; k++)  // disable this later
+                    //{   
+                        this->sharedMatrix[0][i][j] = matrixShares[0];
+                        this->sharedMatrix_MAC[0][i][j] = matrixShares_MAC[0];
+                    //}
                     ++show_progress;
                 }
             }
@@ -306,6 +321,9 @@ int ClientKaryORAMC::evict()
                 for (TYPE_INDEX y = 0 ; y < H+1; y++)
                 {
                     memcpy(&evict_out[0][currBufferIdx + y*evictMatSize*sizeof(TYPE_DATA)], this->sharedMatrix[0][y], evictMatSize*sizeof(TYPE_DATA));
+                    #if defined(SPDZ)
+                        memcpy(&evict_out[0][currBufferIdx + (H+1+y)*evictMatSize*sizeof(TYPE_DATA)], this->sharedMatrix[0][y], evictMatSize*sizeof(TYPE_DATA));
+                    #endif
                 }
             //}
         #else // RSSS or SPDZ
@@ -314,14 +332,21 @@ int ClientKaryORAMC::evict()
                 for (TYPE_INDEX y = 0 ; y < H+1; y++)
                 {
                     memcpy(&evict_out[i][currBufferIdx + y*evictMatSize*sizeof(TYPE_DATA)], this->sharedMatrix[i][y], evictMatSize*sizeof(TYPE_DATA));
-                }
+                    #if defined(SPDZ)
+                        memcpy(&evict_out[i][currBufferIdx + (H+1+y)*evictMatSize*sizeof(TYPE_DATA)], this->sharedMatrix_MAC[i][y], evictMatSize*sizeof(TYPE_DATA));
+                    #endif
+                }   
             }
         #endif
-        
-        currBufferIdx += (H+1)*evictMatSize*sizeof(TYPE_DATA);
+
         
         this->numEvict = (numEvict+1) % N_leaf;
-    }
+        currBufferIdx += (H+1)* evictMatSize*sizeof(TYPE_DATA);
+        #if defined(SPDZ)
+            currBufferIdx += (H+1)* evictMatSize*sizeof(TYPE_DATA);
+        #endif
+
+    } 
         
     // 9.3. send shares of permutation matrices & stash block to servers
     start = time_now;
@@ -334,7 +359,11 @@ int ClientKaryORAMC::evict()
             else
                 thread_socket_args[i] = struct_socket(i, evict_out[i], sizeof(TYPE_INDEX), NULL,0, CMD_EVICT,  NULL);
         #else // RSSS or SPDZ    
-            thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, NULL,0, CMD_EVICT,  NULL);
+            #if defined(SPDZ)
+                thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, retrieval_in[i], 2*sizeof(TYPE_DATA), CMD_EVICT,  NULL);
+            #else // RSSS
+                thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, lin_rand_com_in[i], 4*sizeof(TYPE_DATA), CMD_EVICT,  NULL);
+            #endif
         #endif
         
         pthread_create(&thread_sockets[i], NULL, &ClientKaryORAMC::thread_socket_func, (void*)&thread_socket_args[i]);
@@ -344,6 +373,60 @@ int ClientKaryORAMC::evict()
     {
         pthread_join(thread_sockets[i], NULL);
     }
+
+    #if defined(SPDZ)
+        zz_p X1, Y1, X2, Y2;
+    #else // RSSS
+        zz_p X1[NUM_SERVERS], Y1[NUM_SERVERS], X2[NUM_SERVERS], Y2[NUM_SERVERS];
+    #endif
+    for(int i = 0; i < NUM_SERVERS; i++)
+    {
+        #if defined(SPDZ)
+            X1 = *((zz_p*)&retrieval_in[i][0]);
+            Y1 += *((zz_p*)&retrieval_in[i][sizeof(TYPE_DATA)]);
+            cout<<*((zz_p*)&retrieval_in[i][0])<< " "<<*((zz_p*)&retrieval_in[i][sizeof(TYPE_DATA)])<<endl; 	
+        #else // RSSS
+            X1[i] = *((zz_p*)&lin_rand_com_in[i][0]);
+            Y1[i] = *((zz_p*)&lin_rand_com_in[i][sizeof(TYPE_DATA)]);
+            X2[i] = *((zz_p*)&lin_rand_com_in[i][2*sizeof(TYPE_DATA)]);
+            Y2[i] = *((zz_p*)&lin_rand_com_in[i][3*sizeof(TYPE_DATA)]);
+        #endif
+        
+    }
+
+    #if defined(SPDZ)
+        if(GLOBAL_MAC_KEY*X1 != Y1)
+        {
+            exit(0);
+        }
+    #else // RSSS
+        // cross check
+        for(int i = 0; i < NUM_SERVERS; i++) 
+        {
+            if((X2[i] != X1[(i+1)%3]) || (Y2[i] != Y1[(i+1)%3]))
+            {
+                exit(0);
+            }
+        }
+
+        // MAC check
+        for(int i = 1; i < NUM_SERVERS; i++)
+        {
+            X1[0] += X1[i];
+            Y1[0] += Y1[i];
+            X2[0] += X2[i];
+            Y2[0] += Y2[i];
+        }
+        if(GLOBAL_MAC_KEY * X1[0] != Y1[0] || GLOBAL_MAC_KEY * X2[0] != Y2[0])
+        {
+            exit(0);
+        }
+        //cout<<GLOBAL_MAC_KEY * X1<<" "<< Y1<<" "<<GLOBAL_MAC_KEY * X2 <<" "<<Y2<<endl;
+    #endif
+    //exit(0);
+    	
+    
+
     end = time_now;
     cout<< "	[ClientKaryORAMC] Eviction DONE in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count()<< " ns"<<endl;
     

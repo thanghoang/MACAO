@@ -127,11 +127,25 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
         this->RetrievalShares_b = new zz_p[PATH_LENGTH];
         this->RetrievalShares_c = new zz_p[DATA_CHUNKS];
 
+        this->RetrievalShares_a_mac = new zz_p*[DATA_CHUNKS];
+        this->RetrievalShares_b_mac = new zz_p[PATH_LENGTH];
+        this->RetrievalShares_c_mac = new zz_p[DATA_CHUNKS];
+
         for(int i = 0 ; i < DATA_CHUNKS; i++)
         {
             RetrievalShares_a[i] = new zz_p[PATH_LENGTH];
+            RetrievalShares_a_mac[i] = new zz_p[PATH_LENGTH];
         }
+
+        lin_rand_com_out = new unsigned char[2*sizeof(TYPE_DATA)];
+    #elif defined(RSSS)
+        for(int s = 0 ; s < NUM_SERVERS-1; s++)
+        {
+            retrieval_reshares_in[s] = new unsigned char[2*sizeof(TYPE_DATA)];
+        }
+        lin_rand_com_out = new unsigned char[4*sizeof(TYPE_DATA)];
     #endif
+
     this->retrieval_query = new unsigned char*[NUM_SHARE_PER_SERVER];
     this->retrieval_path_db = new zz_p**[NUM_SHARE_PER_SERVER];
     this->retrieval_path_mac = new zz_p**[NUM_SHARE_PER_SERVER];
@@ -188,6 +202,7 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
     for(int i = 0 ; i < NUM_CONCURR_EVICT*NUM_SHARE_PER_SERVER; i++)
     {
         zz_p*** evictMatrix = new zz_p**[H+1];
+        zz_p*** evictMatrix_MAC = new zz_p**[H+1];
 
         #if defined(SPDZ)
             zz_p*** shares_b = new zz_p**[H+1];
@@ -197,6 +212,7 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
         for(TYPE_INDEX y = 0 ; y < H+1; y++)
         {
             evictMatrix[y] = new zz_p*[EVICT_MAT_NUM_ROW];
+            evictMatrix_MAC[y] = new zz_p*[EVICT_MAT_NUM_ROW];
             #if defined(SPDZ)
                 shares_b[y] = new zz_p*[EVICT_MAT_NUM_ROW];
                 shares_b_MAC[y] = new zz_p*[EVICT_MAT_NUM_ROW];
@@ -204,6 +220,7 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
             for(TYPE_INDEX i = 0 ; i < EVICT_MAT_NUM_ROW; i++)
             {
                 evictMatrix[y][i] = new zz_p[EVICT_MAT_NUM_COL];
+                evictMatrix_MAC[y][i] = new zz_p[EVICT_MAT_NUM_COL];
                 #if defined(SPDZ)
                     shares_b[y][i] = new zz_p[EVICT_MAT_NUM_COL];
                     shares_b_MAC[y][i] = new zz_p[EVICT_MAT_NUM_COL];
@@ -211,6 +228,7 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
             }
         }
         this->vecEvictMatrix.push_back(evictMatrix);
+        this->vecEvictMatrix_MAC.push_back(evictMatrix_MAC);
         #if defined(SPDZ)
             this->vecShares_b.push_back(shares_b);
 
@@ -449,9 +467,11 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
         step = ceil((double)PATH_LENGTH/(double)numThreads);
     #else
         zz_p** retrieval_query = new zz_p*[NUM_SHARE_PER_SERVER];
+        zz_p** retrieval_query_mac = new zz_p*[NUM_SHARE_PER_SERVER];
         for(int i = 0 ; i < NUM_SHARE_PER_SERVER; i++)
         {
             retrieval_query[i] = new zz_p[CLIENT_RETRIEVAL_QUERY_SIZE/sizeof(TYPE_DATA)];
+            retrieval_query_mac[i] = new zz_p[CLIENT_RETRIEVAL_QUERY_SIZE/sizeof(TYPE_DATA)];
         }
         zz_p** dotProd_output = new zz_p*[NUM_SHARE_PER_SERVER];
         zz_p** dotProd_mac_output = new zz_p*[NUM_SHARE_PER_SERVER];
@@ -493,12 +513,15 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
             if(serverNo==0)
             {
                 memcpy(retrieval_query[0], retrieval_query_in, CLIENT_RETRIEVAL_QUERY_SIZE);
+                
                     
                 #if defined(RSSS)
                     cout<< "	[evict] Creating Threads for Sending..."<< endl;;
                     sendSocket_args[0] = struct_socket(1,  &retrieval_query_in[0], CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_INDEX), NULL, 0, NULL, true);
                     pthread_create(&thread_send[0], NULL, &thread_socket_func, (void*)&sendSocket_args[0]);
                     pthread_join(thread_send[0], NULL);
+                #else // SPDZ
+                    memcpy(retrieval_query_mac[0], &retrieval_query_in[CLIENT_RETRIEVAL_QUERY_SIZE], CLIENT_RETRIEVAL_QUERY_SIZE);
                 #endif
             }
             else
@@ -507,6 +530,10 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
                 {
                     sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[this->serverNo]);
                     retrieval_query[0][i] = tmp;
+                    #if defined(SPDZ)
+                        sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[this->serverNo]);
+                        retrieval_query_mac[0][i] = tmp;
+                    #endif
                 }
             }
             #if defined(RSSS)
@@ -547,6 +574,9 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
             }
         #else
             memcpy(retrieval_query[0], retrieval_query_in, CLIENT_RETRIEVAL_QUERY_SIZE);
+            #if defined(SPDZ)
+                memcpy(retrieval_query_mac[0], &retrieval_query_in[CLIENT_RETRIEVAL_QUERY_SIZE], CLIENT_RETRIEVAL_QUERY_SIZE);
+            #endif
             #if defined(RSSS)
                 // send client data to other servers (this is due to RSSS)
                 cout<< "	[evict] Creating Threads for Receiving..." << endl;
@@ -681,6 +711,10 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
             readTriplets(RetrievalShares_a, DATA_CHUNKS, PATH_LENGTH, "/retrieval_triplet_a");
             readTriplets(RetrievalShares_b, PATH_LENGTH, "/retrieval_triplet_b");
             readTriplets(RetrievalShares_c, DATA_CHUNKS, "/retrieval_triplet_c");
+
+            readTriplets(RetrievalShares_a_mac, DATA_CHUNKS, PATH_LENGTH, "/retrieval_triplet_a_mac");
+            readTriplets(RetrievalShares_b_mac, PATH_LENGTH, "/retrieval_triplet_b_mac");
+            readTriplets(RetrievalShares_c_mac, DATA_CHUNKS, "/retrieval_triplet_c_mac");
             
             unsigned long long currBufferIdx =  0;
             for(int i = 0 ; i < DATA_CHUNKS; i++)
@@ -688,6 +722,7 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
                 for(int j = 0 ; j < PATH_LENGTH; j++)
                 {
                     this->retrieval_path_db[0][i][j] -= this->RetrievalShares_a[i][j];
+                    this->retrieval_path_mac[0][i][j] -= this->RetrievalShares_a_mac[i][j];
                 }
                 memcpy(&retrieval_reshares_out[currBufferIdx], this->retrieval_path_db[0][i], sizeof(TYPE_DATA)*(PATH_LENGTH));
                 currBufferIdx+=sizeof(TYPE_DATA)*(PATH_LENGTH);
@@ -696,6 +731,7 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
             for(int i = 0 ; i < PATH_LENGTH; i++)
             {
                 retrieval_query[0][i] -= this->RetrievalShares_b[i];
+                retrieval_query_mac[0][i] -= this->RetrievalShares_b_mac[i];
 
                 memcpy(&retrieval_reshares_out[currBufferIdx], &retrieval_query[0][i], sizeof(TYPE_DATA));
                 currBufferIdx+=sizeof(TYPE_DATA);
@@ -755,7 +791,14 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
                 vecComp_args[2][i] = THREAD_COMPUTATION(startIdx, endIdx, this->retrieval_path_db[0], PATH_LENGTH, 1, retrieval_query[0], dotProd_output[2]);
                 pthread_create(&vecThread_compute[2][i], NULL, &ServerORAM::thread_retrieval_by_dotProd_func, (void*)&vecComp_args[2][i]);
 
+                vecComp_MAC_args[0][i] = THREAD_COMPUTATION(startIdx, endIdx, this->retrieval_path_db[0], PATH_LENGTH, 1, RetrievalShares_b_mac, dotProd_mac_output[0]);
+                pthread_create(&vecThread_compute_MAC[0][i], NULL, &ServerORAM::thread_retrieval_by_dotProd_func, (void*)&vecComp_MAC_args[0][i]);
 
+                vecComp_MAC_args[1][i] = THREAD_COMPUTATION(startIdx, endIdx, RetrievalShares_a_mac,  PATH_LENGTH, 1, retrieval_query[0],  dotProd_mac_output[1]);
+                pthread_create(&vecThread_compute_MAC[1][i], NULL, &ServerORAM::thread_retrieval_by_dotProd_func, (void*)&vecComp_MAC_args[1][i]);
+
+                // vecComp_MAC_args[2][i] = THREAD_COMPUTATION(startIdx, endIdx, this->retrieval_path_db[0], PATH_LENGTH, 1, retrieval_query[0], dotProd_mac_output[2]);
+                // pthread_create(&vecThread_compute_MAC[2][i], NULL, &ServerORAM::thread_retrieval_by_dotProd_func, (void*)&vecComp_MAC_args[2][i]);
 
                 cpu_set_t cpuset;
                 CPU_ZERO(&cpuset);
@@ -765,24 +808,60 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
                 pthread_setaffinity_np(vecThread_compute[0][i], sizeof(cpu_set_t), &cpuset);
                 pthread_setaffinity_np(vecThread_compute[1][i], sizeof(cpu_set_t), &cpuset);
                 pthread_setaffinity_np(vecThread_compute[2][i], sizeof(cpu_set_t), &cpuset);
+
+                pthread_setaffinity_np(vecThread_compute_MAC[0][i], sizeof(cpu_set_t), &cpuset);
+                pthread_setaffinity_np(vecThread_compute_MAC[1][i], sizeof(cpu_set_t), &cpuset);
+                //pthread_setaffinity_np(vecThread_compute_MAC[2][i], sizeof(cpu_set_t), &cpuset);
             }
             for(int i  = 0 ; i <numThreads ; i++)
             {
                     pthread_join(vecThread_compute[0][i],NULL);
                     pthread_join(vecThread_compute[1][i],NULL);
                     pthread_join(vecThread_compute[2][i],NULL);
+
+                    pthread_join(vecThread_compute_MAC[0][i],NULL);
+                    pthread_join(vecThread_compute_MAC[1][i],NULL);
+                    //pthread_join(vecThread_compute_MAC[2][i],NULL);
             }
             //sum all together
             for(int i = 0 ; i < DATA_CHUNKS; i++)
             {
                 dotProd_output[0][i] += dotProd_output[1][i] + RetrievalShares_c[i];
+                dotProd_mac_output[0][i] += dotProd_mac_output[1][i] + RetrievalShares_c_mac[i];
                 if(this->serverNo == 0)
                 {
                     dotProd_output[0][i] += dotProd_output[2][i];
-                    //dotProd_mac_output[0][i] += dotProd_mac_output[j][i];
+                    dotProd_mac_output[0][i] += MAC_KEY[serverNo]*dotProd_output[2][i];
                 }
             }
+
+            // share the random number r
+            TYPE_DATA r1, r2;
+            share_random_number(r1, r2);               
+
+            zz_p x, y;
+            x = 0, y = 0;
+            for(int i = 0 ; i < DATA_CHUNKS; i++)
+            {
+                for(int j = 0 ; j < PATH_LENGTH; j++)
+                {
+                    x += this->retrieval_path_db[0][i][j] * r1;
+                    y += this->retrieval_path_mac[0][i][j] * r1;
+                    r1 = (r1 * r1)%P;
+                }
+            }
+
+            for(int i = 0 ; i < PATH_LENGTH; i++)
+            {
+                x+= retrieval_query[0][i] * r2;
+                y+= retrieval_query_mac[0][i] * r2;
+                r2 = ( r2 * r2) % P;
+            }
+           
             memcpy(&retrieval_answer_out[0],dotProd_output[0],BLOCK_SIZE);
+            memcpy(&retrieval_answer_out[BLOCK_SIZE], &x, sizeof(TYPE_DATA));
+            memcpy(&retrieval_answer_out[BLOCK_SIZE + sizeof(TYPE_DATA)], &y, sizeof(TYPE_DATA));
+            
             #endif
         #endif
 
@@ -1455,11 +1534,15 @@ int ServerORAM::preReSharing(int level, int es, int ee)
         {
             readTriplets(this->vecShares_a[e], DATA_CHUNKS, MAT_PRODUCT_INPUT_DB_LENGTH, "/evict_triplet_a");
             readTriplets(this->vecShares_b[e][level], EVICT_MAT_NUM_ROW, EVICT_MAT_NUM_COL, "/evict_triplet_b");
+            readTriplets(this->vecShares_a_MAC[e], DATA_CHUNKS, MAT_PRODUCT_INPUT_DB_LENGTH, "/evict_triplet_a_mac");
+            readTriplets(this->vecShares_b_MAC[e][level], EVICT_MAT_NUM_ROW, EVICT_MAT_NUM_COL, "/evict_triplet_b_mac");
             for(int i = 0 ; i < DATA_CHUNKS; i++)
             {
                 for(int j = 0 ; j < MAT_PRODUCT_INPUT_DB_LENGTH; j++)
                 {
+                    //this->vecShares_a[e][i][j] = 0;
                     this->vecEvictPath_db[e][i][j] -= this->vecShares_a[e][i][j];
+                    this->vecEvictPath_MAC[e][i][j] -=this->vecShares_a_MAC[e][i][j];
                 }
                 for(int s = 0 ; s < NUM_SERVERS-1;s++)
                 {
@@ -1472,7 +1555,9 @@ int ServerORAM::preReSharing(int level, int es, int ee)
             {
                 for(int j = 0 ; j < EVICT_MAT_NUM_COL; j++)
                 {
+                    //this->vecShares_b[e][level][i][j] = 0;
                     this->vecEvictMatrix[e][level][i][j] -= this->vecShares_b[e][level][i][j];
+                    this->vecEvictMatrix_MAC[e][level][i][j] -= this->vecShares_b_MAC[e][level][i][j];
                 }
 
                 for(int s = 0 ; s < NUM_SERVERS-1;s++)
@@ -1675,6 +1760,25 @@ int ServerORAM::postReSharing(int level, int es, int ee)
                 currBufferIdx += sizeof(zz_p);
             }
         }
+
+        // share the random number r
+        TYPE_DATA r1;
+        share_random_number(r1);  
+        
+        for(int u = 0 ; u < DATA_CHUNKS; u ++)
+        {
+            for(int j = 0 ; j < MAT_PRODUCT_OUTPUT_LENGTH ; j++)
+            {
+                this->X1 += vecReShares[e][this->serverNo][u][j] * r1; 
+                this->Y1 += vecReShares_MAC[e][this->serverNo][u][j] * r1;
+                
+                this->X2 += vecReShares[e][(this->serverNo+1)%3][u][j] * r1; 
+                this->Y2 += vecReShares_MAC[e][(this->serverNo+1)%3][u][j] * r1;
+                r1 = (r1 * r1) % P;
+            }
+        }
+        cin.get();
+        cout<<serverNo<<" "<<X1<<" "<<X2<<endl;
     }
     #else // SPDZ with/without-seeding
         //recover rho & epsilon
@@ -1775,10 +1879,12 @@ int ServerORAM::postReSharing(int level, int es, int ee)
         for(int e = es ; e < ee; e ++)
         {
             readTriplets(this->vecShares_c[e], DATA_CHUNKS, MAT_PRODUCT_OUTPUT_LENGTH, "/evict_triplet_c");
+            readTriplets(this->vecShares_c_MAC[e], DATA_CHUNKS, MAT_PRODUCT_OUTPUT_LENGTH, "/evict_triplet_c_mac");
             for(int i = 0 ; i < DATA_CHUNKS; i++)
             {
                 for(int n = 0 ; n < MAT_PRODUCT_OUTPUT_LENGTH; n++)
                 {
+                    //vecShares_c[e][i][n] = 0;
                     this->vecReShares[e][this->serverNo][i][n] = this->vecLocalMatProduct_output[e*NUM_MULT+0][i][n] + this->vecLocalMatProduct_output[e*NUM_MULT+1][i][n] + vecShares_c[e][i][n];
 
                     if(this->serverNo == 0)
@@ -1792,7 +1898,35 @@ int ServerORAM::postReSharing(int level, int es, int ee)
 
                 }
             }
+
+            // share the random number r
+            TYPE_DATA r1, r2;
+            share_random_number(r1, r2);  
+
+            for(int i = 0 ; i < DATA_CHUNKS; i ++)
+            {
+                for(int j = 0 ; j < MAT_PRODUCT_INPUT_DB_LENGTH ; j++)
+                {
+                    this->X1 += vecEvictPath_db[e][i][j] * r1; 
+                    this->Y1 += vecEvictPath_MAC[e][i][j] * r1;
+                    r1 = (r1 * r1) % P; // optimize it later
+                }
+            }
+
+            for(int i = 0 ; i < EVICT_MAT_NUM_ROW; i ++)
+            {
+                for(int j = 0 ; j < EVICT_MAT_NUM_COL ; j++)
+                {
+
+                    this->X1 += vecEvictMatrix[e][level][i][j] * r2; 
+                    this->Y1 += vecEvictMatrix_MAC[e][level][i][j] * r2;
+                    r2 = (r2 * r2) % P;
+                }
+            }
+            cout<< this->X1<<" "<<this->Y1<<endl;
         }
+
+        
     #endif
 }
 
@@ -1855,7 +1989,6 @@ int ServerORAM::readTriplets(zz_p** data, int row, int col, string file_name)
     {
         for(int j = 0 ; j < col; j++)
         {
-            data[i][j] = 0;
             fread(&data[i][j], 1, sizeof(TYPE_DATA), file_in);
         }
     }
@@ -1882,9 +2015,7 @@ int ServerORAM::readTriplets(zz_p* data, int length, string file_name)
 
     for(int i = 0 ; i < length; i++)
     {
-        data[i] = 0;
         fread(&data[i], 1, sizeof(TYPE_DATA), file_in);
-        //cout<<"from file "<<data[i]<<endl;
     }
     fclose(file_in);
     // use a more efficient method to delete first n bytes from file
@@ -1894,3 +2025,62 @@ int ServerORAM::readTriplets(zz_p* data, int length, string file_name)
     system(file_pop_cmd.c_str());
     system(move_cmd.c_str());
 } 
+
+
+int ServerORAM::share_random_number(TYPE_DATA& r1, TYPE_DATA& r2)
+{
+    r1 = rand();
+    r2 = rand();
+    memcpy(&retrieval_reshares_out[0], &r1, sizeof(TYPE_DATA));
+    memcpy(&retrieval_reshares_out[sizeof(TYPE_DATA)], &r2, sizeof(TYPE_DATA));
+    for(int s = 0 ; s < NUM_SERVERS-1;s++)
+    {
+        cout<< "	[evict] Creating Threads for Receiving Ports..." << endl;
+        recvSocket_args[s] = struct_socket(s, NULL, 0, retrieval_reshares_in[s], 2*sizeof(TYPE_DATA), NULL,false);
+        pthread_create(&thread_recv[s], NULL, &ServerORAM::thread_socket_func, (void*)&recvSocket_args[s]);
+        
+        cout<< "	[evict] Creating Threads for Sending Shares..."<< endl;;
+        sendSocket_args[s] = struct_socket(s, retrieval_reshares_out, 2*sizeof(TYPE_DATA), NULL, 0, NULL, true);
+        pthread_create(&thread_send[s], NULL, &ServerORAM::thread_socket_func, (void*)&sendSocket_args[s]);
+    }
+    for(int s = 0 ; s < NUM_SERVERS-1;s++)
+    {
+        pthread_join(thread_recv[s],NULL);
+        pthread_join(thread_send[s],NULL);
+    }
+    
+    for(int s = 0 ; s < NUM_SERVERS -1; s++)
+    {
+        r1 += *((TYPE_DATA*)&retrieval_reshares_in[s][0]);
+        r2 += *((TYPE_DATA*)&retrieval_reshares_in[s][sizeof(TYPE_DATA)]);
+        r1 %= P;
+        r2 %= P;
+    }
+}
+
+int ServerORAM::share_random_number(TYPE_DATA& r1)
+{
+    r1 = rand();
+    memcpy(&retrieval_reshares_out[0], &r1, sizeof(TYPE_DATA));
+    for(int s = 0 ; s < NUM_SERVERS-1;s++)
+    {
+        cout<< "	[evict] Creating Threads for Receiving Ports..." << endl;
+        recvSocket_args[s] = struct_socket(s, NULL, 0, retrieval_reshares_in[s], sizeof(TYPE_DATA), NULL,false);
+        pthread_create(&thread_recv[s], NULL, &ServerORAM::thread_socket_func, (void*)&recvSocket_args[s]);
+        
+        cout<< "	[evict] Creating Threads for Sending Shares..."<< endl;;
+        sendSocket_args[s] = struct_socket(s, retrieval_reshares_out, sizeof(TYPE_DATA), NULL, 0, NULL, true);
+        pthread_create(&thread_send[s], NULL, &ServerORAM::thread_socket_func, (void*)&sendSocket_args[s]);
+    }
+    for(int s = 0 ; s < NUM_SERVERS-1;s++)
+    {
+        pthread_join(thread_recv[s],NULL);
+        pthread_join(thread_send[s],NULL);
+    }
+    
+    for(int s = 0 ; s < NUM_SERVERS -1; s++)
+    {
+        r1 += *((TYPE_DATA*)&retrieval_reshares_in[s][0]);
+        r1 %= P;
+    }
+}
