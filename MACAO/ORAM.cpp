@@ -545,7 +545,7 @@ int ORAM::recoverSecret(unsigned char** retrieval_in, zz_p* secret)
         Y += *((zz_p*)&retrieval_in[i][BLOCK_SIZE + sizeof(zz_p)]);
     }
     if(GLOBAL_MAC_KEY*X != Y){
-        
+        cout<<X<<" "<<GLOBAL_MAC_KEY*X <<" "<<Y<<endl;
         exit(0);
     }
     return 0;
@@ -693,8 +693,6 @@ int ORAM::sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char** 
         memcpy(&output[j][idx*sizeof(TYPE_DATA)],&data_shares[j],sizeof(TYPE_DATA));
     }*/
 	
-    
-    
     
 	return 0;
 }

@@ -64,8 +64,6 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
 
                 sober128_ready(&this->prng_server[i][j]);
             }
-
-
         }
     #endif
     //this is for RSSS with 3 servers
@@ -864,7 +862,7 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
             memcpy(&retrieval_answer_out[0],dotProd_output[0],BLOCK_SIZE);
             memcpy(&retrieval_answer_out[BLOCK_SIZE], &x, sizeof(TYPE_DATA));
             memcpy(&retrieval_answer_out[BLOCK_SIZE + sizeof(TYPE_DATA)], &y, sizeof(TYPE_DATA));
-            
+            cout<<x<<" "<<y<<endl;
             #endif
         #endif
 
