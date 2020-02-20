@@ -2016,10 +2016,10 @@ int ServerORAM::readTriplets(zz_p** data, int row, int col, string file_name)
     
     // use a more efficient method to delete first n bytes from file
     //string file_pop_cmd = "dd conv=notrunc status=none if=" + path + " bs=1 skip=" + to_string(row*col*sizeof(TYPE_DATA)) +" of=" + path;
-    string file_pop_cmd = "tail -c +" + to_string(row*col*sizeof(TYPE_DATA) + 1) + " " + path + " > tmp" + to_string(serverNo);
-    string move_cmd = "mv tmp" + to_string(serverNo)+ " " + path;
-    system(file_pop_cmd.c_str());
-    system(move_cmd.c_str());
+    //string file_pop_cmd = "tail -c +" + to_string(row*col*sizeof(TYPE_DATA) + 1) + " " + path + " > tmp" + to_string(serverNo);
+    //string move_cmd = "mv tmp" + to_string(serverNo)+ " " + path;
+    //system(file_pop_cmd.c_str());
+    //system(move_cmd.c_str());
 } 
 
 
@@ -2042,8 +2042,8 @@ int ServerORAM::readTriplets(zz_p* data, int length, string file_name)
     //string file_pop_cmd = "dd conv=notrunc if=" + path + " bs=1 skip=" + to_string(length*sizeof(TYPE_DATA)) +" of=" + path;
     string file_pop_cmd = "tail -c +" + to_string(length*sizeof(TYPE_DATA) + 1) + " " + path + " > tmp" + to_string(serverNo);
     string move_cmd = "mv tmp" + to_string(serverNo)+ " " + path;
-    system(file_pop_cmd.c_str());
-    system(move_cmd.c_str());
+    //system(file_pop_cmd.c_str());
+    //system(move_cmd.c_str());
 } 
 
 

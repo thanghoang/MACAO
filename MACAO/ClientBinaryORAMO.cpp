@@ -106,7 +106,7 @@ int ClientBinaryORAMO::evict()
 		
 	boost::progress_display show_progress((H+1)*evictMatSize);
     TYPE_DATA data_shares[NUM_SERVERS];
-    
+    TYPE_DATA mac_shares[NUM_SERVERS];
     
     start = time_now;
     for (TYPE_INDEX i = 0; i < H+1; ++i) 
@@ -114,13 +114,22 @@ int ClientBinaryORAMO::evict()
         for (TYPE_INDEX j = 0; j < evictMatSize; ++j)
         {
             #if defined(SEEDING)
-                ORAM::createShares(this->evictMatrix[i][j], data_shares, NULL,prng_client,0);
+                #if defined(SPDZ)
+                    ORAM::createShares(this->evictMatrix[i][j], data_shares, mac_shares,prng_client,0);
+                    this->sharedMatrix_MAC[0][i][j] = mac_shares[0];
+                #else
+                    ORAM::createShares(this->evictMatrix[i][j], data_shares, NULL,prng_client,0);
+                #endif
                 this->sharedMatrix[0][i][j] = data_shares[0];
+                
             #else
-                ORAM::createShares(this->evictMatrix[i][j], data_shares, NULL);
+                ORAM::createShares(this->evictMatrix[i][j], data_shares, mac_shares);
                 for (int k = 0; k < NUM_SERVERS; k++) 
                 {   
                     this->sharedMatrix[k][i][j] = data_shares[k];
+                    #if defined (SPDZ)
+                        this->sharedMatrix_MAC[k][i][j] = mac_shares[k];
+                    #endif
                 }
             #endif
 			++show_progress;
@@ -132,46 +141,115 @@ int ClientBinaryORAMO::evict()
         
     // 9.3. send permutation matrices to servers
     start = time_now;
+    
+    long long curBufferIdx = 0;
     for (int i = 0; i < NUM_SERVERS; i++)
     {
         #if defined(SEEDING)
             memcpy(&evict_out[i][0], &numEvict, sizeof(TYPE_INDEX));
-                
-            if(i==0)
-            {
-                for (TYPE_INDEX y = 0 ; y < H+1; y++)
-                {
-                    memcpy(&evict_out[i][sizeof(TYPE_INDEX) + y*evictMatSize*sizeof(TYPE_DATA)], &this->sharedMatrix[i][y][0], evictMatSize*sizeof(TYPE_DATA));
-                }
-                thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, NULL,0, CMD_EVICT,  NULL);  
-            }
-            else
-            {
-                thread_socket_args[i] = struct_socket(i, evict_out[i], sizeof(TYPE_INDEX), NULL,0, CMD_EVICT,  NULL);  
-            }
-        #else 
-            for (TYPE_INDEX y = 0 ; y < H+1; y++)
-            {
-                memcpy(&evict_out[i][y*evictMatSize*sizeof(TYPE_DATA)], &this->sharedMatrix[i][y][0], evictMatSize*sizeof(TYPE_DATA));
-            }
-            memcpy(&evict_out[i][CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX)], &numEvict, sizeof(TYPE_INDEX));
-                
-            thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, NULL,0, CMD_EVICT,  NULL);
+            curBufferIdx = sizeof(TYPE_INDEX);
+        #else
+           memcpy(&evict_out[i][CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX)], &numEvict, sizeof(TYPE_INDEX));
         #endif
-        
-        pthread_create(&thread_sockets[i], NULL, &ClientBinaryORAMO::thread_socket_func, (void*)&thread_socket_args[i]);
     }
-			
+    for (int i = 0; i < NUM_SERVERS; i++)
+    {
+        for (TYPE_INDEX y = 0 ; y < H+1; y++)
+        {
+            memcpy(&evict_out[i][curBufferIdx + y*evictMatSize*sizeof(TYPE_DATA)], this->sharedMatrix[i][y], evictMatSize*sizeof(TYPE_DATA));
+            #if defined (SPDZ)
+              memcpy(&evict_out[i][curBufferIdx + (y+H+1)*evictMatSize*sizeof(TYPE_DATA)], this->sharedMatrix_MAC[i][y], evictMatSize*sizeof(TYPE_DATA));
+            #endif
+        }
+        #if defined(SEEDING)
+            break;
+        #endif   
+    }
+    long long n = CLIENT_EVICTION_OUT_LENGTH;
+    #if defined (SPDZ)
+        int m = 2*sizeof(TYPE_DATA);
+    #else
+        int m = 4*sizeof(TYPE_DATA);
+    #endif
+    for (int i = 0 ; i < NUM_SERVERS; i++)
+    {
+        thread_socket_args[i] = struct_socket(i, evict_out[i], n, lin_rand_com_in[i], m, CMD_EVICT,  NULL);  
+        pthread_create(&thread_sockets[i], NULL, &ClientBinaryORAMO::thread_socket_func, (void*)&thread_socket_args[i]);
+    
+        #if defined(SEEDING)
+            n = sizeof(TYPE_INDEX);
+        #endif
+    }
     for (int i = 0; i < NUM_SERVERS; i++)
     {
         pthread_join(thread_sockets[i], NULL);
     }
     end = time_now;
     cout<< "	[ClientBinaryORAMO] Eviction DONE in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count()<< " ns"<<endl;
-        
+    
     exp_logs[8] = thread_max;
     thread_max = 0;
-		
+	
+    
+    
+    #if defined(SPDZ)
+        zz_p X1, Y1, X2, Y2;
+    #else // RSSS
+        zz_p X1[NUM_SERVERS], Y1[NUM_SERVERS], X2[NUM_SERVERS], Y2[NUM_SERVERS];
+    #endif
+    
+    for(int i = 0; i < NUM_SERVERS; i++)
+    {
+        #if defined(SPDZ)
+            X1 = *((zz_p*)&lin_rand_com_in[i][0]);
+            Y1 += *((zz_p*)&lin_rand_com_in[i][sizeof(TYPE_DATA)]);
+            cout<<*((zz_p*)&lin_rand_com_in[i][0])<< " "<<*((zz_p*)&lin_rand_com_in[i][sizeof(TYPE_DATA)])<<endl; 	
+        #else // RSSS
+            X1[i] = *((zz_p*)&lin_rand_com_in[i][0]);
+            Y1[i] = *((zz_p*)&lin_rand_com_in[i][sizeof(TYPE_DATA)]);
+            X2[i] = *((zz_p*)&lin_rand_com_in[i][2*sizeof(TYPE_DATA)]);
+            Y2[i] = *((zz_p*)&lin_rand_com_in[i][3*sizeof(TYPE_DATA)]);
+        #endif
+        
+    }
+    #if defined(SPDZ)
+        if(GLOBAL_MAC_KEY*X1 != Y1)
+        {
+            cout<<"Data was tampered (SPDZ)!!<<"<<endl;
+            cin.get();
+            //exit(0);
+        }
+    #else // RSSS
+        // cross check
+        for(int i = 0; i < NUM_SERVERS; i++) 
+        {
+            if((X2[i] != X1[(i+1)%3]) || (Y2[i] != Y1[(i+1)%3]))
+            {
+                cout<<"Cross checking failed! Data was tampered (RSSS)!<<"<<endl;
+                cin.get();
+                //exit(0);
+            }
+        }
+
+        // MAC check
+        for(int i = 1; i < NUM_SERVERS; i++)
+        {
+            X1[0] += X1[i];
+            Y1[0] += Y1[i];
+            X2[0] += X2[i];
+            Y2[0] += Y2[i];
+        }
+        if(GLOBAL_MAC_KEY * X1[0] != Y1[0] || GLOBAL_MAC_KEY * X2[0] != Y2[0])
+        {
+            cout<<"Data was tampered (RSSS)!"<<endl;
+            cin.get();
+            //exit(0);
+        }
+        cout<<GLOBAL_MAC_KEY * X1[0]<<" "<< Y1[0]<<" "<<GLOBAL_MAC_KEY * X2[0] <<" "<<Y2[0]<<endl;
+    #endif
+    
+    	
+	
 	cout << "================================================================" << endl;
 	cout << "EVICTION-" << this->numEvict+1 << " COMPLETED" << endl;
 	cout << "================================================================" << endl;
@@ -327,12 +405,8 @@ int ClientBinaryORAMO::getEvictMatrix()
                     if(lstEmptyIdx.size()==0)
                     {
                         cout<< "	[ClientBinaryORAMO] Overflow!!!!. Please check the random generator or select smaller evict_rate"<<endl;
-                        #if defined(SEEDING)
-                            cin.get();
-                            return -1;
-                        #else // RSSS or SPDZ
-                            exit(0);
-                        #endif
+                        cin.get();
+                        return -1;
                         
                     }
                     int emptyIdx = lstEmptyIdx[lstEmptyIdx.size()-1];
@@ -353,7 +427,8 @@ int ClientBinaryORAMO::getEvictMatrix()
                         if(lstEmptyIdxSibl.size()==0)
                         {
                             cout<< "	[ClientBinaryORAMO] Overflow!!!, Please check the random generator or select smaller evict_rate"<<endl;
-                            exit(0);
+                            cin.get();
+                            return -1;
                         }
                         int emptyIdx = lstEmptyIdxSibl[lstEmptyIdxSibl.size()-1];
                         lstEmptyIdxSibl.pop_back();
@@ -361,7 +436,7 @@ int ClientBinaryORAMO::getEvictMatrix()
                         pos_map[blockID].pathIdx = BUCKET_SIZE*h + emptyIdx;
                         metaData[curSibl_idx][emptyIdx] = blockID;
                         
-                    }
+                        }
                 }
             }
         }

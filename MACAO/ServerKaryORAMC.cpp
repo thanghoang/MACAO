@@ -347,7 +347,6 @@ start:
     }
     memcpy(&lin_rand_com_out[0], &this->X1, sizeof(TYPE_DATA));
     memcpy(&lin_rand_com_out[sizeof(TYPE_DATA)], &this->Y1, sizeof(TYPE_DATA));
-    cout<<"BBB: "<<X1<<Y1<<endl;
     #if defined(RSSS)
         memcpy(&lin_rand_com_out[2*sizeof(TYPE_DATA)], &this->X2, sizeof(TYPE_DATA));
         memcpy(&lin_rand_com_out[3*sizeof(TYPE_DATA)], &this->Y2, sizeof(TYPE_DATA));

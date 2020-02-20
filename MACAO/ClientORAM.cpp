@@ -238,7 +238,7 @@ int ClientORAM::saveState()
 	FILE* local_data = NULL;
 	if((local_data = fopen(clientTempPath.c_str(),"wb+")) == NULL){
 		cout<< "	[ClientS3CORAM] File Cannot be Opened!!" <<endl;
-		exit(0);
+		//exit(0);
 	}
 	fwrite(this->pos_map, 1, (NUM_BLOCK+1)*sizeof(TYPE_POS_MAP), local_data);
 	fwrite(&this->numEvict, sizeof(this->numEvict), 1, local_data);
@@ -264,7 +264,7 @@ int ClientORAM::loadState()
 	FILE* local_data = NULL;
 	if((local_data = fopen(clientTempPath.c_str(),"rb")) == NULL){
 		cout<< "	[load] File Cannot be Opened!!" <<endl;
-		exit(0);
+		//exit(0);
 	}
 	
     fread(this->pos_map, 1, (NUM_BLOCK+1)*sizeof(TYPE_POS_MAP), local_data);
@@ -328,7 +328,7 @@ int ClientORAM::sendORAMTree()
             if((fdata = fopen(path.c_str(),"rb")) == NULL)
             {
                 cout<< "	[sendORAMTree] File Cannot be Opened!!" <<endl;
-                exit(0);
+                //exit(0);
             }
             long lSize;
             fseek (fdata , 0 , SEEK_END);
@@ -336,7 +336,7 @@ int ClientORAM::sendORAMTree()
             rewind (fdata);
             if(fread(oram_buffer_out ,1 , BUCKET_SIZE*sizeof(TYPE_DATA)*DATA_CHUNKS, fdata) != sizeof(char)*lSize){
                 cout<< "	[sendORAMTree] File loading error be Read!!" <<endl;
-                exit(0);
+                //exit(0);
             }
             fclose(fdata);
             //send to server i
@@ -399,7 +399,7 @@ int ClientORAM::sendNrecv(int peer_idx, unsigned char* data_out, size_t data_out
     catch (exception &ex)
     {
         cout<< "	[ThreadSocket] Socket error!"<<endl;
-		exit(0);
+		//exit(0);
     }
 	return 0;
 }

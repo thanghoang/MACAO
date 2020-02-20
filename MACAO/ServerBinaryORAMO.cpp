@@ -56,13 +56,20 @@ int ServerBinaryORAMO::prepareEvictComputation()
                 if(serverNo==0)
                 {
                     memcpy(this->vecEvictMatrix[0][y][i], &evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
+                    memcpy(this->vecEvictMatrix_MAC[0][y][i], &evict_in[currBufferIdx+(H+1)*evictMatSize*sizeof(TYPE_DATA)], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));                    
                 }
                 else
                 {
                     for(int j = 0 ; j < EVICT_MAT_NUM_COL; j++)
                     {
-                        sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo)%3]);
+                        sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[serverNo]);
                         this->vecEvictMatrix[0][y][i][j] = tmp;
+                        
+                        #if defined(SPDZ)
+                            sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[serverNo]);
+                            this->vecEvictMatrix_MAC[0][y][i][j] = tmp;
+                        #endif
+                        
                     }
                 }
                 #if defined(RSSS)
@@ -83,6 +90,10 @@ int ServerBinaryORAMO::prepareEvictComputation()
                 memcpy(this->vecEvictMatrix[0][y][i], &evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
                 #if defined(RSSS)
                     memcpy(this->vecEvictMatrix[1][y][i], &client_evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
+                #endif
+                
+                #if defined(SPDZ)
+                    memcpy(this->vecEvictMatrix_MAC[0][y][i], &evict_in[currBufferIdx+(H+1)*evictMatSize*sizeof(TYPE_DATA)], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
                 #endif
             #endif
             currBufferIdx += EVICT_MAT_NUM_COL*sizeof(TYPE_DATA);
@@ -244,7 +255,21 @@ int ServerBinaryORAMO::evict(zmq::socket_t& socket)
 		cout<< "	[evict] TripletEviction-" << h+1 << " COMPLETED!"<<endl;
     }
     
-    socket.send((unsigned char*)CMD_SUCCESS,sizeof(CMD_SUCCESS));
+    memcpy(&lin_rand_com_out[0], &this->X1, sizeof(TYPE_DATA));
+    memcpy(&lin_rand_com_out[sizeof(TYPE_DATA)], &this->Y1, sizeof(TYPE_DATA));
+    #if defined(RSSS)
+        memcpy(&lin_rand_com_out[2*sizeof(TYPE_DATA)], &this->X2, sizeof(TYPE_DATA));
+        memcpy(&lin_rand_com_out[3*sizeof(TYPE_DATA)], &this->Y2, sizeof(TYPE_DATA));
+    #endif
+    
+    #if defined(SPDZ)
+        socket.send(lin_rand_com_out,2*sizeof(TYPE_DATA));
+    #else // RSSS
+        socket.send(lin_rand_com_out,4*sizeof(TYPE_DATA));
+    #endif
+    
+    
+    //socket.send((unsigned char*)CMD_SUCCESS,sizeof(CMD_SUCCESS));
 	cout<< "	[evict] ACK is SENT!" <<endl;
 
     return 0;

@@ -400,9 +400,7 @@ int ClientKaryORAMC::evict()
     #if defined(SPDZ)
         if(GLOBAL_MAC_KEY*X1 != Y1)
         {
-            cout<<"error here!"<<endl;
-            cout<<"Y1: "<<Y1<<endl;;
-            cout<<"MACX: "<<GLOBAL_MAC_KEY*X1<<endl;
+            cout<<"Data was tampered (SPDZ)!!<<"<<endl;
             exit(0);
         }
     #else // RSSS
@@ -411,7 +409,7 @@ int ClientKaryORAMC::evict()
         {
             if((X2[i] != X1[(i+1)%3]) || (Y2[i] != Y1[(i+1)%3]))
             {
-                cout<<"Data was tampered 1!<<"<<endl;
+                cout<<"Cross checking failed! Data was tampered (RSSS)!<<"<<endl;
                 exit(0);
             }
         }
@@ -426,13 +424,11 @@ int ClientKaryORAMC::evict()
         }
         if(GLOBAL_MAC_KEY * X1[0] != Y1[0] || GLOBAL_MAC_KEY * X2[0] != Y2[0])
         {
-            cout<<"Data was tampered 2!<<"<<endl;
-                cin.get();
-            //exit(0);
+            cout<<"Data was tampered (RSSS)!<<"<<endl;
+            exit(0);
         }
         cout<<GLOBAL_MAC_KEY * X1[0]<<" "<< Y1[0]<<" "<<GLOBAL_MAC_KEY * X2[0] <<" "<<Y2[0]<<endl;
     #endif
-    //exit(0);
     	
     
 
