@@ -40,8 +40,8 @@ static inline std::string to_string(T value)
 static const unsigned long long P = 1073742353; //288230376152137729; //prime field - should have length equal to the defined TYPE_DATA
 
 //#define XOR_PIR
-//#define RSSS
-#define SPDZ
+#define RSSS
+//#define SPDZ
 #define SEEDING
 
 #if defined (SEEDING)
@@ -204,8 +204,6 @@ const TYPE_INDEX N_leaf = pow(K_ARY,H);
     const int NUM_MULT = 3;
     const int NUM_SHARE_PER_SERVER = 1;   
 #endif
-
-
 
 #if defined(CORAM_LAYOUT)
     const TYPE_INDEX evictMatSize = (BUCKET_SIZE+1)*(BUCKET_SIZE+1);

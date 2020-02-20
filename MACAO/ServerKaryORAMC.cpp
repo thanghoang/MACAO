@@ -70,6 +70,10 @@ int ServerKaryORAMC::prepareEvictComputation()
                 currBufferIdx +=sizeof(TYPE_DATA);
             }
             currBufferIdx += BLOCK_SIZE;
+
+           
+
+           
             for (TYPE_INDEX y = 0 ; y < H+1 ; y++)
             {
                 for (TYPE_INDEX i = 0 ; i < EVICT_MAT_NUM_ROW; i++)
@@ -78,25 +82,20 @@ int ServerKaryORAMC::prepareEvictComputation()
                     {
                         memcpy(this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER][y][i], &evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
                         #if defined(SPDZ)
-                            memcpy(this->vecEvictMatrix_MAC[e*NUM_SHARE_PER_SERVER][y][i], &evict_in[currBufferIdx + EVICT_MAT_NUM_ROW*EVICT_MAT_NUM_COL*sizeof(TYPE_DATA)], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
+                            memcpy(this->vecEvictMatrix_MAC[e*NUM_SHARE_PER_SERVER][y][i], &evict_in[currBufferIdx + (H+1)*evictMatSize*sizeof(TYPE_DATA)], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));                            
                         #endif
                     }
                     else
                     {
-                        sober128_read((unsigned char*)&tmp2,EVICT_MAT_NUM_COL*sizeof(TYPE_DATA),&prng_client[serverNo]);
                         for(TYPE_INDEX j = 0 ; j < EVICT_MAT_NUM_COL; j++)
                         {
-                            this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER][y][i][j] = tmp2[j];
-                            
+                            sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[serverNo]);
+                            this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER][y][i][j] = tmp;
+                            #if defined(SPDZ)
+                                sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[serverNo]);
+                                this->vecEvictMatrix_MAC[e*NUM_SHARE_PER_SERVER][y][i][j] = tmp;
+                            #endif    
                         }
-                        #if defined(SPDZ)
-                            sober128_read((unsigned char*)&tmp2,EVICT_MAT_NUM_COL*sizeof(TYPE_DATA),&prng_client[serverNo]);
-                            for(TYPE_INDEX j = 0 ; j < EVICT_MAT_NUM_COL; j++)
-                            {
-                                this->vecEvictMatrix_MAC[e*NUM_SHARE_PER_SERVER][y][i][j] = tmp2[j];
-                                
-                            }
-                        #endif
                     }
                     #if defined(RSSS)
                         if(serverNo==2)
@@ -114,7 +113,15 @@ int ServerKaryORAMC::prepareEvictComputation()
                     #endif
                     currBufferIdx += EVICT_MAT_NUM_COL*sizeof(TYPE_DATA);
                 }
+                
             }
+            #if defined(SPDZ)
+                 currBufferIdx += (H+1)* evictMatSize*sizeof(TYPE_DATA);
+            #endif
+
+
+
+
         }
     #else 
         unsigned long long currBufferIdx = 0;
@@ -340,7 +347,7 @@ start:
     }
     memcpy(&lin_rand_com_out[0], &this->X1, sizeof(TYPE_DATA));
     memcpy(&lin_rand_com_out[sizeof(TYPE_DATA)], &this->Y1, sizeof(TYPE_DATA));
-    cout<<X2<<Y2<<endl;
+    cout<<"BBB: "<<X1<<Y1<<endl;
     #if defined(RSSS)
         memcpy(&lin_rand_com_out[2*sizeof(TYPE_DATA)], &this->X2, sizeof(TYPE_DATA));
         memcpy(&lin_rand_com_out[3*sizeof(TYPE_DATA)], &this->Y2, sizeof(TYPE_DATA));
