@@ -355,9 +355,9 @@ int ClientKaryORAMC::evict()
         #if defined(SEEDING)
             if(i==0)
                 #if defined(SPDZ)
-                    thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, retrieval_in[i], 2*sizeof(TYPE_DATA), CMD_EVICT,  NULL);
+                    thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, lin_rand_com_in[i], 2*sizeof(TYPE_DATA), CMD_EVICT,  NULL);
                 #else // RSSS
-                    thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, retrieval_in[i], 4*sizeof(TYPE_DATA), CMD_EVICT,  NULL);
+                    thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, lin_rand_com_in[i], 4*sizeof(TYPE_DATA), CMD_EVICT,  NULL);
                 #endif
 
             else
@@ -413,6 +413,7 @@ int ClientKaryORAMC::evict()
         {
             if((X2[i] != X1[(i+1)%3]) || (Y2[i] != Y1[(i+1)%3]))
             {
+                cout<<"Data was tampered 1!<<"<<endl;
                 exit(0);
             }
         }
@@ -427,7 +428,9 @@ int ClientKaryORAMC::evict()
         }
         if(GLOBAL_MAC_KEY * X1[0] != Y1[0] || GLOBAL_MAC_KEY * X2[0] != Y2[0])
         {
-            exit(0);
+            cout<<"Data was tampered 2!<<"<<endl;
+                cin.get();
+            //exit(0);
         }
         cout<<GLOBAL_MAC_KEY * X1[0]<<" "<< Y1[0]<<" "<<GLOBAL_MAC_KEY * X2[0] <<" "<<Y2[0]<<endl;
     #endif

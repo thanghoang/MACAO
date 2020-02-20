@@ -525,12 +525,13 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
                     memcpy(retrieval_query_mac[0], &retrieval_query_in[CLIENT_RETRIEVAL_QUERY_SIZE], CLIENT_RETRIEVAL_QUERY_SIZE);
                 #endif
             }
-            else
+           else
             {
                 for(int i = 0 ; i < PATH_LENGTH;i++)
                 {
                     sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[this->serverNo]);
                     retrieval_query[0][i] = tmp;
+                    tmp = 0;
                     #if defined(SPDZ)
                         sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[this->serverNo]);
                         retrieval_query_mac[0][i] = tmp;
@@ -798,9 +799,6 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
                 vecComp_MAC_args[1][i] = THREAD_COMPUTATION(startIdx, endIdx, RetrievalShares_a_mac,  PATH_LENGTH, 1, retrieval_query[0],  dotProd_mac_output[1]);
                 pthread_create(&vecThread_compute_MAC[1][i], NULL, &ServerORAM::thread_retrieval_by_dotProd_func, (void*)&vecComp_MAC_args[1][i]);
 
-                // vecComp_MAC_args[2][i] = THREAD_COMPUTATION(startIdx, endIdx, this->retrieval_path_db[0], PATH_LENGTH, 1, retrieval_query[0], dotProd_mac_output[2]);
-                // pthread_create(&vecThread_compute_MAC[2][i], NULL, &ServerORAM::thread_retrieval_by_dotProd_func, (void*)&vecComp_MAC_args[2][i]);
-
                 cpu_set_t cpuset;
                 CPU_ZERO(&cpuset);
                 CPU_SET(i, &cpuset);
@@ -812,7 +810,6 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
 
                 pthread_setaffinity_np(vecThread_compute_MAC[0][i], sizeof(cpu_set_t), &cpuset);
                 pthread_setaffinity_np(vecThread_compute_MAC[1][i], sizeof(cpu_set_t), &cpuset);
-                //pthread_setaffinity_np(vecThread_compute_MAC[2][i], sizeof(cpu_set_t), &cpuset);
             }
             for(int i  = 0 ; i <numThreads ; i++)
             {
@@ -822,7 +819,6 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
 
                     pthread_join(vecThread_compute_MAC[0][i],NULL);
                     pthread_join(vecThread_compute_MAC[1][i],NULL);
-                    //pthread_join(vecThread_compute_MAC[2][i],NULL);
             }
             //sum all together
             for(int i = 0 ; i < DATA_CHUNKS; i++)
@@ -831,9 +827,9 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
                 dotProd_mac_output[0][i] += dotProd_mac_output[1][i] + RetrievalShares_c_mac[i];
                 if(this->serverNo == 0)
                 {
-                    dotProd_output[0][i] += dotProd_output[2][i];
-                    dotProd_mac_output[0][i] += MAC_KEY[serverNo]*dotProd_output[2][i];
+                    dotProd_output[0][i] += dotProd_output[2][i]; 
                 }
+                dotProd_mac_output[0][i] += MAC_KEY[serverNo]*dotProd_output[2][i];
             }
 
             // share the random number r
@@ -860,8 +856,9 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
             }
            
             memcpy(&retrieval_answer_out[0],dotProd_output[0],BLOCK_SIZE);
-            memcpy(&retrieval_answer_out[BLOCK_SIZE], &x, sizeof(TYPE_DATA));
-            memcpy(&retrieval_answer_out[BLOCK_SIZE + sizeof(TYPE_DATA)], &y, sizeof(TYPE_DATA));
+             memcpy(&retrieval_answer_out[BLOCK_SIZE],dotProd_mac_output[0],BLOCK_SIZE);
+            memcpy(&retrieval_answer_out[2*BLOCK_SIZE], &x, sizeof(TYPE_DATA));
+            memcpy(&retrieval_answer_out[2*BLOCK_SIZE + sizeof(TYPE_DATA)], &y, sizeof(TYPE_DATA));
             cout<<x<<" "<<y<<endl;
             #endif
         #endif
@@ -1744,8 +1741,9 @@ int ServerORAM::postReSharing(int level, int es, int ee)
                     r1 = (r1 * r1) % P;
                 }
             }
-            cout<<X1<<" "<<X2<<endl;
-            cin.get();
+            cout<<X1<<" "<<Y1<<endl;
+            cout<<X2<<" "<<Y2<<endl;
+            //cin.get();
 
 
         }

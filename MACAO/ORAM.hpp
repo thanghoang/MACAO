@@ -57,7 +57,8 @@ public:
     static int xor_retrieve(unsigned char* query, zz_p** db, zz_p** db_mac, int start_db_idx, int end_db_idx, unsigned char* output, unsigned char* output_mac);
     
     static int xor_createQuery(TYPE_INDEX idx, unsigned int db_size, unsigned char** output);
-    
+
+    static int checkRandLinComb(zz_p* input, zz_p* input_mac);
     
     static int sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char** output);
     static int sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char** output, prng_state *prng);

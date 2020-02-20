@@ -537,20 +537,24 @@ int ORAM::recoverSecret(unsigned char** retrieval_in, zz_p* secret)
             
         }
     }
-    zz_p X, Y;
-    Y = 0;
-    for(int i = 0 ; i < SSS_PRIVACY_LEVEL+1; i++)
-    {
-        X = *((zz_p*)&retrieval_in[i][BLOCK_SIZE]);
-        Y += *((zz_p*)&retrieval_in[i][BLOCK_SIZE + sizeof(zz_p)]);
-    }
-    if(GLOBAL_MAC_KEY*X != Y){
-        cout<<X<<" "<<GLOBAL_MAC_KEY*X <<" "<<Y<<endl;
-        exit(0);
-    }
     return 0;
 }
 
+int ORAM::checkRandLinComb(zz_p* input, zz_p* input_mac)
+{
+    zz_p X1, Y1;
+    for(int i = 0; i < NUM_SERVERS; i++)
+    {
+        X1 = *((zz_p*)&input[i]);
+        Y1 += *((zz_p*)&input_mac[i]);
+    }
+    if(GLOBAL_MAC_KEY*X1 != Y1)
+    {
+        return -1;
+    }
+        
+    return 0;
+}
 int ORAM::recoverSecret(unsigned char** retrieval_in, zz_p* secret, zz_p* mac)
 {
     for( int i = 0, ii=0 ; i < BLOCK_SIZE ; i+=sizeof(zz_p), ii++)
@@ -678,7 +682,6 @@ int ORAM::sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char** 
                 createShares(0,data_shares, NULL,prng,0);
             #endif
         }
-        
 		for (int j = 0; j < SSS_PRIVACY_LEVEL+1; j++)
         {
             memcpy(&output[j][i*sizeof(TYPE_DATA)],&data_shares[j],sizeof(TYPE_DATA));
@@ -1037,11 +1040,11 @@ int ORAM::createRetrievalTriplets(int n)
             {
                 long x;
                 conv(x, A[w][i][j]);
-                #if defined(SEEDING)
-                    createShares(x, data_shares, mac_shares, NULL,0);         
-                #else // RSSS or SPDZ
+                //#if defined(SEEDING)
+                //    createShares(x, data_shares, mac_shares, NULL,0);         
+                //#else // RSSS or SPDZ
                     createShares(x, data_shares, mac_shares); 
-                #endif
+                //#endif
 
                 for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)  
                 {
@@ -1056,12 +1059,12 @@ int ORAM::createRetrievalTriplets(int n)
         {
             long x;
             conv(x, B[w][i]);
-            #if defined(SEEDING)
-                createShares(x, data_shares, NULL, NULL,0);     
-                createShares(x, mac_shares, NULL, NULL,0);         
-            #else // RSSS or SPDZ
+            //#if defined(SEEDING)
+            //    createShares(x, data_shares, NULL, NULL,0);     
+            //    createShares(x, mac_shares, NULL, NULL,0);         
+            //#else // RSSS or SPDZ
                 createShares(x, data_shares, mac_shares); 
-            #endif
+            //#endif
 
             for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)  
             {
@@ -1074,11 +1077,11 @@ int ORAM::createRetrievalTriplets(int n)
         {
             long x;
             conv(x, C[w][i]);
-            #if defined(SEEDING)
-                createShares(x, data_shares, mac_shares, NULL,0);         
-            #else // RSSS or SPDZ
+            //#if defined(SEEDING)
+            //    createShares(x, data_shares, mac_shares, NULL,0);         
+            //#else // RSSS or SPDZ
                 createShares(x, data_shares, mac_shares); 
-            #endif
+            //#endif
 
             for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)  
             {
@@ -1279,11 +1282,11 @@ int ORAM::createEvictionTriplets(int n)
             {
                 long x;
                 conv(x, A[w][i][j]);
-                #if defined(SEEDING)
-                    createShares(x, data_shares, NULL, NULL,0);         
-                #else // RSSS or SPDZ
+                //#if defined(SEEDING)
+                //    createShares(x, data_shares, NULL, NULL,0);         
+                //#else // RSSS or SPDZ
                     createShares(x, data_shares, mac_shares); 
-                #endif
+                //#endif
 
                 for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)  
                 {
@@ -1299,11 +1302,11 @@ int ORAM::createEvictionTriplets(int n)
             {
                 long x;
                 conv(x, B[w][i][j]);
-                #if defined(SEEDING)
-                    createShares(x, data_shares, NULL, NULL,0);         
-                #else // RSSS or SPDZ
+                //#if defined(SEEDING)
+                //    createShares(x, data_shares, NULL, NULL,0);         
+                //#else // RSSS or SPDZ
                     createShares(x, data_shares, mac_shares); 
-                #endif
+                //#endif
 
                 for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)  
                 {
@@ -1319,11 +1322,11 @@ int ORAM::createEvictionTriplets(int n)
             {
                 long x;
                 conv(x, C[w][i][j]);
-                #if defined(SEEDING)
-                    createShares(x, data_shares, NULL, NULL,0);         
-                #else // RSSS or SPDZ
+                //#if defined(SEEDING)
+                //    createShares(x, data_shares, NULL, NULL,0);         
+                //#else // RSSS or SPDZ
                     createShares(x, data_shares, mac_shares); 
-                #endif
+                //#endif
 
                 for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)  
                 {

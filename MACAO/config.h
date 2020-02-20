@@ -227,7 +227,7 @@ const TYPE_INDEX N_leaf = pow(K_ARY,H);
         const unsigned long long SERVER_RETRIEVAL_REPLY_LENGTH = 2*BLOCK_SIZE;
         const unsigned long long CLIENT_RETRIEVAL_OUT_LENGTH = sizeof(TYPE_ID) + CLIENT_RETRIEVAL_QUERY_SIZE;
     #else // SPDZ
-        const unsigned long long SERVER_RETRIEVAL_REPLY_LENGTH = BLOCK_SIZE + 2*sizeof(TYPE_DATA);
+        const unsigned long long SERVER_RETRIEVAL_REPLY_LENGTH = 2*BLOCK_SIZE + 2*sizeof(TYPE_DATA);
         const unsigned long long CLIENT_RETRIEVAL_OUT_LENGTH = sizeof(TYPE_ID) + 2*CLIENT_RETRIEVAL_QUERY_SIZE;
     #endif
 #endif

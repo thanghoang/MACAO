@@ -427,30 +427,37 @@ void ClientORAM::recoverRetrievedBlock()
     memset(recoveredBlock,0,BLOCK_SIZE);    
     ORAM::recoverSecret(retrievedShare,retrievedMacShare,recoveredBlock,recoveredMacBlock);
 #else // if defined RSSS or SPDZ
-
-    #if defined(SPDZ)
-        ORAM::recoverSecret(retrieval_in,recoveredBlock);
-    #else
         ORAM::recoverSecret(retrieval_in,recoveredBlock,recoveredMacBlock);
-    #endif
 #endif
 
-    
-#if defined (RSSS)
-    //check if recovered Block * MAC KEY != recovered Mac
-    for(int i = 0 ; i < DATA_CHUNKS; i++)
+//MAC Checking    
+for(int i = 0 ; i < DATA_CHUNKS; i++)
+{
+    if(GLOBAL_MAC_KEY*recoveredBlock[i] != recoveredMacBlock[i])
     {
-        if(GLOBAL_MAC_KEY*recoveredBlock[i] != recoveredMacBlock[i])
-        {
-            cout<<"BLOCK WAS TAMPERED!!!";
-            cout<<"recovered MAC: "<<recoveredMacBlock[i]<<endl;
-            cout<<"correct MAC: " << GLOBAL_MAC_KEY*recoveredBlock[i]  <<endl;
-            cin.get();
-            //exit(0);
-        }
+        cout<<"BLOCK WAS TAMPERED!!!";
+        cout<<"recovered MAC: "<<recoveredMacBlock[i]<<endl;
+        cout<<"correct MAC: " << GLOBAL_MAC_KEY*recoveredBlock[i]  <<endl;
+        cin.get();
     }
-#else
-    //SPDZ uses something different, check this !?
+}
+#if defined (SPDZ)
+    //SPDZ needs extra MAC checking
+    zz_p *input = new zz_p[NUM_SERVERS];
+    zz_p *input_mac = new zz_p[NUM_SERVERS];
+    for(int i=0 ; i < NUM_SERVERS; i++)
+    {
+        input[i] = *((zz_p*)&retrieval_in[i][2*BLOCK_SIZE]);
+        input_mac[i] = *((zz_p*)&retrieval_in[i][2*BLOCK_SIZE+sizeof(TYPE_DATA)]);
+    }
+    if(ORAM::checkRandLinComb(input,input_mac)!=0)
+    {
+        cout<<"Random linear combination check wrong!!!";
+        cin.get();
+    }
+    delete[] input;
+    delete[] input_mac;
+
 #endif
 
 }
