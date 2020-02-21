@@ -641,15 +641,25 @@ int ORAM::sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char** 
 		for (int j = 0; j < SSS_PRIVACY_LEVEL+1; j++)
         {
             memcpy(&output[j][i*sizeof(TYPE_DATA)],&data_shares[j],sizeof(TYPE_DATA));
+            
+            #if defined(RSSS)
+                memcpy(&output[j][CLIENT_RETRIEVAL_QUERY_SIZE+i*sizeof(TYPE_DATA)],&data_shares[(j+1)%3],sizeof(TYPE_DATA));
+            #endif
+        
             #if defined(SPDZ)
                 memcpy(&output[j][DB_SIZE*sizeof(TYPE_DATA) + i*sizeof(TYPE_DATA)],&mac_shares[j],sizeof(TYPE_DATA));
             #endif
 		}
 	}
     createShares(1,data_shares, mac_shares); 
-    for (int j = 0; j < SSS_PRIVACY_LEVEL+1; j++)
+    for (int j = 0; j < NUM_SERVERS; j++)
     {
         memcpy(&output[j][idx*sizeof(TYPE_DATA)],&data_shares[j],sizeof(TYPE_DATA));
+        
+        #if defined(RSSS)
+            memcpy(&output[j][CLIENT_RETRIEVAL_QUERY_SIZE+idx*sizeof(TYPE_DATA)],&data_shares[(j+1)%3],sizeof(TYPE_DATA));
+        #endif
+        
         #if defined(SPDZ)
             memcpy(&output[j][DB_SIZE*sizeof(TYPE_DATA) + idx*sizeof(TYPE_DATA)],&mac_shares[j],sizeof(TYPE_DATA));
         #endif
@@ -662,8 +672,8 @@ int ORAM::sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char** 
 int ORAM::sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char** output, prng_state *prng)
 {
 
-    TYPE_DATA data_shares[SSS_PRIVACY_LEVEL+1];
-    TYPE_DATA mac_shares[SSS_PRIVACY_LEVEL+1];
+    TYPE_DATA data_shares[NUM_SERVERS];
+    TYPE_DATA mac_shares[NUM_SERVERS];
     
     for (TYPE_INDEX i = 0; i < DB_SIZE; i++)
 	{
@@ -683,9 +693,10 @@ int ORAM::sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char** 
                 createShares(0,data_shares, NULL,prng,0);
             #endif
         }
-		for (int j = 0; j < SSS_PRIVACY_LEVEL+1; j++)
+		for (int j = 0; j < NUM_SERVERS; j++)
         {
             memcpy(&output[j][i*sizeof(TYPE_DATA)],&data_shares[j],sizeof(TYPE_DATA));
+            
             #if defined(SPDZ)
                 memcpy(&output[j][DB_SIZE*sizeof(TYPE_DATA) + i*sizeof(TYPE_DATA)],&mac_shares[j],sizeof(TYPE_DATA));
             #endif

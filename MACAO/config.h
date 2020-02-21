@@ -42,7 +42,7 @@ static const unsigned long long P = 1073742353; //288230376152137729; //prime fi
 //#define XOR_PIR
 #define RSSS
 //#define SPDZ
-#define SEEDING
+//#define SEEDING
 
 #if defined (SEEDING)
     static std::string CLIENT_SERVER_SEED[3] = {"abcdefghijklmn", "12345678910112","mnlkjihgfedcba"};
@@ -223,7 +223,7 @@ const TYPE_INDEX N_leaf = pow(K_ARY,H);
     const unsigned long long CLIENT_RETRIEVAL_QUERY_SIZE = (H+1)*BUCKET_SIZE*sizeof(TYPE_DATA); 
     #if defined (RSSS)
         const unsigned long long SERVER_RETRIEVAL_REPLY_LENGTH = 2*BLOCK_SIZE;
-        const unsigned long long CLIENT_RETRIEVAL_OUT_LENGTH = sizeof(TYPE_ID) + CLIENT_RETRIEVAL_QUERY_SIZE;
+        const unsigned long long CLIENT_RETRIEVAL_OUT_LENGTH = sizeof(TYPE_ID) + 2*CLIENT_RETRIEVAL_QUERY_SIZE;
     #else // SPDZ
         const unsigned long long SERVER_RETRIEVAL_REPLY_LENGTH = 2*BLOCK_SIZE + 2*sizeof(TYPE_DATA);
         const unsigned long long CLIENT_RETRIEVAL_OUT_LENGTH = sizeof(TYPE_ID) + 2*CLIENT_RETRIEVAL_QUERY_SIZE;

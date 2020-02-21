@@ -507,8 +507,21 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
             }
             else
             {
-                socket.recv(retrieval_query_in,sizeof(TYPE_DATA),0);
-                memcpy(&pathID, &retrieval_query_in[0], sizeof(pathID));
+                #if defined(RSSS)
+                    if(serverNo==2)
+                    {
+                        socket.recv(retrieval_query_in,CLIENT_RETRIEVAL_OUT_LENGTH,0);
+                        memcpy(&pathID, &retrieval_query_in[CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_DATA)], sizeof(pathID));
+                    }
+                    else
+                    {
+                         socket.recv(retrieval_query_in,sizeof(TYPE_DATA),0);
+                         memcpy(&pathID, &retrieval_query_in[0], sizeof(pathID));
+                    }
+                #else
+                    socket.recv(retrieval_query_in,sizeof(TYPE_DATA),0);
+                     memcpy(&pathID, &retrieval_query_in[0], sizeof(pathID));
+                #endif
             }
             
             if(serverNo==0)
@@ -516,16 +529,16 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
                 memcpy(retrieval_query[0], retrieval_query_in, CLIENT_RETRIEVAL_QUERY_SIZE);
                 
                     
-                #if defined(RSSS)
+                /*#if defined(RSSS)
                     cout<< "	[evict] Creating Threads for Sending..."<< endl;;
                     sendSocket_args[0] = struct_socket(1,  &retrieval_query_in[0], CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_INDEX), NULL, 0, NULL, true);
                     pthread_create(&thread_send[0], NULL, &thread_socket_func, (void*)&sendSocket_args[0]);
-                    pthread_join(thread_send[0], NULL);
-                #else // SPDZ
+                    pthread_join(thread_send[0], NULL);*/
+                #if defined(SPDZ)
                     memcpy(retrieval_query_mac[0], &retrieval_query_in[CLIENT_RETRIEVAL_QUERY_SIZE], CLIENT_RETRIEVAL_QUERY_SIZE);
                 #endif
             }
-           else
+            else
             {
                 for(int i = 0 ; i < PATH_LENGTH;i++)
                 {
@@ -541,12 +554,12 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
             #if defined(RSSS)
                 if(serverNo==2)
                 {
-                    cout<< "	[evict] Creating Threads for Receiving..." << endl;
+                    /*cout<< "	[evict] Creating Threads for Receiving..." << endl;
                     recvSocket_args[0] = struct_socket(0, NULL, 0, transfer_in, CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_INDEX), NULL,false);
                     pthread_create(&thread_recv[0], NULL, &thread_socket_func, (void*)&recvSocket_args[0]);
-                    pthread_join(thread_recv[0], NULL);
+                    pthread_join(thread_recv[0], NULL);*/
                     
-                    memcpy(retrieval_query[1], transfer_in, CLIENT_RETRIEVAL_QUERY_SIZE);
+                    memcpy(retrieval_query[1], retrieval_query_in, CLIENT_RETRIEVAL_QUERY_SIZE);
                 }
                 else
                 {
@@ -580,22 +593,7 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
                 memcpy(retrieval_query_mac[0], &retrieval_query_in[CLIENT_RETRIEVAL_QUERY_SIZE], CLIENT_RETRIEVAL_QUERY_SIZE);
             #endif
             #if defined(RSSS)
-                // send client data to other servers (this is due to RSSS)
-                cout<< "	[evict] Creating Threads for Receiving..." << endl;
-                recvSocket_args[0] = struct_socket(0, NULL, 0, transfer_in, CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_INDEX), NULL,false);
-                pthread_create(&thread_recv[0], NULL, &thread_socket_func, (void*)&recvSocket_args[0]);
-
-                cout<< "	[evict] Creating Threads for Sending..."<< endl;;
-                sendSocket_args[0] = struct_socket(1,  retrieval_query_in, CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_INDEX), NULL, 0, NULL, true);
-                pthread_create(&thread_send[0], NULL, &thread_socket_func, (void*)&sendSocket_args[0]);
-
-                cout<< "	[evict] CREATED!" <<endl;
-                cout<< "	[evict] Waiting for Threads..." <<endl;
-
-                pthread_join(thread_send[0], NULL);
-                pthread_join(thread_recv[0], NULL);
-
-                memcpy(retrieval_query[1], transfer_in, CLIENT_RETRIEVAL_QUERY_SIZE);
+                memcpy(retrieval_query[1], &retrieval_query_in[CLIENT_RETRIEVAL_QUERY_SIZE], CLIENT_RETRIEVAL_QUERY_SIZE);
             #endif
         #endif
     #endif

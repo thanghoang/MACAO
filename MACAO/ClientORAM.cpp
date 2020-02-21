@@ -489,6 +489,12 @@ int ClientORAM::retrieve(TYPE_ID blockID)
                 else
                 {
                     thread_socket_args[i] = struct_socket(i, retrieval_query_out[i], sizeof(TYPE_INDEX), retrieval_in[i], SERVER_RETRIEVAL_REPLY_LENGTH, CMD_RETRIEVE,NULL);
+                    #if defined(RSSS)
+                    if(i==2)
+                    {
+                        thread_socket_args[i] = struct_socket(i, retrieval_query_out[i], CLIENT_RETRIEVAL_OUT_LENGTH, retrieval_in[i], SERVER_RETRIEVAL_REPLY_LENGTH, CMD_RETRIEVE,NULL);                
+                    }
+                    #endif
                 }
             #endif
         #else 
@@ -568,6 +574,9 @@ int ClientORAM::createRetrievalQuery(int pIdx, TYPE_ID pID)
                         memcpy(&retrieval_query_out[i][0], &pID, sizeof(pID));
                     }
                 }
+                #if defined(RSSS)
+                    memcpy(retrieval_query_out[2],retrieval_query_out[0],CLIENT_RETRIEVAL_OUT_LENGTH);
+                #endif
             #else // RSSS or SPDZ
                 ORAM::sss_createQuery(pIdx,PATH_LENGTH,retrieval_query_out);
                 for (int i = 0; i < NUM_SERVERS; i++)
