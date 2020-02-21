@@ -28,7 +28,7 @@ ORAM::~ORAM()
  * @param metaData: (output) metaData of position map for scanning optimizations
  * @return 0 if successful
  */   
-int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
+int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_INDEX** metaData)
 {
 	int div = ceil(NUM_BLOCK/(double)N_leaf);
 	assert(div <= BUCKET_SIZE && "ERROR: CHECK THE PARAMETERS => LEAVES CANNOT STORE ALL");
@@ -54,20 +54,7 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
         memset(temp[i],0,sizeof(TYPE_DATA)*n_col);
     }
     
-    /*TYPE_DATA** bucket = new TYPE_DATA*[BUCKET_SIZE];
-    for (int i = 0 ; i < BUCKET_SIZE; i++ )
-    {
-        bucket[i] = new TYPE_DATA[DATA_CHUNKS];
-        memset(bucket[i],0,sizeof(TYPE_DATA)*DATA_CHUNKS);
-    }
-    
-    TYPE_DATA** temp = new TYPE_DATA*[BUCKET_SIZE];
-    for (int i = 0 ; i < BUCKET_SIZE; i++)
-    {
-        temp[i] = new TYPE_DATA[DATA_CHUNKS];
-        memset(temp[i],0,sizeof(TYPE_DATA)*DATA_CHUNKS);
-    }*/
-    
+
     
     FILE* file_out = NULL;
     FILE* file_mac_out = NULL;
@@ -79,13 +66,13 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
     boost::progress_display show_progress2(NUM_NODES);
     
     //generate bucket ID pools
-    vector<TYPE_ID> blockIDs;
-    for(TYPE_ID i = 0; i <NUM_BLOCK;i++)
+    vector<TYPE_INDEX> blockIDs;
+    for(TYPE_INDEX i = 0; i <NUM_BLOCK;i++)
     {
         blockIDs.push_back(i+1);
     }
     //random permutation using built-in function
-    //std::random_shuffle ( blockIDs.begin(), blockIDs.end() );
+    std::random_shuffle ( blockIDs.begin(), blockIDs.end() );
     
     
     //non-leaf buckets are all empty
@@ -102,10 +89,7 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
         {
             fwrite(bucket[ii], 1, n_col*sizeof(TYPE_DATA), file_out);
         }
-        /*for(int ii = 0 ; ii <BUCKET_SIZE; ii++)
-        {
-            fwrite(bucket[ii], 1, BLOCK_SIZE, file_out);
-        }*/
+
         fclose(file_out);
     }
     
@@ -150,11 +134,6 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
         {
             fwrite(bucket[ii], 1, n_col*sizeof(TYPE_DATA), file_out);
         }
-        /*
-        for(int ii = 0 ; ii < BUCKET_SIZE; ii++)
-        {
-            fwrite(bucket[ii], 1, BLOCK_SIZE, file_out);
-        }*/
         fclose(file_out);
     }
     
@@ -175,20 +154,11 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
             bucketShares[k][i] = new TYPE_DATA[n_col];
             bucketMacShares[k][i] = new TYPE_DATA[n_col];
         }
-        /*bucketShares[k] = new TYPE_DATA*[BUCKET_SIZE];
-        bucketMacShares[k] = new TYPE_DATA*[BUCKET_SIZE];
-        for(int i = 0 ; i < BUCKET_SIZE ; i++ )
-        {
-            bucketShares[k][i] = new TYPE_DATA[DATA_CHUNKS];
-            bucketMacShares[k][i] = new TYPE_DATA[DATA_CHUNKS];
-        }*/
     }
         
 		
     TYPE_DATA data_shares[m_row][NUM_SERVERS];
     TYPE_DATA mac_shares[m_row][NUM_SERVERS];
-    //TYPE_DATA data_shares[BUCKET_SIZE][NUM_SERVERS];
-    //TYPE_DATA mac_shares[BUCKET_SIZE][NUM_SERVERS];
     
     
     FILE* file_in = NULL;
@@ -205,13 +175,10 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
             exit(0);
         }
         for(int ii = 0 ; ii < m_row; ii++)
-        //for(int ii = 0 ; ii < BUCKET_SIZE; ii++)
         {
             fread(bucket[ii] ,1 , n_col*sizeof(TYPE_DATA), file_in);
-            //fread(bucket[ii] ,1 , BLOCK_SIZE, file_in);
-            
+           
             for(TYPE_INDEX j = 0; j < n_col; j++)
-            //for(TYPE_INDEX j = 0; j < DATA_CHUNKS; j++)
             {           
                 #if defined(SEEDING)
                     createShares(bucket[ii][j], data_shares[ii],mac_shares[ii],NULL,0);         
@@ -221,11 +188,7 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
         
                 for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)  
                 {
-                    /*if(bucket[ii][0]==1)
-                    {
-                        cout<<i<<endl;
-                        cout<<data_shares[ii][k]<<endl;
-                    }*/
+
                     memcpy(&bucketShares[k][ii][j], &data_shares[ii][k], sizeof(TYPE_DATA));
                     memcpy(&bucketMacShares[k][ii][j], &mac_shares[ii][k], sizeof(TYPE_DATA));
                     
@@ -250,12 +213,9 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
                 exit;
             }
             for(int ii = 0 ; ii< m_row ; ii++)
-            //for(int ii = 0 ; ii< BUCKET_SIZE ; ii++)
             {
                 fwrite(bucketShares[k][ii], 1, n_col*sizeof(TYPE_DATA), file_out);
                 fwrite(bucketMacShares[k][ii], 1, n_col*sizeof(TYPE_DATA), file_mac_out);
-                //fwrite(bucketShares[k][ii], 1, BLOCK_SIZE, file_out);
-                //fwrite(bucketMacShares[k][ii], 1, BLOCK_SIZE, file_mac_out);
             }
             fclose(file_out);
             fclose(file_mac_out);
@@ -269,7 +229,6 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
     for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++)
     {
         for(int i = 0 ; i < m_row; i++)
-        //for(int i = 0 ; i < BUCKET_SIZE; i++)
         {
             delete[] bucketShares[k][i];
             delete[] bucketMacShares[k][i];
@@ -280,7 +239,6 @@ int ORAM::build(TYPE_POS_MAP* pos_map, TYPE_ID** metaData)
     delete[] bucketShares;
     delete[] bucketMacShares;
     for(int i = 0 ; i < m_row; i++)
-    //for(int i = 0 ; i < BUCKET_SIZE; i++)
     {
         delete[] bucket[i];
         delete[] temp[i];
@@ -362,7 +320,7 @@ int ORAM::getEvictIdx (TYPE_INDEX *srcIdx, TYPE_INDEX *destIdx, TYPE_INDEX *sibl
  * @param n_evict: (input) The eviction number
  * @return Bit sequence of reverse lexicographical eviction order
  */  
-string ORAM::getEvictString(TYPE_ID n_evict)
+string ORAM::getEvictString(TYPE_INDEX n_evict)
 {
     string s = "";
     while(n_evict!=0)
@@ -417,7 +375,7 @@ int ORAM::createShares(TYPE_DATA secret, TYPE_DATA* secret_shares, TYPE_DATA* ma
     sum = 0; 
     sum_mac = 0;
     mac = mac * GLOBAL_MAC_KEY;
-    for(int i = 1 ; i < SSS_PRIVACY_LEVEL+1 ; i++)
+    for(int i = 1 ; i < NUM_SERVERS ; i++)
     {
         NTL::random(rand);
         secret_shares[i] = rand._zz_p__rep;
@@ -449,7 +407,7 @@ int ORAM::createShares(TYPE_DATA secret, TYPE_DATA* secret_shares, TYPE_DATA* ma
     sum = 0; 
     sum_mac = 0;
     mac = mac * GLOBAL_MAC_KEY;
-    for(int i = 0 ; i < SSS_PRIVACY_LEVEL+1 ; i++)
+    for(int i = 0 ; i < NUM_SERVERS ; i++)
     {
         if(i == secretShareIdx)
             continue;
@@ -507,7 +465,7 @@ int ORAM::recoverSecret(zz_p** secret_shares, zz_p** mac_shares, zz_p* secret, z
     {
         secret[i] = 0;
         mac[i] = 0;
-        for(int j = 0 ; j < SSS_PRIVACY_LEVEL+1; j++)
+        for(int j = 0 ; j < NUM_SERVERS; j++)
         {
             secret[i] += secret_shares[j][i];
             mac[i] += mac_shares[j][i];
@@ -531,7 +489,7 @@ int ORAM::recoverSecret(unsigned char** retrieval_in, zz_p* secret)
     for( int i = 0, ii=0 ; i < BLOCK_SIZE ; i+=sizeof(zz_p), ii++)
     {
         secret[ii] = 0;
-        for(int j = 0 ; j < SSS_PRIVACY_LEVEL+1; j++)
+        for(int j = 0 ; j < NUM_SERVERS; j++)
         {
             secret[ii] += *((zz_p*)&retrieval_in[j][i]);
             
@@ -561,7 +519,7 @@ int ORAM::recoverSecret(unsigned char** retrieval_in, zz_p* secret, zz_p* mac)
     for( int i = 0, ii=0 ; i < BLOCK_SIZE ; i+=sizeof(zz_p), ii++)
     {
         secret[ii] = 0;
-        for(int j = 0 ; j < SSS_PRIVACY_LEVEL+1; j++)
+        for(int j = 0 ; j < NUM_SERVERS; j++)
         {
             secret[ii] += *((zz_p*)&retrieval_in[j][i]);
             
@@ -570,7 +528,7 @@ int ORAM::recoverSecret(unsigned char** retrieval_in, zz_p* secret, zz_p* mac)
     for( int i = BLOCK_SIZE, ii=0 ; i < 2*BLOCK_SIZE ; i+=sizeof(zz_p),ii++)
     {
         mac[ii] = 0;
-        for(int j = 0 ; j < SSS_PRIVACY_LEVEL+1; j++)
+        for(int j = 0 ; j < NUM_SERVERS; j++)
         {
             mac[ii] += *((zz_p*)&retrieval_in[j][i]);
         }
@@ -631,14 +589,14 @@ int ORAM::xor_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char** 
 int ORAM::sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char** output)
 {
 
-    TYPE_DATA data_shares[SSS_PRIVACY_LEVEL+1];
-    TYPE_DATA mac_shares[SSS_PRIVACY_LEVEL+1];
+    TYPE_DATA data_shares[NUM_SERVERS];
+    TYPE_DATA mac_shares[NUM_SERVERS];
     
     for (TYPE_INDEX i = 0; i < DB_SIZE; i++)
 	{
 		createShares(0,data_shares, mac_shares); 
         
-		for (int j = 0; j < SSS_PRIVACY_LEVEL+1; j++)
+		for (int j = 0; j < NUM_SERVERS; j++)
         {
             memcpy(&output[j][i*sizeof(TYPE_DATA)],&data_shares[j],sizeof(TYPE_DATA));
             
@@ -703,11 +661,7 @@ int ORAM::sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char** 
 		}
 	}
     
-    /*for (int j = 0; j < SSS_PRIVACY_LEVEL+1; j++)
-    {
-        memcpy(&output[j][idx*sizeof(TYPE_DATA)],&data_shares[j],sizeof(TYPE_DATA));
-    }*/
-	
+
     
 	return 0;
 }
@@ -759,50 +713,6 @@ int ORAM::xor_retrieve(unsigned char* query, zz_p** db, zz_p** db_mac, int start
     }
     return 0;
 }
-
-
-/**
- * Function Name: precomputeShares
- *
- * Description: Creates several shares from an input based on Shamir's Secret Sharing algorithm
- * for precomputation purposes
- * 
- * @param input: (input) The secret to be shared
- * @param output: (output) 2D array of shares generated from the secret (PRIVACY_LEVEL x output_size)
- * @param output_size: (output) The size of generated shares from the secret
- * @return 0 if successful
- */  
-//int ORAM::precomputeShares(TYPE_DATA input, TYPE_DATA** output, TYPE_INDEX output_size)
-//{
-//    unsigned long long random[PRIVACY_LEVEL];
-//	cout << "=================================================================" << endl;
-//	cout<< "[ORAM] Precomputing Shares for " << input << endl;
-//    boost::progress_display show_progress(output_size);
-//    
-//	for(int k = 0; k < output_size; k++){
-//		for ( int i = 0 ; i < PRIVACY_LEVEL ; i++)
-//		{
-//        #if defined (NTL_LIB)
-//            zz_p rand;
-//            NTL::random(rand);
-//            memcpy(&random[i], &rand,sizeof(TYPE_DATA));
-//        #else
-//            random[i] = Utils::_LongRand()+1 % P;
-//		#endif
-//        }
-//		for(unsigned long int i = 1; i <= NUM_SERVERS; i++)
-//		{
-//			output[i-1][k] = input;
-//			for(int j = 1 ; j <= PRIVACY_LEVEL ; j++)
-//			{
-//				output[i-1][k] = (output[i-1][k] + Utils::mulmod(random[j-1],i)) % P;
-//			}
-//		}
-//		++show_progress;
-//	}
-//	
-//	return 0;
-//}
 
 
 // Circuit-ORAM layout

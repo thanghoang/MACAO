@@ -29,12 +29,12 @@ public:
 
     
     // main functions
-    //int retrieve(zmq::socket_t& socket);
     int evict(zmq::socket_t& socket);
     
     // eviction subroutine
-    int readBucket_evict(TYPE_ID BucketIDs[], int shareID, zz_p** output_data, zz_p** output_mac);
+    int readBucket_evict(TYPE_INDEX BucketIDs[], int shareID, zz_p** output_data, zz_p** output_mac);
     
+    int writeRoot(zmq::socket_t& socket);
     int prepareEvictComputation();
 
 };

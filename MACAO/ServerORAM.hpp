@@ -64,8 +64,6 @@ protected:
     
     //variables for eviction
     unsigned char* evict_in;
-    //this is only for RSSS with 3 servers
-    //unsigned char* client_evict_in;
     
     vector<zz_p***> vecReShares;
     vector<zz_p***> vecReShares_MAC;
@@ -81,7 +79,7 @@ protected:
 
     
     unsigned char** reshares_in;
-    unsigned char** reshares_out; //shares_buffer_out;
+    unsigned char** reshares_out; 
     
     #if defined(SPDZ)
         vector<zz_p**> vecShares_a;
@@ -118,7 +116,7 @@ protected:
     
     
     unsigned char* write_root_in;    // only for recvORAMTree
-    unsigned char* client_write_root_in;    // only for recvORAMTree
+    
     
     
     
@@ -149,9 +147,11 @@ public:
     
     virtual int retrieve(zmq::socket_t& socket);
     
-    int writeRoot(zmq::socket_t& socket); // used in Onion_ORAM
+    virtual int writeRoot(zmq::socket_t& socket)=0; // used in Triplet Eviction
     
     virtual int evict(zmq::socket_t& socket) = 0;
+    
+    
     
     // sub-eviction subroutines
     int recvClientEvictData(zmq::socket_t& socket);
@@ -162,14 +162,12 @@ public:
     
     
     // IO functions
-    //int readBucket(TYPE_ID bucketID, int shareID, zz_p** output_data, zz_p** output_mac);
     int updateRoot(int shareID, unsigned long long replaceWriteIdx, unsigned char* input, unsigned char* mac); 
-    int copyBucket(int shareID, TYPE_ID srcBucketID, TYPE_ID destBucketID); 
-    //int writeBucket(TYPE_ID bucketID, int shareID, unsigned char* input, unsigned char* mac); 
+    int copyBucket(int shareID, TYPE_INDEX srcBucketID, TYPE_INDEX destBucketID); 
     int writeBucket(int bucketID, int shareID, zz_p ** data, zz_p** mac);
     
     
-    int readBucket( TYPE_ID bucketID, int BucketIdx, int shareID, 
+    int readBucket( TYPE_INDEX bucketID, int BucketIdx, int shareID, 
                     zz_p** output_data, zz_p** output_mac); 
     
     //thread functions
@@ -193,7 +191,6 @@ public:
     static char timestamp[16];
 
     #if defined(SPDZ)
-        //only in SPDZ without XOR
         unsigned char* EVICT_PATH_CACHE_OUT;
         unsigned char* EVICT_PATH_CACHE_IN;
     #endif

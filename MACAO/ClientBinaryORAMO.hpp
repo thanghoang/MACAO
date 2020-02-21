@@ -22,11 +22,11 @@ public:
     ~ClientBinaryORAMO();
     
     
-    int access(TYPE_ID blockID);
+    int access(TYPE_INDEX blockID);
     //eviction_matrix
     int getEvictMatrix();
     
-    int updatePosMap(TYPE_ID blockID);
+    int updatePosMap(TYPE_INDEX blockID);
     
     int writeRoot();
     int evict();

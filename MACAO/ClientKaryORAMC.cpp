@@ -109,7 +109,7 @@ int ClientKaryORAMC::countNumBlockInStash()
     }
     return count;
 }
-int ClientKaryORAMC::isRetrievedBlockInStash(TYPE_ID blockID)
+int ClientKaryORAMC::isRetrievedBlockInStash(TYPE_INDEX blockID)
 {
     for(int i = 0 ; i < STASH_SIZE; i++)
     {
@@ -132,7 +132,7 @@ int ClientKaryORAMC::isRetrievedBlockInStash(TYPE_ID blockID)
  * @param blockID: (input) ID of the block to be retrieved
  * @return 0 if successful
  */  
-int ClientKaryORAMC::access(TYPE_ID blockID) 
+int ClientKaryORAMC::access(TYPE_INDEX blockID) 
 {
     int BlockIdxInStash = isRetrievedBlockInStash(blockID);
     
@@ -243,65 +243,47 @@ int ClientKaryORAMC::evict()
         // 9.3. create shares of a selected block in stash
         TYPE_DATA data_shares[NUM_SERVERS];
         TYPE_DATA mac_shares[NUM_SERVERS];
+        TYPE_DATA* evictBlock;
         if(target[0]>=0)
         {
-            for(int u = 0 ; u < DATA_CHUNKS; u++ )
-            {
-                #if defined(SEEDING)
-                    ORAM::createShares(this->STASH[deepestIdx[0]][u], data_shares, mac_shares,prng_client,0);
-                    memcpy(&evict_out[0][currBufferIdx], &data_shares[0], sizeof(TYPE_DATA));
-                    memcpy(&evict_out[0][currBufferIdx + BLOCK_SIZE], &mac_shares[0], sizeof(TYPE_DATA)); 
-                    #if defined (RSSS)               
-                        memcpy(&evict_out[2][currBufferIdx], &data_shares[0], sizeof(TYPE_DATA));
-                        memcpy(&evict_out[2][currBufferIdx + BLOCK_SIZE], &mac_shares[0], sizeof(TYPE_DATA)); 
-                    #endif
-                #else // RSSS or SPDZ
-                    ORAM::createShares(this->STASH[deepestIdx[0]][u], data_shares, mac_shares);
-                    for(int k = 0; k < NUM_SERVERS; k++) 
-                    {
-                        memcpy(&evict_out[k][currBufferIdx], &data_shares[k], sizeof(TYPE_DATA));
-                        memcpy(&evict_out[k][currBufferIdx + BLOCK_SIZE], &mac_shares[k], sizeof(TYPE_DATA));
-                        
-                        #if defined (RSSS)
-                            memcpy(&evict_out[k][(CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX))/2+currBufferIdx], &data_shares[(k+1)%3], sizeof(TYPE_DATA));
-                            memcpy(&evict_out[k][(CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX))/2+currBufferIdx + BLOCK_SIZE], &mac_shares[(k+1)%3], sizeof(TYPE_DATA));
-                        #endif
-                    }
+            evictBlock = this->STASH[deepestIdx[0]];
+        }
+        else
+        {
+            evictBlock = this->STASH[0];
+        }
+        
+        for(int u = 0 ; u < DATA_CHUNKS; u++ )
+        {
+            #if defined(SEEDING)
+                ORAM::createShares(evictBlock[u], data_shares, mac_shares,prng_client,0);
+                memcpy(&evict_out[0][currBufferIdx], &data_shares[0], sizeof(TYPE_DATA));
+                memcpy(&evict_out[0][currBufferIdx + BLOCK_SIZE], &mac_shares[0], sizeof(TYPE_DATA)); 
+                #if defined (RSSS)               
+                    memcpy(&evict_out[2][currBufferIdx], &data_shares[0], sizeof(TYPE_DATA));
+                    memcpy(&evict_out[2][currBufferIdx + BLOCK_SIZE], &mac_shares[0], sizeof(TYPE_DATA)); 
                 #endif
-                
-                currBufferIdx += sizeof(TYPE_DATA);
-            }
+            #else // RSSS or SPDZ
+                ORAM::createShares(evictBlock[u], data_shares, mac_shares);
+                for(int k = 0; k < NUM_SERVERS; k++) 
+                {
+                    memcpy(&evict_out[k][currBufferIdx], &data_shares[k], sizeof(TYPE_DATA));
+                    memcpy(&evict_out[k][currBufferIdx + BLOCK_SIZE], &mac_shares[k], sizeof(TYPE_DATA));
+                            
+                    #if defined (RSSS)
+                        memcpy(&evict_out[k][(CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX))/2+currBufferIdx], &data_shares[(k+1)%3], sizeof(TYPE_DATA));
+                        memcpy(&evict_out[k][(CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX))/2+currBufferIdx + BLOCK_SIZE], &mac_shares[(k+1)%3], sizeof(TYPE_DATA));
+                    #endif
+                }
+            #endif
+            currBufferIdx += sizeof(TYPE_DATA);
+        }
+        if(target[0]>=0)
+        {
             memset(STASH[deepestIdx[0]],0,sizeof(TYPE_DATA)*DATA_CHUNKS);
             metaStash[deepestIdx[0]] = -1;
         }
-        else //merge with above, no need  to be long like this
-        {
-            for(int u = 0 ; u < DATA_CHUNKS; u++ )
-            {
-                #if defined(SEEDING)
-                    ORAM::createShares(this->STASH[0][u], data_shares, mac_shares, prng_client,0); //!? Check THIS!
-                    memcpy(&evict_out[0][currBufferIdx], &data_shares[0], sizeof(TYPE_DATA));
-                    memcpy(&evict_out[0][currBufferIdx + BLOCK_SIZE], &mac_shares[0], sizeof(TYPE_DATA));
-                    
-                    #if defined (RSSS) 
-                        memcpy(&evict_out[2][currBufferIdx], &data_shares[0], sizeof(TYPE_DATA));
-                        memcpy(&evict_out[2][currBufferIdx + BLOCK_SIZE], &mac_shares[0], sizeof(TYPE_DATA));
-                    #endif
-                #else // RSSS or SPDZ
-                    ORAM::createShares(this->STASH[0][u], data_shares, mac_shares);
-                    for(int k = 0; k < NUM_SERVERS; k++) 
-                    {
-                        memcpy(&evict_out[k][currBufferIdx], &data_shares[k], sizeof(TYPE_DATA));
-                        memcpy(&evict_out[k][currBufferIdx + BLOCK_SIZE], &mac_shares[k], sizeof(TYPE_DATA));
-                        #if defined (RSSS)
-                            memcpy(&evict_out[k][(CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX))/2+currBufferIdx], &data_shares[(k+1)%3], sizeof(TYPE_DATA));
-                            memcpy(&evict_out[k][(CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX))/2+currBufferIdx + BLOCK_SIZE], &mac_shares[(k+1)%3], sizeof(TYPE_DATA));
-                        #endif                    
-                    }
-                #endif
-                currBufferIdx += sizeof(TYPE_DATA);
-            }
-        }
+        
         currBufferIdx += BLOCK_SIZE;
         #if defined(SEEDING)
             // 9.2. create shares of  permutation matrices 
@@ -426,7 +408,7 @@ int ClientKaryORAMC::evict()
     cout << "================================================================" << endl;
     
 }
-int ClientKaryORAMC::updatePosMap(TYPE_ID blockID)
+int ClientKaryORAMC::updatePosMap(TYPE_INDEX blockID)
 {
     int BlockIdxInStash = isRetrievedBlockInStash(blockID);
     
@@ -491,7 +473,7 @@ int ClientKaryORAMC::getEvictMatrix()
 
     int currPickedSlotIdx = deepestIdx[0];
     int currTarget = target[0];
-    TYPE_ID currPickedBlockID = 0;
+    TYPE_INDEX currPickedBlockID = 0;
     if(currTarget >= 0)
     {
         currPickedBlockID = STASH[currPickedSlotIdx][0];
@@ -550,7 +532,7 @@ int ClientKaryORAMC::getEvictMatrix()
         {
             int residingLevel = target[h];
             metaData[fullEvictPathIdx[residingLevel-1]][pickedEmptySlotIdx[residingLevel-1]] = metaData[fullEvictPathIdx[h-1]][deepestIdx[h]];
-            TYPE_ID blockID = metaData[fullEvictPathIdx[h-1]][deepestIdx[h]];
+            TYPE_INDEX blockID = metaData[fullEvictPathIdx[h-1]][deepestIdx[h]];
             metaData[fullEvictPathIdx[h-1]][deepestIdx[h]] = 0;
             pos_map[blockID].pathIdx = (residingLevel-1)*BUCKET_SIZE + pickedEmptySlotIdx[residingLevel-1];
         }

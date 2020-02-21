@@ -30,11 +30,11 @@ ClientORAM::ClientORAM()
     #endif
     this->pos_map = new TYPE_POS_MAP[NUM_BLOCK+1];
     
-    this->metaData = new TYPE_ID*[NUM_NODES];
+    this->metaData = new TYPE_INDEX*[NUM_NODES];
 	for (int i = 0 ; i < NUM_NODES; i++)
     {
-        this->metaData[i] = new TYPE_ID[BUCKET_SIZE];
-        memset(this->metaData[i],0,sizeof(TYPE_ID)*BUCKET_SIZE);
+        this->metaData[i] = new TYPE_INDEX[BUCKET_SIZE];
+        memset(this->metaData[i],0,sizeof(TYPE_INDEX)*BUCKET_SIZE);
     }
     
     retrievedShare = new zz_p*[NUM_SERVERS];
@@ -103,26 +103,7 @@ ClientORAM::ClientORAM()
     
     
     thread_socket_args = new struct_socket[NUM_SERVERS];
-    
-//	#if defined(PRECOMP_MODE) // ================================================================================================
-//		this->precompOnes = new TYPE_DATA*[NUM_SERVERS];
-//		for (TYPE_INDEX i = 0 ; i < NUM_SERVERS ; i++){
-//			this->precompOnes[i] = new TYPE_DATA[PRECOMP_SIZE];
-//		}
-//		
-//		this->precompZeros = new TYPE_DATA*[NUM_SERVERS];
-//		for (TYPE_INDEX i = 0 ; i < NUM_SERVERS ; i++){
-//			this->precompZeros[i] = new TYPE_DATA[PRECOMP_SIZE];
-//		}
-//
-//		
-//		auto start = time_now;
-//		ORAM.precomputeShares(0, precompZeros, PRECOMP_SIZE);
-//		ORAM.precomputeShares(1, precompOnes, PRECOMP_SIZE);
-//		auto end = time_now;
-//		cout<< "	[ClientKaryORAMO] " << 2*PRECOMP_SIZE << " Logical Values Precomputed in" << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count()<< " ns"<<endl;
-//	#endif //defined(PRECOMP_MODE) ================================================================================================
-	
+
     
     
 	time_t now = time(0);
@@ -134,10 +115,10 @@ ClientORAM::ClientORAM()
 	info += "Bucket Size: " + to_string(BUCKET_SIZE) + "\n";
 	info += "Eviction Rate: " + to_string(EVICT_RATE) + "\n";
 	info += "Block Size (B): " + to_string(BLOCK_SIZE) + "\n";
-	info += "ID Size (B): " + to_string(sizeof(TYPE_ID)) + "\n";
+	info += "ID Size (B): " + to_string(sizeof(TYPE_INDEX)) + "\n";
 	info += "Number of Chunks: " + to_string(DATA_CHUNKS) + "\n";
-	info += "Total Size of Data (MB): " + to_string((NUM_BLOCK*(BLOCK_SIZE+sizeof(TYPE_ID)))/1048576.0) + "\n";
-	info += "Total Size of ORAM (MB): " + to_string(BUCKET_SIZE*NUM_NODES*(BLOCK_SIZE+sizeof(TYPE_ID))/1048576.0) + "\n";
+	info += "Total Size of Data (MB): " + to_string((NUM_BLOCK*(BLOCK_SIZE+sizeof(TYPE_INDEX)))/1048576.0) + "\n";
+	info += "Total Size of ORAM (MB): " + to_string(BUCKET_SIZE*NUM_NODES*(BLOCK_SIZE+sizeof(TYPE_INDEX))/1048576.0) + "\n";
 	
 	#if defined(PRECOMP_MODE)
 		info += "PRECOMPUTATION MODE: Active\n";
@@ -407,10 +388,10 @@ void ClientORAM::recoverRetrievedBlock()
     {
         xor_answers[i] = new unsigned char[BLOCK_SIZE*2];
     }
-    for(int i = 0 ; i < SSS_PRIVACY_LEVEL + 1; i++ )
+    for(int i = 0 ; i < NUM_SERVERS; i++ )
     {
         memcpy(xor_answers[0],&retrieval_in[i][0],BLOCK_SIZE*2);
-        memcpy(xor_answers[1],&retrieval_in[(SSS_PRIVACY_LEVEL+i)%(SSS_PRIVACY_LEVEL+1)][BLOCK_SIZE*2],BLOCK_SIZE*2);
+        memcpy(xor_answers[1],&retrieval_in[(NUM_SERVERS-1+i)%(NUM_SERVERS)][BLOCK_SIZE*2],BLOCK_SIZE*2);
             
         memset(retrievedShare[i],0,BLOCK_SIZE);
         memset(retrievedMacShare[i],0,BLOCK_SIZE);
@@ -455,7 +436,7 @@ for(int i = 0 ; i < DATA_CHUNKS; i++)
 
 }
 
-int ClientORAM::retrieve(TYPE_ID blockID)
+int ClientORAM::retrieve(TYPE_INDEX blockID)
 {
     auto start = time_now;
     auto end = time_now;
@@ -523,7 +504,7 @@ int ClientORAM::retrieve(TYPE_ID blockID)
     
 }
 
-int ClientORAM::updatePosMap(TYPE_ID blockID)
+int ClientORAM::updatePosMap(TYPE_INDEX blockID)
 {
     TYPE_INDEX fullPathIdx[H+1];
     ORAM::getFullPathIdx(fullPathIdx,pos_map[blockID].pathID);
@@ -537,12 +518,12 @@ int ClientORAM::updatePosMap(TYPE_ID blockID)
 }
 
 
-int ClientORAM::createRetrievalQuery(int pIdx, TYPE_ID pID)
+int ClientORAM::createRetrievalQuery(int pIdx, TYPE_INDEX pID)
 {
         #if defined (XOR_PIR)
             unsigned char*** xor_queries;
-            xor_queries= new unsigned char**[(SSS_PRIVACY_LEVEL+1)];
-            for(int i = 0 ; i < SSS_PRIVACY_LEVEL+1; i++)
+            xor_queries= new unsigned char**[(NUM_SERVERS)];
+            for(int i = 0 ; i < NUM_SERVERS; i++)
             {
                 xor_queries[i]= new unsigned char*[NUM_SHARE_PER_SERVER];
                 for(int j = 0 ; j < NUM_SHARE_PER_SERVER; j++)
@@ -551,15 +532,15 @@ int ClientORAM::createRetrievalQuery(int pIdx, TYPE_ID pID)
                     memset(xor_queries[i][j],0,CLIENT_RETRIEVAL_QUERY_SIZE);
                 }
             }
-            for(int i = 0 ; i < SSS_PRIVACY_LEVEL+1; i++)
+            for(int i = 0 ; i < NUM_SERVERS; i++)
             {
                 ORAM::xor_createQuery(pIdx,PATH_LENGTH,xor_queries[i]);
             }
 
-            for (int i = 0; i < SSS_PRIVACY_LEVEL+1; i++)
+            for (int i = 0; i < NUM_SERVERS; i++)
             {
                 memcpy(&retrieval_query_out[i][0], xor_queries[i][0], CLIENT_RETRIEVAL_QUERY_SIZE);
-                memcpy(&retrieval_query_out[i][CLIENT_RETRIEVAL_QUERY_SIZE], xor_queries[(i+1)%(SSS_PRIVACY_LEVEL+1)][1],CLIENT_RETRIEVAL_QUERY_SIZE);
+                memcpy(&retrieval_query_out[i][CLIENT_RETRIEVAL_QUERY_SIZE], xor_queries[(i+1)%(NUM_SERVERS)][1],CLIENT_RETRIEVAL_QUERY_SIZE);
                 memcpy(&retrieval_query_out[i][CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_DATA)], &pID, sizeof(pID));
             }
         #else //if defined SPDZ, RSSS, SEEDING without XOR-PIR
@@ -568,7 +549,7 @@ int ClientORAM::createRetrievalQuery(int pIdx, TYPE_ID pID)
                 for (int i = 0; i < NUM_SERVERS; i++)
                 {
                     if(i==0)
-                        memcpy(&retrieval_query_out[i][CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_ID)], &pID, sizeof(pID));
+                        memcpy(&retrieval_query_out[i][CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_INDEX)], &pID, sizeof(pID));
                     else
                     {
                         memcpy(&retrieval_query_out[i][0], &pID, sizeof(pID));
@@ -581,7 +562,7 @@ int ClientORAM::createRetrievalQuery(int pIdx, TYPE_ID pID)
                 ORAM::sss_createQuery(pIdx,PATH_LENGTH,retrieval_query_out);
                 for (int i = 0; i < NUM_SERVERS; i++)
                 {
-                    memcpy(&retrieval_query_out[i][CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_ID)], &pID, sizeof(pID));
+                    memcpy(&retrieval_query_out[i][CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_INDEX)], &pID, sizeof(pID));
                 }
             #endif
             

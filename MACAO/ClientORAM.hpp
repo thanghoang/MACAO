@@ -14,8 +14,8 @@ class ClientORAM
 
 protected:
 
-    //client storage for ORAM operations
-    TYPE_ID** metaData; //this is for position_map scanning optimization
+    
+    TYPE_INDEX** metaData;
     TYPE_POS_MAP* pos_map;
 
 #if defined(CORAM_LAYOUT)    
@@ -32,39 +32,26 @@ protected:
     #endif
     
     unsigned char** retrieval_query_out;	
-
     
     
     unsigned char** retrieval_in;
     unsigned char** lin_rand_com_in;
     
 
-    
-    
     //variables for eviction
     TYPE_INDEX numEvict;
     TYPE_DATA*** sharedMatrix;
     TYPE_DATA*** sharedMatrix_MAC;
-//#if defined (SPDZ)
-//    TYPE_DATA*** sharedMatrixMAC;
-//#endif
+
 	TYPE_DATA** evictMatrix;
     unsigned char** evict_out;
 
     //thread
 	pthread_t thread_sockets[NUM_SERVERS];
 
-//#if defined(PRECOMP_MODE)
-//	TYPE_DATA** precompOnes;
-//	TYPE_DATA** precompZeros;
-//#endif
-
-
 public:
     ClientORAM();
     ~ClientORAM();
-    
-    
     
     static zmq::context_t **context;
     static zmq::socket_t **socket;
@@ -73,7 +60,7 @@ public:
     
     //main functions
     
-    virtual int access(TYPE_ID blockID) = 0;
+    virtual int access(TYPE_INDEX blockID) = 0;
     
     virtual int init();
     
@@ -82,11 +69,11 @@ public:
     int sendORAMTree();
     
     //retrieval subroutine
-    int retrieve(TYPE_ID blockID);
+    int retrieve(TYPE_INDEX blockID);
     //eviction_matrix
     virtual int getEvictMatrix() =0;
     
-    virtual int updatePosMap(TYPE_ID blockID);
+    virtual int updatePosMap(TYPE_INDEX blockID);
     virtual int evict()=0;
     
     //socket
@@ -100,18 +87,13 @@ public:
     
     
     
-    
-    
-    
-    
     //if using XOR-PIR + RSSS
     unsigned char*** xor_queries;
     TYPE_DATA** xor_answers;
     
     
-    int createRetrievalQuery(int pIdx, TYPE_ID pID);
+    int createRetrievalQuery(int pIdx, TYPE_INDEX pID);
     void recoverRetrievedBlock();
-    
     
     
     zz_p** retrievedShare;

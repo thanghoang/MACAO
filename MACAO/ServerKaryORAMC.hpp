@@ -21,11 +21,12 @@ public:
     ServerKaryORAMC(); 
     ServerKaryORAMC(TYPE_INDEX serverNo, int selectedThreads); 
     ~ServerKaryORAMC();
-
+    
+    int writeRoot(zmq::socket_t& socket);
     
     // eviction subroutine
     
-    int readBucket_evict(TYPE_ID bucketID, int shareID, zz_p** output_data, zz_p** output_mac);
+    int readBucket_evict(TYPE_INDEX bucketID, int shareID, zz_p** output_data, zz_p** output_mac);
     
     
     int prepareEvictComputation();

@@ -13,10 +13,14 @@
 ClientBinaryORAMO::ClientBinaryORAMO() : ClientORAM()
 {
     this->write_root_out = new unsigned char*[NUM_SERVERS];
+    long long n = BLOCK_SIZE*2;
+    #if defined(RSSS) && !defined(SEEDING)
+        n = n * 2;
+    #endif
     for (int i = 0 ; i < NUM_SERVERS; i ++)
     {
-        this->write_root_out[i]= new unsigned char[BLOCK_SIZE*2+sizeof(TYPE_INDEX)];
-        memset(this->write_root_out[i], 0, BLOCK_SIZE*2+sizeof(TYPE_INDEX) );
+        this->write_root_out[i]= new unsigned char[n+sizeof(TYPE_INDEX)];
+        memset(this->write_root_out[i], 0, n+sizeof(TYPE_INDEX) );
     }
     
 }
@@ -37,7 +41,7 @@ ClientBinaryORAMO::~ClientBinaryORAMO()
  * @param blockID: (input) ID of the block to be retrieved
  * @return 0 if successful
  */  
-int ClientBinaryORAMO::access(TYPE_ID blockID)
+int ClientBinaryORAMO::access(TYPE_INDEX blockID)
 {
     auto start = time_now, end = time_now;
     ClientORAM::retrieve(blockID);
@@ -73,7 +77,7 @@ int ClientBinaryORAMO::access(TYPE_ID blockID)
 }
 
 
-int ClientBinaryORAMO::updatePosMap(TYPE_ID blockID)
+int ClientBinaryORAMO::updatePosMap(TYPE_INDEX blockID)
 {
     ClientORAM::updatePosMap(blockID);
     
@@ -226,9 +230,12 @@ int ClientBinaryORAMO::writeRoot()
         
         #if defined(SEEDING)
             ORAM::createShares(recoveredBlock[u]._zz_p__rep, data_shares,mac_shares,prng_client,0);
-            int k = 0;                
-            memcpy(&write_root_out[k][currBufferIdx], &data_shares[k], sizeof(TYPE_DATA));
-            memcpy(&write_root_out[k][currBufferIdx + BLOCK_SIZE], &mac_shares[k], sizeof(TYPE_DATA));
+            memcpy(&write_root_out[0][currBufferIdx], &data_shares[0], sizeof(TYPE_DATA));
+            memcpy(&write_root_out[0][currBufferIdx + BLOCK_SIZE], &mac_shares[0], sizeof(TYPE_DATA));
+            #if defined (RSSS)
+                memcpy(&write_root_out[2][currBufferIdx], &data_shares[0], sizeof(TYPE_DATA));
+                memcpy(&write_root_out[2][currBufferIdx + BLOCK_SIZE], &mac_shares[0], sizeof(TYPE_DATA));            
+            #endif
         #else // RSSS or SPDZ
             ORAM::createShares(recoveredBlock[u]._zz_p__rep, data_shares,mac_shares);
             for(int k = 0; k < NUM_SERVERS; k++) 
@@ -236,33 +243,49 @@ int ClientBinaryORAMO::writeRoot()
 
                 memcpy(&write_root_out[k][currBufferIdx], &data_shares[k], sizeof(TYPE_DATA));
                 memcpy(&write_root_out[k][currBufferIdx + BLOCK_SIZE], &mac_shares[k], sizeof(TYPE_DATA));
+                
+                #if defined(RSSS)
+                    memcpy(&write_root_out[k][BLOCK_SIZE*2+currBufferIdx], &data_shares[(k+1)%3], sizeof(TYPE_DATA));
+                    memcpy(&write_root_out[k][BLOCK_SIZE*2+currBufferIdx + BLOCK_SIZE], &mac_shares[(k+1)%3], sizeof(TYPE_DATA));
+                #endif
             }
         #endif
         currBufferIdx += sizeof(TYPE_DATA);
     }
+    long long n=2 * BLOCK_SIZE;;
+    #if (defined (RSSS) && !defined(SEEDING))
+            n = n*2;
+    #endif
+    
     for ( int k = 0 ; k < NUM_SERVERS; k++)
     {
         #if defined(SEEDING)
             memcpy(&write_root_out[k][0], &numRead, sizeof(TYPE_DATA));
         #else // RSSS or SPDZ
-            memcpy(&write_root_out[k][BLOCK_SIZE*2], &numRead, sizeof(TYPE_DATA));
+                memcpy(&write_root_out[k][n], &numRead, sizeof(TYPE_DATA));
         #endif
     }
 	// 8. upload the share to numRead-th slot in root bucket
-    
+    long m = sizeof(TYPE_DATA);
     for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++) 
     {
         #if defined(SEEDING)
             if(k==0)
             {
-                thread_socket_args[k] = struct_socket(k, write_root_out[k], BLOCK_SIZE*2+sizeof(TYPE_DATA), NULL, 0, CMD_WRITE_ROOT,NULL);
+                thread_socket_args[k] = struct_socket(k, write_root_out[k], n+sizeof(TYPE_DATA), NULL, 0, CMD_WRITE_ROOT,NULL);
             }
             else
             {
-                thread_socket_args[k] = struct_socket(k, write_root_out[k], sizeof(TYPE_DATA), NULL, 0, CMD_WRITE_ROOT,NULL);
+                #if defined(RSSS)
+                    if(k==2)
+                    {
+                        m = n + sizeof(TYPE_DATA);
+                    }
+                #endif
+                thread_socket_args[k] = struct_socket(k, write_root_out[k], m, NULL, 0, CMD_WRITE_ROOT,NULL);
             }
         #else // RSSS or SPDZ
-            thread_socket_args[k] = struct_socket(k, write_root_out[k], BLOCK_SIZE*2+sizeof(TYPE_DATA), NULL, 0, CMD_WRITE_ROOT,NULL);
+            thread_socket_args[k] = struct_socket(k, write_root_out[k], n+sizeof(TYPE_DATA), NULL, 0, CMD_WRITE_ROOT,NULL);
         #endif
         
 		pthread_create(&thread_sockets[k], NULL, &ClientBinaryORAMO::thread_socket_func, (void*)&thread_socket_args[k]);
@@ -305,8 +328,8 @@ int ClientBinaryORAMO::getEvictMatrix()
         TYPE_INDEX curDest_idx = dest_idx[h-1];
         TYPE_INDEX curSrc_idx = src_idx[h-1];
         TYPE_INDEX curSibl_idx = sibl_idx[h-1];
-        vector<TYPE_ID> lstEmptyIdx;
-        vector<TYPE_ID> lstEmptyIdxSibl; //only used when h =H 
+        vector<TYPE_INDEX> lstEmptyIdx;
+        vector<TYPE_INDEX> lstEmptyIdxSibl; //only used when h =H 
         if( h == H) // this is for sibling bucket at leaf level
         {
             
@@ -314,7 +337,7 @@ int ClientBinaryORAMO::getEvictMatrix()
             {
                 if(metaData[curSibl_idx][ii]!=0)
                 {
-                    TYPE_ID blockID = metaData[curSibl_idx][ii];
+                    TYPE_INDEX blockID = metaData[curSibl_idx][ii];
                     TYPE_INDEX j = pos_map[blockID].pathIdx;
                     evictMatrix[h][ (j-BUCKET_SIZE*h)*BUCKET_SIZE*2 + (j-BUCKET_SIZE*(h-1) )  ] = 1; 
                 }
@@ -335,7 +358,7 @@ int ClientBinaryORAMO::getEvictMatrix()
         {
             if(metaData[curDest_idx][ii]!=0)
             {
-                TYPE_ID blockID = metaData[curDest_idx][ii];
+                TYPE_INDEX blockID = metaData[curDest_idx][ii];
                 TYPE_INDEX j = pos_map[blockID].pathIdx;
                 evictMatrix[h-1][ (j-BUCKET_SIZE*h)*BUCKET_SIZE*2 + (j-BUCKET_SIZE*(h-1) )  ] = 1; 
             }
@@ -348,7 +371,7 @@ int ClientBinaryORAMO::getEvictMatrix()
         {
             if(metaData[curSrc_idx][ii]!=0)
             {
-                TYPE_ID blockID = metaData[curSrc_idx][ii];
+                TYPE_INDEX blockID = metaData[curSrc_idx][ii];
                 metaData[curSrc_idx][ii]=0;
                     
                 TYPE_INDEX j = pos_map[blockID].pathIdx;

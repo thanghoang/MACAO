@@ -315,11 +315,9 @@ start:
     
         for(int e = es ; e < ee; e++)
         {            
-            //this->writeBucket_reverse_mode(fullEvictPathIdx[e][h],serverNo,vecReShares[e][serverNo],vecReShares_MAC[e][serverNo]);
             this->writeBucket(fullEvictPathIdx[e][h],serverNo,vecReShares[e][serverNo],vecReShares_MAC[e][serverNo]);
             
             #if defined(RSSS)
-                //this->writeBucket_reverse_mode(fullEvictPathIdx[e][h],(serverNo+1)%3,vecReShares[e][(serverNo+1)%3],vecReShares_MAC[e][(serverNo+1)%3]);
                 this->writeBucket(fullEvictPathIdx[e][h],(serverNo+1)%3,vecReShares[e][(serverNo+1)%3],vecReShares_MAC[e][(serverNo+1)%3]);
             
             #endif
@@ -365,8 +363,7 @@ start:
 }
 
 
-
-int ServerKaryORAMC::readBucket_evict(TYPE_ID bucketID, int shareID, zz_p** output_data, zz_p** output_mac)
+int ServerKaryORAMC::readBucket_evict(TYPE_INDEX bucketID, int shareID, zz_p** output_data, zz_p** output_mac)
 {
     FILE* file_in = NULL;
     string path  = myStoragePath + to_string(shareID) + "/" + to_string(bucketID);
@@ -413,4 +410,8 @@ int ServerKaryORAMC::readBucket_evict(TYPE_ID bucketID, int shareID, zz_p** outp
         }
     #endif
     fclose(file_in);
+}
+int ServerKaryORAMC::writeRoot(zmq::socket_t& socket)
+{
+
 }

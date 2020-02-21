@@ -66,11 +66,7 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
             }
         }
     #endif
-    //this is for RSSS with 3 servers
-    //this->client_evict_in = new unsigned char[CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX)];
-
-
-
+    
 
     random_shares_out = new unsigned char[2*sizeof(TYPE_DATA)];
     random_shares_in = new unsigned char*[NUM_SERVERS-1];
@@ -286,24 +282,15 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
         this->vecReShares_MAC.push_back(reShares_MAC);
     }
 
-
-
-
-
-
     myStoragePath = rootPath + "S" + to_string(serverNo) + "/" ;
 
 	this->CLIENT_ADDR = "tcp://*:" + std::to_string(SERVER_PORT+(serverNo)*NUM_SERVERS+serverNo);
-
-
 
 	cout<<endl;
 	cout << "=================================================================" << endl;
 	cout<< "Starting Server-" << serverNo+1 <<endl;
 	cout << "=================================================================" << endl;
-//	#if !defined(SEEDING)
-//        this->serverNo = serverNo;
-//    #endif
+
 
 	TYPE_INDEX m = 0;
     while (m< NUM_SERVERS-1)
@@ -311,8 +298,6 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
         this->others[m] = (serverNo + m +1 ) % NUM_SERVERS;
         m++;
     }
-
-
 
 	this->evict_in = new unsigned char[CLIENT_EVICTION_OUT_LENGTH];
 
@@ -333,9 +318,6 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
 	{
 		this->reshares_out[k] = new unsigned char[SERVER_RESHARE_IN_OUT_LENGTH];
     }
-
-
-
 
 	time_t rawtime = time(0);
 	tm *now = localtime(&rawtime);
@@ -364,8 +346,6 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
     }
 
 }
-
-
 
 
 
@@ -494,7 +474,7 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
     #if defined(SEEDING)
         #if defined(XOR_PIR) //seeding with XOR-PIR does not save much, so not implemented (use the same code as in non-seeding case
             socket.recv(retrieval_query_in,CLIENT_RETRIEVAL_OUT_LENGTH,0);
-            memcpy(&pathID, &retrieval_query_in[CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_ID)], sizeof(pathID));
+            memcpy(&pathID, &retrieval_query_in[CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_INDEX)], sizeof(pathID));
             for(int i = 0 ; i < 2; i++)
             {
                 memcpy(retrieval_query[i],&retrieval_query_in[i*CLIENT_RETRIEVAL_QUERY_SIZE], CLIENT_RETRIEVAL_QUERY_SIZE);
@@ -529,11 +509,6 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
                 memcpy(retrieval_query[0], retrieval_query_in, CLIENT_RETRIEVAL_QUERY_SIZE);
                 
                     
-                /*#if defined(RSSS)
-                    cout<< "	[evict] Creating Threads for Sending..."<< endl;;
-                    sendSocket_args[0] = struct_socket(1,  &retrieval_query_in[0], CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_INDEX), NULL, 0, NULL, true);
-                    pthread_create(&thread_send[0], NULL, &thread_socket_func, (void*)&sendSocket_args[0]);
-                    pthread_join(thread_send[0], NULL);*/
                 #if defined(SPDZ)
                     memcpy(retrieval_query_mac[0], &retrieval_query_in[CLIENT_RETRIEVAL_QUERY_SIZE], CLIENT_RETRIEVAL_QUERY_SIZE);
                 #endif
@@ -554,11 +529,6 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
             #if defined(RSSS)
                 if(serverNo==2)
                 {
-                    /*cout<< "	[evict] Creating Threads for Receiving..." << endl;
-                    recvSocket_args[0] = struct_socket(0, NULL, 0, transfer_in, CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_INDEX), NULL,false);
-                    pthread_create(&thread_recv[0], NULL, &thread_socket_func, (void*)&recvSocket_args[0]);
-                    pthread_join(thread_recv[0], NULL);*/
-                    
                     memcpy(retrieval_query[1], retrieval_query_in, CLIENT_RETRIEVAL_QUERY_SIZE);
                 }
                 else
@@ -579,7 +549,7 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
         cout<< "	[SendBlock] PathID and Logical Vector RECEIVED in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count() << " ns" <<endl;
         server_logs[0] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
 
-        memcpy(&pathID, &retrieval_query_in[CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_ID)], sizeof(pathID));
+        memcpy(&pathID, &retrieval_query_in[CLIENT_RETRIEVAL_OUT_LENGTH-sizeof(TYPE_INDEX)], sizeof(pathID));
         cout<< "	[SendBlock] PathID is " << pathID <<endl;
 
         #if defined(XOR_PIR) //XOR-PIR does not implement seeding/non-seeding
@@ -874,148 +844,6 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
         return ret;
 }
 
-/**
- * Function Name: recvBlock
- *
- * Description: Receives the share of previosly accessed block from the client
- * with its new index number and stores it into root bucket for later eviction.
- *
- * @param socket: (input) ZeroMQ socket instance for communication with the client
- * @return 0 if successful
- */
-int ServerORAM::writeRoot(zmq::socket_t& socket)
-{
-	cout<< "	[recvBlock] Receiving Block Data..." <<endl;
-	auto start = time_now;
-    #if defined(SEEDING)
-        if(serverNo==0)
-            socket.recv(write_root_in, BLOCK_SIZE*2+sizeof(TYPE_INDEX), 0);
-        else
-            socket.recv(write_root_in, sizeof(TYPE_INDEX), 0);
-        auto end = time_now;
-        TYPE_INDEX slotIdx;
-        memcpy(&slotIdx,&write_root_in[0],sizeof(TYPE_INDEX));
-
-        cout<< "	[recvBlock] Block Data RECV in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count() <<endl;
-        server_logs[4] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
-
-
-        //send to other server (this is due to RSS)
-        #if defined(RSSS)
-            if(serverNo==2)
-            {
-                cout<< "	[evict] Creating Threads for Receiving..." << endl;
-                recvSocket_args[0] = struct_socket(0, NULL, 0, client_write_root_in, BLOCK_SIZE*2, NULL,false);
-                pthread_create(&thread_recv[0], NULL, &thread_socket_func, (void*)&recvSocket_args[0]);
-                pthread_join(thread_recv[0], NULL);
-            }
-            if(serverNo==0)
-            {
-                cout<< "	[evict] Creating Threads for Sending..."<< endl;;
-                sendSocket_args[0] = struct_socket(1,  &write_root_in[sizeof(TYPE_DATA)], BLOCK_SIZE*2, NULL, 0, NULL, true);
-                pthread_create(&thread_send[0], NULL, &thread_socket_func, (void*)&sendSocket_args[0]);
-                pthread_join(thread_send[0], NULL);
-            }
-            cout<< "	[evict] CREATED!" <<endl;
-            cout<< "	[evict] Waiting for Threads..." <<endl;
-        #endif
-
-
-
-
-        start = time_now;
-        zz_p tmp2;
-
-        unsigned long long tmp;
-        if(serverNo==0)
-        {
-        }
-        else
-        {
-            for(int i = 0 ; i < DATA_CHUNKS;i++)
-            {
-                sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo)%3]);
-                tmp2  = tmp;
-                memcpy(&write_root_in[sizeof(TYPE_DATA)+i*sizeof(TYPE_DATA)],&tmp2,sizeof(TYPE_DATA));
-
-                sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo)%3]);
-                tmp2  = tmp;
-                memcpy(&write_root_in[sizeof(TYPE_DATA)+i*sizeof(TYPE_DATA)+BLOCK_SIZE],&tmp2,sizeof(TYPE_DATA));
-            }
-        }
-        this->updateRoot(serverNo,slotIdx,&write_root_in[sizeof(TYPE_DATA)],&write_root_in[BLOCK_SIZE+sizeof(TYPE_DATA)]);
-        
-        #if defined(RSSS)
-            if(serverNo==2)
-            {
-
-            }
-            else
-            {
-                for(int i = 0 ; i < DATA_CHUNKS;i++)
-                {
-                    sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo+1)%3]);
-                    tmp2  = tmp;
-                    memcpy(&client_write_root_in[i*sizeof(TYPE_DATA)],&tmp2,sizeof(TYPE_DATA));
-
-                    sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo+1)%3]);
-                    tmp2  = tmp;
-                    memcpy(&client_write_root_in[i*sizeof(TYPE_DATA)+BLOCK_SIZE],&tmp2,sizeof(TYPE_DATA));
-                }
-            }
-            this->updateRoot((serverNo+1)%3,slotIdx, &client_write_root_in[0], &client_write_root_in[BLOCK_SIZE]);
-        #endif
-    
-        end = time_now;
-        cout<< "	[recvBlock] Block STORED in Disk in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count() <<endl;
-        server_logs[5] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
-
-        socket.send((unsigned char*)CMD_SUCCESS,sizeof(CMD_SUCCESS));
-        cout<< "	[recvBlock] ACK is SENT!" <<endl;
-    #else
-
-        socket.recv(write_root_in, BLOCK_SIZE*2+sizeof(TYPE_INDEX), 0);
-        auto end = time_now;
-        TYPE_INDEX slotIdx;
-        memcpy(&slotIdx,&write_root_in[BLOCK_SIZE*2],sizeof(TYPE_INDEX));
-
-        cout<< "	[recvBlock] Block Data RECV in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count() <<endl;
-        server_logs[4] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
-
-        #if defined(RSSS)
-            //send to other server (this is due to RSS)
-
-            cout<< "	[evict] Creating Threads for Receiving..." << endl;
-            recvSocket_args[0] = struct_socket(0, NULL, 0, client_write_root_in, BLOCK_SIZE*2, NULL,false);
-            pthread_create(&thread_recv[0], NULL, &thread_socket_func, (void*)&recvSocket_args[0]);
-
-            cout<< "	[evict] Creating Threads for Sending..."<< endl;;
-            sendSocket_args[0] = struct_socket(1,  write_root_in, BLOCK_SIZE*2, NULL, 0, NULL, true);
-            pthread_create(&thread_send[0], NULL, &thread_socket_func, (void*)&sendSocket_args[0]);
-
-            cout<< "	[evict] CREATED!" <<endl;
-            cout<< "	[evict] Waiting for Threads..." <<endl;
-
-            pthread_join(thread_send[0], NULL);
-            pthread_join(thread_recv[0], NULL);
-        #endif
-
-
-
-        start = time_now;
-        this->updateRoot(serverNo,slotIdx,&write_root_in[0],&write_root_in[BLOCK_SIZE]);
-        #if defined(RSSS)
-            this->updateRoot((serverNo+1)%3,slotIdx, &client_write_root_in[0], &client_write_root_in[BLOCK_SIZE]);
-        #endif
-        end = time_now;
-        cout<< "	[recvBlock] Block STORED in Disk in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count() <<endl;
-        server_logs[5] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
-
-        socket.send((unsigned char*)CMD_SUCCESS,sizeof(CMD_SUCCESS));
-        cout<< "	[recvBlock] ACK is SENT!" <<endl;
-    #endif
-    return 0;
-}
 
 
 
@@ -1107,27 +935,6 @@ int ServerORAM::recvClientEvictData(zmq::socket_t& socket)
         server_logs[6] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
 
 
-        /*#if defined(RSSS)
-            // send client data to other servers (this is due to RSSS)
-            if(serverNo==2)
-            {
-                cout<< "	[evict] Creating Threads for Receiving..." << endl;
-                recvSocket_args[0] = struct_socket(0, NULL, 0, client_evict_in, CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX), NULL,false);
-                pthread_create(&thread_recv[0], NULL, &thread_socket_func, (void*)&recvSocket_args[0]);
-                pthread_join(thread_recv[0], NULL);
-            }
-            if(serverNo==0)
-            {
-                cout<< "	[evict] Creating Threads for Sending..."<< endl;;
-                sendSocket_args[0] = struct_socket(1,  &evict_in[sizeof(TYPE_DATA)], CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX), NULL, 0, NULL, true);
-                pthread_create(&thread_send[0], NULL, &thread_socket_func, (void*)&sendSocket_args[0]);
-                pthread_join(thread_send[0], NULL);
-
-            }
-        #endif*/
-
-
-
         memcpy(&n_evict, &evict_in[0], sizeof(TYPE_INDEX));
         
         cout <<"N evict:" <<n_evict;
@@ -1138,23 +945,6 @@ int ServerORAM::recvClientEvictData(zmq::socket_t& socket)
         cout<< "	[evict] RECEIVED! in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count() <<endl;
         server_logs[6] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
 
-
-        /*#if defined(RSSS)
-            // send client data to other servers (this is due to RSSS)
-            cout<< "	[evict] Creating Threads for Receiving..." << endl;
-            recvSocket_args[0] = struct_socket(0, NULL, 0, client_evict_in, CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX), NULL,false);
-            pthread_create(&thread_recv[0], NULL, &thread_socket_func, (void*)&recvSocket_args[0]);
-
-            cout<< "	[evict] Creating Threads for Sending..."<< endl;;
-            sendSocket_args[0] = struct_socket(1,  evict_in, CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX), NULL, 0, NULL, true);
-            pthread_create(&thread_send[0], NULL, &thread_socket_func, (void*)&sendSocket_args[0]);
-
-            cout<< "	[evict] CREATED!" <<endl;
-            cout<< "	[evict] Waiting for Threads..." <<endl;
-
-            pthread_join(thread_send[0], NULL);
-            pthread_join(thread_recv[0], NULL);
-        #endif*/
 
         memcpy(&n_evict, &evict_in[CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX)], sizeof(TYPE_INDEX));
 	#endif
@@ -1216,39 +1006,9 @@ int ServerORAM::recvORAMTree(zmq::socket_t& socket)
     return ret ;
 }
 
-/*
-int ServerORAM::readBucket(TYPE_ID bucketID, int shareID, zz_p** output_data, zz_p** output_mac)
-{
-    FILE* file_in = NULL;
-    string path  = myStoragePath + to_string(shareID) + "/" + to_string(bucketID);
-    if((file_in = fopen(path.c_str(),"rb")) == NULL)
-    {
-        cout<< "	[SendBlock] File cannot be opened!!" <<endl;
-        exit;
-    }
-    for(int i = 0 ; i < BUCKET_SIZE; i++)
-    {
-        fread(output_data[i], 1, BLOCK_SIZE, file_in);
-    }
-    fclose(file_in);
-
-    path  = myStoragePath + to_string(shareID) + "/" + to_string(bucketID)+ "_mac";
-    if((file_in = fopen(path.c_str(),"rb")) == NULL)
-    {
-        cout<< "	[SendBlock] File cannot be opened!!" <<endl;
-        exit;
-    }
-    for(int i = 0 ; i < BUCKET_SIZE; i++)
-    {
-        fread(output_mac[i], 1, BLOCK_SIZE, file_in);
-    }
-    fclose(file_in);
-
-}*/
-
 
 //only for SSS Retrieval
-int ServerORAM::readBucket(TYPE_ID bucketID, int BucketIdx,  int shareID, zz_p** output_data, zz_p** output_mac)
+int ServerORAM::readBucket(TYPE_INDEX bucketID, int BucketIdx,  int shareID, zz_p** output_data, zz_p** output_mac)
 {
     FILE* file_in = NULL;
     string path  = myStoragePath + to_string(shareID) + "/" + to_string(bucketID);
@@ -1378,7 +1138,7 @@ int ServerORAM::updateRoot(int shareID, unsigned long long slotIdx, unsigned cha
 }
 
 
-int ServerORAM::copyBucket(int shareID, TYPE_ID srcBucketID, TYPE_ID destBucketID)
+int ServerORAM::copyBucket(int shareID, TYPE_INDEX srcBucketID, TYPE_INDEX destBucketID)
 {
     string src_path = myStoragePath + to_string(shareID) + "/" + to_string(srcBucketID);
     string dest_path = myStoragePath + to_string(shareID) + "/" + to_string(destBucketID);
@@ -1399,34 +1159,6 @@ int ServerORAM::copyBucket(int shareID, TYPE_ID srcBucketID, TYPE_ID destBucketI
     return 0;
 }
 
-
-
-/*int ServerORAM::writeBucket(TYPE_ID bucketID, int shareID, unsigned char* input, unsigned char* mac)
-{
-    string path = myStoragePath +  to_string(shareID) + "/" + to_string(bucketID);
-    FILE* f = NULL;
-    if((f = fopen(path.c_str(),"wb+")) == NULL)
-    {
-        cout<< "	[evict] File Cannot be Opened!!" <<endl;
-        exit(0);
-    }
-    fwrite(input,1, BUCKET_SIZE*BLOCK_SIZE, f);
-    fclose(f);
-
-    #if defined(SPDZ)
-        string path_MAC = path + "_mac";
-        FILE* f_MAC = NULL;
-        if((f_MAC = fopen(path_MAC.c_str(),"wb+")) == NULL)
-        {
-            cout<< "	[evict] File Cannot be Opened!!" <<endl;
-            exit(0);
-        }
-        fwrite(mac,1, BUCKET_SIZE*BLOCK_SIZE, f_MAC);
-        fclose(f_MAC);
-    #endif
-
-    return 0;
-}*/
 
 
 
@@ -1660,8 +1392,6 @@ int ServerORAM::reShare(int level, int es, int ee)
 
             }
 
-
-            //currBufferIdx += ((BUCKET_SIZE+1)*BLOCK_SIZE);
         }
     #else //SPDZ does not need this phase
     #endif
@@ -1744,9 +1474,6 @@ int ServerORAM::postReSharing(int level, int es, int ee)
                     r1 = (r1 * r1) % P;
                 }
             }
-            cout<<X1<<" "<<Y1<<endl;
-            cout<<X2<<" "<<Y2<<endl;
-            //cin.get();
 
 
         }
@@ -1852,18 +1579,14 @@ int ServerORAM::postReSharing(int level, int es, int ee)
 
 
 
-                /*vecComp_MAC_args[e*NUM_MULT+j][i] = THREAD_COMPUTATION(startIdx, endIdx, this->vecEvictPath_MAC[e*NUM_MULT+RSSS_MULT_ORDER[j][0]], MAT_PRODUCT_INPUT_DB_LENGTH, MAT_PRODUCT_OUTPUT_LENGTH, this->vecEvictMatrix[e*NUM_MULT+RSSS_MULT_ORDER[j][1]][level], this->vecLocalMatProduct_output_MAC[e*NUM_MULT+j]);
-                pthread_create(&vecThread_compute_MAC[e*NUM_MULT+0][i], NULL, &ServerORAM::thread_matProd_func, (void*)&vecComp_MAC_args[e*NUM_MULT+0][i]);*/
-
+                
                 vecComp_MAC_args[e*NUM_MULT+0][i] = THREAD_COMPUTATION(startIdx, endIdx, this->vecEvictPath_db[e], MAT_PRODUCT_INPUT_DB_LENGTH, MAT_PRODUCT_OUTPUT_LENGTH, this->vecShares_b_MAC[e][level], this->vecLocalMatProduct_output_MAC[e*NUM_MULT+0]);
                 pthread_create(&vecThread_compute_MAC[e*NUM_MULT+0][i], NULL, &ServerORAM::thread_matProd_func, (void*)&vecComp_MAC_args[e*NUM_MULT+0][i]);
 
                 vecComp_MAC_args[e*NUM_MULT+1][i] = THREAD_COMPUTATION(startIdx, endIdx, this->vecShares_a_MAC[e], MAT_PRODUCT_INPUT_DB_LENGTH, MAT_PRODUCT_OUTPUT_LENGTH,  this->vecEvictMatrix[e][level],  this->vecLocalMatProduct_output_MAC[e*NUM_MULT+1]);
                 pthread_create(&vecThread_compute_MAC[e*NUM_MULT+1][i], NULL, &ServerORAM::thread_matProd_func, (void*)&vecComp_MAC_args[e*NUM_MULT+1][i]);
 
-                //vecComp_MAC_args[e*NUM_MULT+2][i] = THREAD_COMPUTATION(startIdx, endIdx, this->vecEvictPath_db[e], MAT_PRODUCT_INPUT_DB_LENGTH, MAT_PRODUCT_OUTPUT_LENGTH,  this->vecEvictMatrix[e][level], this->vecLocalMatProduct_output_MAC[e*NUM_MULT+2]);
-                //pthread_create(&vecThread_compute_MAC[e*NUM_MULT+2][i], NULL, &ServerORAM::thread_matProd_func, (void*)&vecComp_MAC_args[e*NUM_MULT+2][i]);
-
+                
 
                 cpu_set_t cpuset;
                 CPU_ZERO(&cpuset);
@@ -1886,12 +1609,10 @@ int ServerORAM::postReSharing(int level, int es, int ee)
             {
                 pthread_join(vecThread_compute[e*NUM_MULT+0][i],NULL);
                 pthread_join(vecThread_compute[e*NUM_MULT+1][i],NULL);
-                //if(this->serverNo==0)
                 pthread_join(vecThread_compute[e*NUM_MULT+2][i],NULL);
 
                 pthread_join(vecThread_compute_MAC[e*NUM_MULT+0][i],NULL);
                 pthread_join(vecThread_compute_MAC[e*NUM_MULT+1][i],NULL);
-                //pthread_join(vecThread_compute_MAC[e*NUM_MULT+2][i],NULL);
             }
         }
         //sum all together
@@ -1903,7 +1624,6 @@ int ServerORAM::postReSharing(int level, int es, int ee)
             {
                 for(int n = 0 ; n < MAT_PRODUCT_OUTPUT_LENGTH; n++)
                 {
-                    //vecShares_c[e][i][n] = 0;
                     this->vecReShares[e][this->serverNo][i][n] = this->vecLocalMatProduct_output[e*NUM_MULT+0][i][n] + this->vecLocalMatProduct_output[e*NUM_MULT+1][i][n] + vecShares_c[e][i][n];
 
                     if(this->serverNo == 0)
@@ -1912,8 +1632,6 @@ int ServerORAM::postReSharing(int level, int es, int ee)
                     }
 
                     this->vecReShares_MAC[e][this->serverNo][i][n] =  vecShares_c_MAC[e][i][n] + this->vecLocalMatProduct_output_MAC[e*NUM_MULT+0][i][n] + this->vecLocalMatProduct_output_MAC[e*NUM_MULT+1][i][n] +  this->vecLocalMatProduct_output[e*NUM_MULT+2][i][n]*MAC_KEY[this->serverNo] ;
-                    //cout<<this->vecReShares_MAC[e][this->serverNo][i][n]<<endl;
-                    //cin.get();
 
                 }
             }
@@ -1942,7 +1660,6 @@ int ServerORAM::postReSharing(int level, int es, int ee)
                     r2 = (r2 * r2) % P;
                 }
             }
-            cout<< "AAA: "<<this->X1<<" "<<this->Y1<<endl;
         }
 
         
@@ -2008,7 +1725,6 @@ int ServerORAM::readTriplets(zz_p** data, int row, int col, string file_name)
     {
         for(int j = 0 ; j < col; j++)
         {
-            //data[i][j] = 0;
             fread(&data[i][j], 1, sizeof(TYPE_DATA), file_in);
         }
     }

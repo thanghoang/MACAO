@@ -26,7 +26,7 @@
 #include <bitset>
 #include "tomcrypt.h"
 
-typedef long long TYPE_DATA;
+
 template <typename T>
 static inline std::string to_string(T value)
 {
@@ -35,14 +35,17 @@ static inline std::string to_string(T value)
     return os.str() ;
 }
 
-//#define REVERSE_STORAGE_LAYOUT // enabled: block _size x bucket_size - disabled: bucket_size x block_size  
 
-static const unsigned long long P = 1073742353; //288230376152137729; //prime field - should have length equal to the defined TYPE_DATA
 
 //#define XOR_PIR
 #define RSSS
 //#define SPDZ
 //#define SEEDING
+
+
+//#define CORAM_LAYOUT
+#define TRIPLET_EVICTION
+
 
 #if defined (SEEDING)
     static std::string CLIENT_SERVER_SEED[3] = {"abcdefghijklmn", "12345678910112","mnlkjihgfedcba"};
@@ -50,59 +53,41 @@ static const unsigned long long P = 1073742353; //288230376152137729; //prime fi
 #endif
 
 //=== SECRET SHARING PARAMETER================================================
+typedef long long TYPE_DATA;
+static const unsigned long long P = 1073742353; //288230376152137729; //prime field 
 #if defined(RSSS)
     #define NUM_SERVERS 3
-    #define SSS_PRIVACY_LEVEL 2
     const TYPE_DATA GLOBAL_MAC_KEY = 12574462961634974;
-    const TYPE_DATA MAC_KEY[SSS_PRIVACY_LEVEL+1] = {60986730870412112, 16792083382561605, -65204351291338743};
+    const TYPE_DATA MAC_KEY[NUM_SERVERS] = {60986730870412112, 16792083382561605, -65204351291338743};
 #else // SPDZ
     #define NUM_SERVERS 3
-    #define SSS_PRIVACY_LEVEL 2
     const TYPE_DATA GLOBAL_MAC_KEY = 683828274;// 12574462961634974;
-    const TYPE_DATA MAC_KEY[SSS_PRIVACY_LEVEL+1] = {881602428, 951697459, 998013093};// {805873168, 951697459,};//{881602428, 951697459, 998013093};
+    const TYPE_DATA MAC_KEY[NUM_SERVERS] = {881602428, 951697459, 998013093};// {805873168, 951697459,};//{881602428, 951697459, 998013093};
 #endif
 
 
-//#define PRIVACY_LEVEL 1
-
-#define CORAM_LAYOUT
-//#define TRIPLET_EVICTION
-
-#define K_ARY 2
 
 
-#define XOR_PRIVACY_LEVEL 1
+//=== ORAM PARAMETERS ============================================================
 
-#define NTL_LIB //disable it if compiled for android
-//=== PARAMETERS ============================================================
+#define BLOCK_SIZE 64 //data block size
+#define HEIGHT 2 // height of ORAM tree
 
-#define BLOCK_SIZE 64
-#define HEIGHT 2
-
-
+// Other ORAM parameters -> can be changed but be careful as it may impact the failure probability of ORAM.
 #if defined(CORAM_LAYOUT)
+    #define K_ARY 2
     #define BUCKET_SIZE (K_ARY)
     #define EVICT_RATE 1
     const unsigned long long NUM_BLOCK = pow(K_ARY,HEIGHT);
     const unsigned long long NUM_NODES = (int) (pow(K_ARY,HEIGHT+1)-1)/(K_ARY-1);
-#else
-    #if defined (TRIPLET_EVICTION)
+#elif defined (TRIPLET_EVICTION)
         #define K_ARY 2
         #define BUCKET_SIZE 74 
         #define EVICT_RATE 37
         const unsigned long long NUM_BLOCK = ((int) (pow(2,HEIGHT-1))*EVICT_RATE-1);
         const unsigned long long  NUM_NODES = (int) (pow(2,HEIGHT+1)-1);
-    #else
-        #define BUCKET_SIZE 600 
-        #define EVICT_RATE (BUCKET_SIZE/2)
-        const unsigned long long NUM_BLOCK = ((pow(K_ARY,HEIGHT-1))*EVICT_RATE-1);
-        const unsigned long long NUM_SLIDES = K_ARY; //should be divisible with BUCKET_SIZE
-        const unsigned long long NUM_NODES = (int) (pow(K_ARY,HEIGHT+1)-1)/(K_ARY-1) + pow(K_ARY,HEIGHT); 
-    #endif
 #endif
-
 #define STASH_SIZE 80
-
 const int H = HEIGHT; 
 
 
@@ -118,8 +103,6 @@ const int H = HEIGHT;
 
 #define SERVER_PORT 25555        //define the first port to generate incremental ports for client-server /server-server communications
 
-//============================================================================
-
 
 //=== PATHS ==================================================================
 const std::string rootPath = "../data/";
@@ -133,7 +116,20 @@ const std::string logDir = "../" + to_string(H) + "_" + to_string(BLOCK_SIZE) + 
 //=============================================================================
 
 
+//#define REVERSE_STORAGE_LAYOUT // enabled: block _size x bucket_size - disabled: bucket_size x block_size  
+
+
+
+
 //=== NON-MODIFIABLE PARAMETER ================================================
+
+
+
+#define XOR_PRIVACY_LEVEL 1
+
+#define NTL_LIB 
+
+
 #if defined(NTL_LIB)
     #include "NTL/ZZ.h"
     #include "NTL/tools.h"
@@ -152,7 +148,7 @@ using namespace std;
 
 
 //=== DATA TYPE ===============================================
-typedef unsigned long long TYPE_ID;
+
 typedef long long int TYPE_INDEX;
 typedef struct type_pos_map
 {
@@ -217,16 +213,16 @@ const TYPE_INDEX N_leaf = pow(K_ARY,H);
 
 #if defined (XOR_PIR)
     const unsigned long long CLIENT_RETRIEVAL_QUERY_SIZE = ceil((H+1)*BUCKET_SIZE/8.0); 
-    const unsigned long long CLIENT_RETRIEVAL_OUT_LENGTH = sizeof(TYPE_ID) + CLIENT_RETRIEVAL_QUERY_SIZE*(NUM_SHARE_PER_SERVER);
+    const unsigned long long CLIENT_RETRIEVAL_OUT_LENGTH = sizeof(TYPE_INDEX) + CLIENT_RETRIEVAL_QUERY_SIZE*(NUM_SHARE_PER_SERVER);
     const unsigned long long SERVER_RETRIEVAL_REPLY_LENGTH =  2*BLOCK_SIZE*(NUM_SHARE_PER_SERVER);
 #else
     const unsigned long long CLIENT_RETRIEVAL_QUERY_SIZE = (H+1)*BUCKET_SIZE*sizeof(TYPE_DATA); 
     #if defined (RSSS)
         const unsigned long long SERVER_RETRIEVAL_REPLY_LENGTH = 2*BLOCK_SIZE;
-        const unsigned long long CLIENT_RETRIEVAL_OUT_LENGTH = sizeof(TYPE_ID) + 2*CLIENT_RETRIEVAL_QUERY_SIZE;
+        const unsigned long long CLIENT_RETRIEVAL_OUT_LENGTH = sizeof(TYPE_INDEX) + 2*CLIENT_RETRIEVAL_QUERY_SIZE;
     #else // SPDZ
         const unsigned long long SERVER_RETRIEVAL_REPLY_LENGTH = 2*BLOCK_SIZE + 2*sizeof(TYPE_DATA);
-        const unsigned long long CLIENT_RETRIEVAL_OUT_LENGTH = sizeof(TYPE_ID) + 2*CLIENT_RETRIEVAL_QUERY_SIZE;
+        const unsigned long long CLIENT_RETRIEVAL_OUT_LENGTH = sizeof(TYPE_INDEX) + 2*CLIENT_RETRIEVAL_QUERY_SIZE;
     #endif
 #endif
 

@@ -23,9 +23,11 @@
 
 ServerBinaryORAMO::ServerBinaryORAMO(TYPE_INDEX serverNo, int selectedThreads) : ServerORAM(serverNo, selectedThreads)
 {
-	
-    this->write_root_in = new unsigned char[BLOCK_SIZE*2 + sizeof(TYPE_INDEX)];
-    this->client_write_root_in = new unsigned char[BLOCK_SIZE*2];
+	long long n = BLOCK_SIZE*2;
+    #if defined(RSSS) &&!defined (SEEDING)
+        n = n *2;
+    #endif
+    this->write_root_in = new unsigned char[n+ sizeof(TYPE_INDEX)];
     
     
 }
@@ -160,7 +162,7 @@ int ServerBinaryORAMO::evict(zmq::socket_t& socket)
         // LOAD BUCKETS FROM DISK
 		auto start = time_now;
 		
-        TYPE_ID readBucketIDS[2] = {curSrcIdx, curDestIdx};
+        TYPE_INDEX readBucketIDS[2] = {curSrcIdx, curDestIdx};
         
         this->readBucket_evict(readBucketIDS,this->serverNo,this->vecEvictPath_db[0],this->vecEvictPath_MAC[0]);
         #if defined(RSSS)
@@ -242,11 +244,9 @@ int ServerBinaryORAMO::evict(zmq::socket_t& socket)
             #endif
         }
         
-        //this->writeBucket_reverse_mode(curDestIdx,serverNo,vecReShares[0][serverNo],vecReShares_MAC[0][serverNo]);
         this->writeBucket(curDestIdx,serverNo,vecReShares[0][serverNo],vecReShares_MAC[0][serverNo]);
         
         #if defined(RSSS)
-            //this->writeBucket_reverse_mode(curDestIdx,(serverNo+1)%3,vecReShares[0][(serverNo+1)%3],vecReShares_MAC[0][(serverNo+1)%3]);
             this->writeBucket(curDestIdx,(serverNo+1)%3,vecReShares[0][(serverNo+1)%3],vecReShares_MAC[0][(serverNo+1)%3]);
         #endif
         end = time_now;
@@ -270,8 +270,6 @@ int ServerBinaryORAMO::evict(zmq::socket_t& socket)
         socket.send(lin_rand_com_out,4*sizeof(TYPE_DATA));
     #endif
     
-    
-    //socket.send((unsigned char*)CMD_SUCCESS,sizeof(CMD_SUCCESS));
 	cout<< "	[evict] ACK is SENT!" <<endl;
 
     return 0;
@@ -281,7 +279,7 @@ int ServerBinaryORAMO::evict(zmq::socket_t& socket)
 
 
 
-int ServerBinaryORAMO::readBucket_evict(TYPE_ID bucketIDs[], int shareID, zz_p** output_data, zz_p** output_mac)
+int ServerBinaryORAMO::readBucket_evict(TYPE_INDEX bucketIDs[], int shareID, zz_p** output_data, zz_p** output_mac)
 {
     
     FILE* file_in = NULL;
@@ -334,4 +332,119 @@ int ServerBinaryORAMO::readBucket_evict(TYPE_ID bucketIDs[], int shareID, zz_p**
         #endif
         fclose(file_in_mac);
     }
+}
+
+
+int ServerBinaryORAMO::writeRoot(zmq::socket_t& socket)
+{
+	cout<< "	[recvBlock] Receiving Block Data..." <<endl;
+	auto start = time_now;
+    long long n = 2 * BLOCK_SIZE;
+    #if defined(RSSS) &&!defined(SEEDING)
+        n = n*2;
+    #endif;
+    long long m = sizeof(TYPE_INDEX);
+    #if defined(SEEDING)
+        if(serverNo==0)
+            socket.recv(write_root_in, n+m, 0);
+        else
+        {
+            #if defined(RSSS)
+                if(serverNo==2)
+                {
+                    m = m + n;
+                }
+            #endif
+            socket.recv(write_root_in, m, 0);
+        }
+        auto end = time_now;
+        TYPE_INDEX slotIdx;
+        memcpy(&slotIdx,&write_root_in[0],sizeof(TYPE_INDEX));
+
+        cout<< "	[recvBlock] Block Data RECV in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count() <<endl;
+        server_logs[4] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
+
+
+       
+        
+        start = time_now;
+        zz_p tmp2;
+
+        unsigned long long tmp;
+        
+        #if defined(RSSS)
+            if(serverNo==2)
+            {   
+                this->updateRoot((serverNo+1)%3,slotIdx, &write_root_in[sizeof(TYPE_INDEX)], &write_root_in[sizeof(TYPE_INDEX)+BLOCK_SIZE]);
+            }
+            else
+            {
+                unsigned char* tmp_write_root_in = new unsigned char[BLOCK_SIZE*2];
+                memset(tmp_write_root_in,0,BLOCK_SIZE*2);
+                for(int i = 0 ; i < DATA_CHUNKS;i++)
+                {
+                    sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo+1)%3]);
+                    tmp2  = tmp;
+                    memcpy(&tmp_write_root_in[i*sizeof(TYPE_DATA)],&tmp2,sizeof(TYPE_DATA));
+
+                    sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo+1)%3]);
+                    tmp2  = tmp;
+                    memcpy(&tmp_write_root_in[i*sizeof(TYPE_DATA)+BLOCK_SIZE],&tmp2,sizeof(TYPE_DATA));
+                }
+                this->updateRoot((serverNo+1)%3,slotIdx, &tmp_write_root_in[0], &tmp_write_root_in[BLOCK_SIZE]);
+                delete[] tmp_write_root_in;
+            }
+           
+        #endif
+        
+        if(serverNo==0)
+        {
+        }
+        else
+        {
+            for(int i = 0 ; i < DATA_CHUNKS;i++)
+            {
+                sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo)%3]);
+                tmp2  = tmp;
+                memcpy(&write_root_in[sizeof(TYPE_DATA)+i*sizeof(TYPE_DATA)],&tmp2,sizeof(TYPE_DATA));
+
+                sober128_read((unsigned char*)&tmp,sizeof(TYPE_DATA),&prng_client[(serverNo)%3]);
+                tmp2  = tmp;
+                memcpy(&write_root_in[sizeof(TYPE_DATA)+i*sizeof(TYPE_DATA)+BLOCK_SIZE],&tmp2,sizeof(TYPE_DATA));
+            }
+        }
+        this->updateRoot(serverNo,slotIdx,&write_root_in[sizeof(TYPE_INDEX)],&write_root_in[BLOCK_SIZE+sizeof(TYPE_INDEX)]);
+        
+        
+    
+        end = time_now;
+        cout<< "	[recvBlock] Block STORED in Disk in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count() <<endl;
+        server_logs[5] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
+
+        socket.send((unsigned char*)CMD_SUCCESS,sizeof(CMD_SUCCESS));
+        cout<< "	[recvBlock] ACK is SENT!" <<endl;
+    #else
+
+        socket.recv(write_root_in, n+sizeof(TYPE_INDEX), 0);
+        auto end = time_now;
+        TYPE_INDEX slotIdx;
+        memcpy(&slotIdx,&write_root_in[n],sizeof(TYPE_INDEX));
+
+        cout<< "	[recvBlock] Block Data RECV in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count() <<endl;
+        server_logs[4] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
+
+        
+        start = time_now;
+        this->updateRoot(serverNo,slotIdx,&write_root_in[0],&write_root_in[BLOCK_SIZE]);
+        #if defined(RSSS)
+            this->updateRoot((serverNo+1)%3,slotIdx, &write_root_in[n/2], &write_root_in[n/2+BLOCK_SIZE]);
+        #endif
+        end = time_now;
+        cout<< "	[recvBlock] Block STORED in Disk in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count() <<endl;
+        server_logs[5] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
+
+        socket.send((unsigned char*)CMD_SUCCESS,sizeof(CMD_SUCCESS));
+        cout<< "	[recvBlock] ACK is SENT!" <<endl;
+    #endif
+    return 0;
 }

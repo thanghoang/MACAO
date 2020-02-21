@@ -7,7 +7,7 @@ class ClientKaryORAMC : public ClientORAM
 {
 private:
 
-    //specific variable for S3CORAM
+    //specific variable
     TYPE_DATA** STASH;
     TYPE_INDEX* metaStash;
     
@@ -22,25 +22,20 @@ public:
 
     ClientKaryORAMC();
     ~ClientKaryORAMC();
-    
-    
+   
     
     //main functions
     int loadState();
     int saveState();
-    int access(TYPE_ID blockID);
+    int access(TYPE_INDEX blockID);
     
     int init();
-    //retrieval_vector
-    //int getLogicalVector(TYPE_DATA* logicalVector, TYPE_ID blockID);
-    int updatePosMap(TYPE_ID blockID);
+    int updatePosMap(TYPE_INDEX blockID);
     
     int evict();
     
-    //eviction_matrix
     int getEvictMatrix();
-    
-    int isRetrievedBlockInStash(TYPE_ID blockID);
+    int isRetrievedBlockInStash(TYPE_INDEX blockID);
     
 
 };
