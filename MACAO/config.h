@@ -42,7 +42,7 @@ static const unsigned long long P = 1073742353; //288230376152137729; //prime fi
 //#define XOR_PIR
 //#define RSSS
 #define SPDZ
-//#define SEEDING
+#define SEEDING
 
 #if defined (SEEDING)
     static std::string CLIENT_SERVER_SEED[3] = {"abcdefghijklmn", "12345678910112","mnlkjihgfedcba"};

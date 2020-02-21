@@ -856,10 +856,9 @@ int ServerORAM::retrieve(zmq::socket_t& socket)
             }
            
             memcpy(&retrieval_answer_out[0],dotProd_output[0],BLOCK_SIZE);
-             memcpy(&retrieval_answer_out[BLOCK_SIZE],dotProd_mac_output[0],BLOCK_SIZE);
+            memcpy(&retrieval_answer_out[BLOCK_SIZE],dotProd_mac_output[0],BLOCK_SIZE);
             memcpy(&retrieval_answer_out[2*BLOCK_SIZE], &x, sizeof(TYPE_DATA));
             memcpy(&retrieval_answer_out[2*BLOCK_SIZE + sizeof(TYPE_DATA)], &y, sizeof(TYPE_DATA));
-            cout<<x<<" "<<y<<endl;
             #endif
         #endif
 
@@ -1540,7 +1539,7 @@ int ServerORAM::preReSharing(int level, int es, int ee)
                 {
                     //this->vecShares_a[e][i][j] = 0;
                     //this->vecShares_a_MAC[e][i][j] = 0;
-                    
+                    cout<<this->vecShares_a[e][i][j]<<endl;
                     this->vecEvictPath_db[e][i][j] -= this->vecShares_a[e][i][j];
                     this->vecEvictPath_MAC[e][i][j] -=this->vecShares_a_MAC[e][i][j];
                 }
@@ -2016,10 +2015,10 @@ int ServerORAM::readTriplets(zz_p** data, int row, int col, string file_name)
     
     // use a more efficient method to delete first n bytes from file
     //string file_pop_cmd = "dd conv=notrunc status=none if=" + path + " bs=1 skip=" + to_string(row*col*sizeof(TYPE_DATA)) +" of=" + path;
-    //string file_pop_cmd = "tail -c +" + to_string(row*col*sizeof(TYPE_DATA) + 1) + " " + path + " > tmp" + to_string(serverNo);
-    //string move_cmd = "mv tmp" + to_string(serverNo)+ " " + path;
-    //system(file_pop_cmd.c_str());
-    //system(move_cmd.c_str());
+    string file_pop_cmd = "tail -c +" + to_string(row*col*sizeof(TYPE_DATA) + 1) + " " + path + " > tmp" + to_string(serverNo);
+    string move_cmd = "mv tmp" + to_string(serverNo)+ " " + path;
+    system(file_pop_cmd.c_str());
+    system(move_cmd.c_str());
 } 
 
 
@@ -2042,8 +2041,8 @@ int ServerORAM::readTriplets(zz_p* data, int length, string file_name)
     //string file_pop_cmd = "dd conv=notrunc if=" + path + " bs=1 skip=" + to_string(length*sizeof(TYPE_DATA)) +" of=" + path;
     string file_pop_cmd = "tail -c +" + to_string(length*sizeof(TYPE_DATA) + 1) + " " + path + " > tmp" + to_string(serverNo);
     string move_cmd = "mv tmp" + to_string(serverNo)+ " " + path;
-    //system(file_pop_cmd.c_str());
-    //system(move_cmd.c_str());
+    system(file_pop_cmd.c_str());
+    system(move_cmd.c_str());
 } 
 
 

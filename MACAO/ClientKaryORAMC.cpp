@@ -377,60 +377,7 @@ int ClientKaryORAMC::evict()
         pthread_join(thread_sockets[i], NULL);
     }
 
-    #if defined(SPDZ)
-        zz_p X1, Y1, X2, Y2;
-    #else // RSSS
-        zz_p X1[NUM_SERVERS], Y1[NUM_SERVERS], X2[NUM_SERVERS], Y2[NUM_SERVERS];
-    #endif
-    for(int i = 0; i < NUM_SERVERS; i++)
-    {
-        #if defined(SPDZ)
-            X1 = *((zz_p*)&lin_rand_com_in[i][0]);
-            Y1 += *((zz_p*)&lin_rand_com_in[i][sizeof(TYPE_DATA)]);
-            cout<<*((zz_p*)&lin_rand_com_in[i][0])<< " "<<*((zz_p*)&lin_rand_com_in[i][sizeof(TYPE_DATA)])<<endl; 	
-        #else // RSSS
-            X1[i] = *((zz_p*)&lin_rand_com_in[i][0]);
-            Y1[i] = *((zz_p*)&lin_rand_com_in[i][sizeof(TYPE_DATA)]);
-            X2[i] = *((zz_p*)&lin_rand_com_in[i][2*sizeof(TYPE_DATA)]);
-            Y2[i] = *((zz_p*)&lin_rand_com_in[i][3*sizeof(TYPE_DATA)]);
-        #endif
-        
-    }
-
-    #if defined(SPDZ)
-        if(GLOBAL_MAC_KEY*X1 != Y1)
-        {
-            cout<<"Data was tampered (SPDZ)!!<<"<<endl;
-            exit(0);
-        }
-    #else // RSSS
-        // cross check
-        for(int i = 0; i < NUM_SERVERS; i++) 
-        {
-            if((X2[i] != X1[(i+1)%3]) || (Y2[i] != Y1[(i+1)%3]))
-            {
-                cout<<"Cross checking failed! Data was tampered (RSSS)!<<"<<endl;
-                exit(0);
-            }
-        }
-
-        // MAC check
-        for(int i = 1; i < NUM_SERVERS; i++)
-        {
-            X1[0] += X1[i];
-            Y1[0] += Y1[i];
-            X2[0] += X2[i];
-            Y2[0] += Y2[i];
-        }
-        if(GLOBAL_MAC_KEY * X1[0] != Y1[0] || GLOBAL_MAC_KEY * X2[0] != Y2[0])
-        {
-            cout<<"Data was tampered (RSSS)!<<"<<endl;
-            exit(0);
-        }
-        cout<<GLOBAL_MAC_KEY * X1[0]<<" "<< Y1[0]<<" "<<GLOBAL_MAC_KEY * X2[0] <<" "<<Y2[0]<<endl;
-    #endif
-    	
-    
+    checkRandLinCom();
 
     end = time_now;
     cout<< "	[ClientKaryORAMC] Eviction DONE in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count()<< " ns"<<endl;

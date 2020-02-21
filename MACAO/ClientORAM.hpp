@@ -119,6 +119,8 @@ public:
        
     zz_p* recoveredBlock;
     zz_p* recoveredMacBlock;    
+
+    int checkRandLinCom();
 };
 
 #endif // CLIENTORAM_HPP

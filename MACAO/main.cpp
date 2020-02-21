@@ -58,7 +58,7 @@ int main(int argc, char **argv)
         SetSeed(seed);
     #endif
     
-	cout << "CLIENT(1) or SERVER(2): ";
+	cout << "CLIENT(1) or SERVER(2) or Create triplets for Retrieval(3) or Eviction(4): ";
 	cin >> choice;
 	cout << endl;
 	
@@ -141,14 +141,31 @@ int main(int argc, char **argv)
         {
             for(int i = 1 ; i < NUM_BLOCK+1; i++)
             {
-                cout<<"idx "<<j<<" "<<i<<endl;
                 client->access(1);
                 //cin.get();
             }
         }
         cout<<"Done!";
     }
-	else
+    else if (choice == 3)
+    {   
+        cout<<endl;
+        int n;
+        cout<< "How many retrieval triplets do you want to create?" <<endl;
+        cin >> n;
+        ORAM::createRetrievalTriplets(n);
+        cout<<"Done!";
+    }
+    else if (choice == 4)
+    {   
+        cout<<endl;
+        int n;
+        cout<< "How many eviction triplets do you want to create?" <<endl;
+        cin >> n;
+        ORAM::createEvictionTriplets(n);
+        cout<<"Done!";
+    }
+    else
 	{
 		cout << "COME ON!!" << endl;
 	}
