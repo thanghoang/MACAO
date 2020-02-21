@@ -72,8 +72,8 @@ make
 
 , which produces the binary executable file named ```MACAO``` in ``MACAO/Debug/``.
 
-# Data location
-All necessary data by the client setup phase are output to the MACAO/data folder (by default, which can be changed by editing the ``config.h`` under ``PATHS`` section). Refer to the ``data.zip`` file to see as example the structure of the folder.
+# ORAM Data Location
+All necessary data by the client setup phase are output to the ``MACAO/data`` folder (by default, which can be changed by editing the ``config.h`` under ``PATHS`` section). WE refer to ``MACAO/data.zip`` as an example of the structure of the folder.
 
 # Usage
 
