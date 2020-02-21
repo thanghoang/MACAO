@@ -81,12 +81,13 @@ Run the binary executable file ```MACAO```, which will ask for either Client or 
 
 
 ## Local Testing:
-1. Set ``SERVER_ADDR`` in ``MACAO/config.h`` to be ``localhost``. 
+1. Set ``SERVER_ADDR`` in ``MACAO/config.h`` to ``localhost``. 
 2. Set ``SERVER_PORT``
 3. Compile the code with ``make`` in the ``MACAO/`` folder. 
 4. Go to ``MACAO/Debug`` and run the compiled ``MACAO`` file in different Terminals, each playing the client/server role.
 
 ## Real Network Testing:
+1. Set ``SERVER_ADDR`` in ``MACAO/config.h`` to the real IP address of each server machine. 
 1. Copy the binary file ``MACAO`` compiled under the same configuration to running machines. 
 2. For first time usage, run the ``MACAO/Debug/MACAO`` file on the *client* machine to initialize the MACAO structure first.
 3. Copy the folder the data generated in ``MACAO/data/xxx/`` to corresponding server
@@ -96,7 +97,7 @@ Run the binary executable file ```MACAO```, which will ask for either Client or 
 
 ## Citing
 
-If the code is found useful, we would be appreciated if our paper can be cited with the following bibtex format 
+If the paper and the code is found useful, we would be appreciated if our paper can be cited with the following bibtex format 
 
 ```
 @inproceedings{hoang20:MACAO, 
