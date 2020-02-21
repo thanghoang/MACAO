@@ -1,8 +1,6 @@
 # MACAO: A Maliciously-Secure and Client-Efficient Active ORAM Framework
 
 This repository  contains the implementation of the **MACAO framework** to appear in NDSS'20. The full paper is available [here](https://eprint.iacr.org/2020/203).
-
-
 This project is built on [CodeLite IDE](http://codelite.org). It is recommended to install CodeLite to load the full S3ORAM workspace. 
 
 ## Updates
