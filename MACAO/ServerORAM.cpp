@@ -1537,10 +1537,7 @@ int ServerORAM::preReSharing(int level, int es, int ee)
             {
                 for(int j = 0 ; j < MAT_PRODUCT_INPUT_DB_LENGTH; j++)
                 {
-                    //this->vecShares_a[e][i][j] = 0;
-                    //this->vecShares_a_MAC[e][i][j] = 0;
-                    cout<<this->vecShares_a[e][i][j]<<endl;
-                    this->vecEvictPath_db[e][i][j] -= this->vecShares_a[e][i][j];
+                                        this->vecEvictPath_db[e][i][j] -= this->vecShares_a[e][i][j];
                     this->vecEvictPath_MAC[e][i][j] -=this->vecShares_a_MAC[e][i][j];
                 }
                 for(int s = 0 ; s < NUM_SERVERS-1;s++)
@@ -1554,8 +1551,6 @@ int ServerORAM::preReSharing(int level, int es, int ee)
             {
                 for(int j = 0 ; j < EVICT_MAT_NUM_COL; j++)
                 {
-                    //this->vecShares_b[e][level][i][j] = 0;
-                    //this->vecShares_b_MAC[e][level][i][j]=0;
                     
                     this->vecEvictMatrix[e][level][i][j] -= this->vecShares_b[e][level][i][j];
                     this->vecEvictMatrix_MAC[e][level][i][j] -= this->vecShares_b_MAC[e][level][i][j];

@@ -65,8 +65,8 @@ static const unsigned long long P = 1073742353; //288230376152137729; //prime fi
 
 //#define PRIVACY_LEVEL 1
 
-#define CORAM_LAYOUT
-//#define TRIPLET_EVICTION
+//#define CORAM_LAYOUT
+#define TRIPLET_EVICTION
 
 #define K_ARY 2
 

@@ -67,7 +67,11 @@ public:
     static int createEvictionTriplets(int n);
     static int perform_dot_product(zz_p** A, zz_p* B, zz_p* C, int row, int input_length);
     static int perform_cross_product(zz_p** A, zz_p** B, zz_p** C, int row, int input_length, int output_length);
-
+    static int writeTriplets(zz_p**** data, int n, int row, int col, string file_name);
+    static int writeTriplets(zz_p*** data, int n, int row, string file_name);
+    static int clearMemory(zz_p** data, int m);
+    static int clearMemory(zz_p*** data, int m, int n);
+    static int clearMemory(zz_p**** data, int m, int n, int p);
 };
     
 #endif // SSORAM_HPP

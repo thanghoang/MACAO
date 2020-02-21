@@ -959,6 +959,7 @@ int ORAM::prepareTarget(TYPE_INDEX* meta_path, TYPE_INDEX pathID, int *deepest, 
 
 int ORAM::createRetrievalTriplets(int n)
 {
+    srand(time(NULL));
     zz_p*** A = new zz_p**[n];
     zz_p** B = new zz_p*[n];
     zz_p** C = new zz_p*[n];
@@ -1052,7 +1053,7 @@ int ORAM::createRetrievalTriplets(int n)
                 } 
             }
         }
-
+        
 
         for(int i = 0; i < PATH_LENGTH; i++)
         {
@@ -1083,98 +1084,22 @@ int ORAM::createRetrievalTriplets(int n)
         } 
     }
 
-    string path;
-    FILE* file_out = NULL;
+    writeTriplets(shares_A, n, DATA_CHUNKS, PATH_LENGTH, "retrieval_triplet_a");
+    writeTriplets(shares_A_mac, n, DATA_CHUNKS, PATH_LENGTH, "retrieval_triplet_a_mac");
+    writeTriplets(shares_B, n, PATH_LENGTH, "retrieval_triplet_b");
+    writeTriplets(shares_B_mac, n, PATH_LENGTH, "retrieval_triplet_b_mac");
+    writeTriplets(shares_C, n, DATA_CHUNKS, "retrieval_triplet_c");
+    writeTriplets(shares_C_mac, n, DATA_CHUNKS, "retrieval_triplet_c_mac");
 
-    for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++) 
-    {
-        path = rootPath + to_string(k) + "/" + "retrieval_triplet_a";
-        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
-        {
-            cout<< path << " Cannot Be Opened!!" <<endl;
-            exit;
-        }
-        for(int i = 0; i < n; i++)
-        {
-            for(int j = 0 ; j< DATA_CHUNKS; j++)
-            {
-                fwrite(shares_A[k][i][j], 1, PATH_LENGTH*sizeof(TYPE_DATA), file_out);
-            }
-        }
-        fclose(file_out);
-
-
-        path = rootPath + to_string(k) + "/" + "retrieval_triplet_a_mac";
-        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
-        {
-            cout<< path << " Cannot Be Opened!!" <<endl;
-            exit;
-        }
-        for(int i = 0; i < n; i++)
-        {
-            for(int j = 0 ; j< DATA_CHUNKS; j++)
-            {
-                fwrite(shares_A_mac[k][i][j], 1, PATH_LENGTH*sizeof(TYPE_DATA), file_out);
-            }
-        }
-        fclose(file_out);
-    } 
-
-    for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++) 
-    {
-        path = rootPath + to_string(k) + "/" + "retrieval_triplet_b";
-        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
-        {
-            cout<< path << " Cannot Be Opened!!" <<endl;
-            exit;
-        }
-        
-        for(int i = 0; i < n; i++)
-        {
-            fwrite(shares_B[k][i], 1, PATH_LENGTH*sizeof(TYPE_DATA), file_out);
-        }
-        fclose(file_out);
-
-        path = rootPath + to_string(k) + "/" + "retrieval_triplet_b_mac";
-        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
-        {
-            cout<< path << " Cannot Be Opened!!" <<endl;
-            exit;
-        }
-        
-        for(int i = 0; i < n; i++)
-        {
-            fwrite(shares_B_mac[k][i], 1, PATH_LENGTH*sizeof(TYPE_DATA), file_out);
-        }
-        fclose(file_out);
-    }
-
-    for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++) 
-    {
-        path = rootPath + to_string(k) + "/" + "retrieval_triplet_c";
-        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
-        {
-            cout<< path << " Cannot Be Opened!!" <<endl;
-            exit;
-        }
-        for(int i = 0; i < n; i++)
-        {
-            fwrite(shares_C[k][i], 1, DATA_CHUNKS*sizeof(TYPE_DATA), file_out);
-        }
-        fclose(file_out);
-
-        path = rootPath + to_string(k) + "/" + "retrieval_triplet_c_mac";
-        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
-        {
-            cout<< path << " Cannot Be Opened!!" <<endl;
-            exit;
-        }
-        for(int i = 0; i < n; i++)
-        {
-            fwrite(shares_C_mac[k][i], 1, DATA_CHUNKS*sizeof(TYPE_DATA), file_out);
-        }
-        fclose(file_out);
-    }
+    clearMemory(A, n, DATA_CHUNKS);
+    clearMemory(B, n);
+    clearMemory(C, n);
+    clearMemory(shares_A, NUM_SERVERS, n, DATA_CHUNKS);
+    clearMemory(shares_A_mac, NUM_SERVERS, n, DATA_CHUNKS);
+    clearMemory(shares_B, NUM_SERVERS, n);
+    clearMemory(shares_B_mac, NUM_SERVERS, n);
+    clearMemory(shares_C, NUM_SERVERS, n);
+    clearMemory(shares_C_mac, NUM_SERVERS, n);
 	return 0;
 }
 
@@ -1319,109 +1244,23 @@ int ORAM::createEvictionTriplets(int n)
         }
     }
 
+    writeTriplets(shares_A, n, DATA_CHUNKS, MAT_PRODUCT_INPUT_DB_LENGTH, "evict_triplet_a");
+    writeTriplets(shares_A_MAC, n, DATA_CHUNKS, MAT_PRODUCT_INPUT_DB_LENGTH, "evict_triplet_a_mac");
+    writeTriplets(shares_B, n, EVICT_MAT_NUM_ROW, EVICT_MAT_NUM_COL, "evict_triplet_b");
+    writeTriplets(shares_B_MAC, n, EVICT_MAT_NUM_ROW, EVICT_MAT_NUM_COL, "evict_triplet_b_mac");
+    writeTriplets(shares_C, n, DATA_CHUNKS, MAT_PRODUCT_OUTPUT_LENGTH, "evict_triplet_c");
+    writeTriplets(shares_C_MAC, n, DATA_CHUNKS, MAT_PRODUCT_OUTPUT_LENGTH, "evict_triplet_c_mac");
 
-    string path;
-    FILE* file_out = NULL;
-
-    for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++) 
-    {
-        path = rootPath + to_string(k) + "/" + "evict_triplet_a";
-        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
-        {
-            cout<< path << " Cannot Be Opened!!" <<endl;
-            exit;
-        }
-        for(int i = 0; i < n; i++)
-        {
-            for(int j = 0 ; j< DATA_CHUNKS; j++)
-            {
-                fwrite(shares_A[k][i][j], 1, MAT_PRODUCT_INPUT_DB_LENGTH*sizeof(TYPE_DATA), file_out);
-            }
-        }
-        fclose(file_out);
-
-        path = rootPath + to_string(k) + "/" + "evict_triplet_a_mac";
-        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
-        {
-            cout<< path << " Cannot Be Opened!!" <<endl;
-            exit;
-        }
-        for(int i = 0; i < n; i++)
-        {
-            for(int j = 0 ; j< DATA_CHUNKS; j++)
-            {
-                fwrite(shares_A_MAC[k][i][j], 1, MAT_PRODUCT_INPUT_DB_LENGTH*sizeof(TYPE_DATA), file_out);
-            }
-        }
-        fclose(file_out);
-    } 
-
-    for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++) 
-    {
-        path = rootPath + to_string(k) + "/" + "evict_triplet_b";
-        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
-        {
-            cout<< path << " Cannot Be Opened!!" <<endl;
-            exit;
-        }
-        for(int i = 0; i < n; i++)
-        {
-            for(int j = 0 ; j < EVICT_MAT_NUM_ROW; j++)
-            {
-                fwrite(shares_B[k][i][j], 1, EVICT_MAT_NUM_COL*sizeof(TYPE_DATA), file_out);
-            }
-        }
-        fclose(file_out);
-
-        path = rootPath + to_string(k) + "/" + "evict_triplet_b_mac";
-        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
-        {
-            cout<< path << " Cannot Be Opened!!" <<endl;
-            exit;
-        }
-        for(int i = 0; i < n; i++)
-        {
-            for(int j = 0 ; j < EVICT_MAT_NUM_ROW; j++)
-            {
-                fwrite(shares_B_MAC[k][i][j], 1, EVICT_MAT_NUM_COL*sizeof(TYPE_DATA), file_out);
-            }
-        }
-        fclose(file_out);
-    } 
-
-    for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++) 
-    {
-        path = rootPath + to_string(k) + "/" + "evict_triplet_c";
-        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
-        {
-            cout<< path << " Cannot Be Opened!!" <<endl;
-            exit;
-        }
-        for(int i = 0; i < n; i++)
-        {
-            for(int j = 0 ; j < DATA_CHUNKS; j++)
-            {
-                fwrite(shares_C[k][i][j], 1, MAT_PRODUCT_OUTPUT_LENGTH*sizeof(TYPE_DATA), file_out);
-            }
-        }
-        fclose(file_out);
-
-        path = rootPath + to_string(k) + "/" + "evict_triplet_c_mac";
-        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
-        {
-            cout<< path << " Cannot Be Opened!!" <<endl;
-            exit;
-        }
-        for(int i = 0; i < n; i++)
-        {
-            for(int j = 0 ; j < DATA_CHUNKS; j++)
-            {
-                fwrite(shares_C_MAC[k][i][j], 1, MAT_PRODUCT_OUTPUT_LENGTH*sizeof(TYPE_DATA), file_out);
-            }
-        }
-        fclose(file_out);
-    } 
-
+    clearMemory(A, n, DATA_CHUNKS);
+    clearMemory(B, n, EVICT_MAT_NUM_ROW);
+    clearMemory(C, n, DATA_CHUNKS);
+    clearMemory(shares_A, NUM_SERVERS, n, DATA_CHUNKS);
+    clearMemory(shares_A_MAC, NUM_SERVERS, n, DATA_CHUNKS);
+    clearMemory(shares_B, NUM_SERVERS, n, EVICT_MAT_NUM_ROW);
+    clearMemory(shares_B_MAC, NUM_SERVERS, n, EVICT_MAT_NUM_ROW);
+    clearMemory(shares_C, NUM_SERVERS, n, DATA_CHUNKS);
+    clearMemory(shares_C_MAC, NUM_SERVERS, n, DATA_CHUNKS);
+    
 	return 0;
 }
 
@@ -1445,5 +1284,93 @@ int ORAM::perform_cross_product(zz_p** A, zz_p** B, zz_p** C, int row, int outpu
         }
     }
 
+    return 0;
+}
+
+int ORAM::writeTriplets(zz_p**** data, int n, int row, int col, string file_name)
+{
+    string path;
+    FILE* file_out = NULL;
+    for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++) 
+    {
+        path = rootPath + to_string(k) + "/" + file_name;
+        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
+        {
+            cout<< path << " Cannot Be Opened!!" <<endl;
+            exit;
+        }
+        for(int i = 0; i < n; i++)
+        {
+            for(int j = 0 ; j< row; j++)
+            {
+                fwrite(data[k][i][j], 1, col*sizeof(TYPE_DATA), file_out);
+            }
+        }
+        fclose(file_out);
+    }
+    return 0;
+}
+
+int ORAM::writeTriplets(zz_p*** data, int n, int col, string file_name)
+{
+    string path;
+    FILE* file_out = NULL;
+    for(TYPE_INDEX k = 0; k < NUM_SERVERS; k++) 
+    {
+        path = rootPath + to_string(k) + "/" + file_name;
+        if((file_out = fopen(path.c_str(),"wb+")) == NULL)
+        {
+            cout<< path << " Cannot Be Opened!!" <<endl;
+            exit;
+        }
+        for(int i = 0; i < n; i++)
+        {   
+            fwrite(data[k][i], 1, col*sizeof(TYPE_DATA), file_out);
+        }
+        fclose(file_out);
+    }
+    return 0;
+}
+
+
+int ORAM::clearMemory(zz_p** data, int m)
+{   
+    for(int i = 0; i < m; i++)
+    {
+        delete[] data[i];
+    }
+    delete[] data;
+    return 0;
+}
+
+int ORAM::clearMemory(zz_p*** data, int m, int n)
+{   
+    for(int i = 0; i < m; i++)
+    {
+        for(int j = 0; j < n; j++)
+        {
+            delete[] data[i][j];
+        }
+        delete[] data[i];
+    }
+    delete[] data;
+    return 0;
+}
+
+int ORAM::clearMemory(zz_p**** data, int m, int n, int p)
+{   
+    for(int i = 0; i < m; i++)
+    {
+        for(int j = 0; j < n; j++)
+        {
+            for(int k = 0; k < p; k++)
+            {
+                delete[] data[i][j][k];
+            }
+            delete[] data[i][j];
+        }
+        delete[] data[i];
+    }
+    delete[] data;
     return 0;
 }
