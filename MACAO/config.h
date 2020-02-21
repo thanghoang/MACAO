@@ -40,8 +40,8 @@ static inline std::string to_string(T value)
 static const unsigned long long P = 1073742353; //288230376152137729; //prime field - should have length equal to the defined TYPE_DATA
 
 //#define XOR_PIR
-//#define RSSS
-#define SPDZ
+#define RSSS
+//#define SPDZ
 #define SEEDING
 
 #if defined (SEEDING)
@@ -65,8 +65,8 @@ static const unsigned long long P = 1073742353; //288230376152137729; //prime fi
 
 //#define PRIVACY_LEVEL 1
 
-//#define CORAM_LAYOUT
-#define TRIPLET_EVICTION
+#define CORAM_LAYOUT
+//#define TRIPLET_EVICTION
 
 #define K_ARY 2
 
@@ -240,8 +240,12 @@ const unsigned long long BUCKET_DATA_SIZE = BUCKET_SIZE*BLOCK_SIZE;
 
 #if defined (CORAM_LAYOUT)
     #if defined(RSSS)
-        const unsigned long long CLIENT_EVICTION_OUT_LENGTH =  2*(BLOCK_SIZE*2+ (H+1)*evictMatSize*sizeof(TYPE_DATA)) +sizeof(TYPE_INDEX) ;//  for OnionORAM -> (H+1)*evictMatSize*sizeof(TYPE_DATA) + sizeof(TYPE_INDEX);
-
+        #if defined(SEEDING)
+            const unsigned long long CLIENT_EVICTION_OUT_LENGTH =  2*(BLOCK_SIZE*2+ (H+1)*evictMatSize*sizeof(TYPE_DATA)) +sizeof(TYPE_INDEX) ;//  for OnionORAM -> (H+1)*evictMatSize*sizeof(TYPE_DATA) + sizeof(TYPE_INDEX);
+        #else
+            const unsigned long long CLIENT_EVICTION_OUT_LENGTH =  2*2*(BLOCK_SIZE*2+ (H+1)*evictMatSize*sizeof(TYPE_DATA)) +sizeof(TYPE_INDEX) ;//  for OnionORAM -> (H+1)*evictMatSize*sizeof(TYPE_DATA) + sizeof(TYPE_INDEX);
+        #endif
+        
     #else // SPDZ
         const unsigned long long CLIENT_EVICTION_OUT_LENGTH =  2*(BLOCK_SIZE*2+ 2*(H+1)*evictMatSize*sizeof(TYPE_DATA)) +sizeof(TYPE_INDEX) ;//  for OnionORAM -> (H+1)*evictMatSize*sizeof(TYPE_DATA) + sizeof(TYPE_INDEX);
     #endif
@@ -264,7 +268,11 @@ const unsigned long long BUCKET_DATA_SIZE = BUCKET_SIZE*BLOCK_SIZE;
     const int EVICT_MAT_NUM_ROW = BUCKET_SIZE+1;
 #else
     #if defined(RSSS)
-        const unsigned long long CLIENT_EVICTION_OUT_LENGTH =  ((H+1)*evictMatSize*sizeof(TYPE_DATA)) +sizeof(TYPE_INDEX) ;//  for OnionORAM -> (H+1)*evictMatSize*sizeof(TYPE_DATA) + sizeof(TYPE_INDEX);
+        #if defined (SEEDING)
+            const unsigned long long CLIENT_EVICTION_OUT_LENGTH =  ((H+1)*evictMatSize*sizeof(TYPE_DATA)) +sizeof(TYPE_INDEX) ;//  for OnionORAM -> (H+1)*evictMatSize*sizeof(TYPE_DATA) + sizeof(TYPE_INDEX);
+        #else
+            const unsigned long long CLIENT_EVICTION_OUT_LENGTH =  2*((H+1)*evictMatSize*sizeof(TYPE_DATA)) +sizeof(TYPE_INDEX) ;//  for OnionORAM -> (H+1)*evictMatSize*sizeof(TYPE_DATA) + sizeof(TYPE_INDEX);
+        #endif
     #else
         const unsigned long long CLIENT_EVICTION_OUT_LENGTH =  (2*(H+1)*evictMatSize*sizeof(TYPE_DATA)) +sizeof(TYPE_INDEX) ;//  for OnionORAM -> (H+1)*evictMatSize*sizeof(TYPE_DATA) + sizeof(TYPE_INDEX);
     #endif

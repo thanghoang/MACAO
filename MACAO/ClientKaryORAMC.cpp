@@ -250,13 +250,22 @@ int ClientKaryORAMC::evict()
                 #if defined(SEEDING)
                     ORAM::createShares(this->STASH[deepestIdx[0]][u], data_shares, mac_shares,prng_client,0);
                     memcpy(&evict_out[0][currBufferIdx], &data_shares[0], sizeof(TYPE_DATA));
-                    memcpy(&evict_out[0][currBufferIdx + BLOCK_SIZE], &mac_shares[0], sizeof(TYPE_DATA));                
+                    memcpy(&evict_out[0][currBufferIdx + BLOCK_SIZE], &mac_shares[0], sizeof(TYPE_DATA)); 
+                    #if defined (RSSS)               
+                        memcpy(&evict_out[2][currBufferIdx], &data_shares[0], sizeof(TYPE_DATA));
+                        memcpy(&evict_out[2][currBufferIdx + BLOCK_SIZE], &mac_shares[0], sizeof(TYPE_DATA)); 
+                    #endif
                 #else // RSSS or SPDZ
                     ORAM::createShares(this->STASH[deepestIdx[0]][u], data_shares, mac_shares);
                     for(int k = 0; k < NUM_SERVERS; k++) 
                     {
                         memcpy(&evict_out[k][currBufferIdx], &data_shares[k], sizeof(TYPE_DATA));
                         memcpy(&evict_out[k][currBufferIdx + BLOCK_SIZE], &mac_shares[k], sizeof(TYPE_DATA));
+                        
+                        #if defined (RSSS)
+                            memcpy(&evict_out[k][(CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX))/2+currBufferIdx], &data_shares[(k+1)%3], sizeof(TYPE_DATA));
+                            memcpy(&evict_out[k][(CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX))/2+currBufferIdx + BLOCK_SIZE], &mac_shares[(k+1)%3], sizeof(TYPE_DATA));
+                        #endif
                     }
                 #endif
                 
@@ -265,7 +274,7 @@ int ClientKaryORAMC::evict()
             memset(STASH[deepestIdx[0]],0,sizeof(TYPE_DATA)*DATA_CHUNKS);
             metaStash[deepestIdx[0]] = -1;
         }
-        else
+        else //merge with above, no need  to be long like this
         {
             for(int u = 0 ; u < DATA_CHUNKS; u++ )
             {
@@ -273,12 +282,21 @@ int ClientKaryORAMC::evict()
                     ORAM::createShares(this->STASH[0][u], data_shares, mac_shares, prng_client,0); //!? Check THIS!
                     memcpy(&evict_out[0][currBufferIdx], &data_shares[0], sizeof(TYPE_DATA));
                     memcpy(&evict_out[0][currBufferIdx + BLOCK_SIZE], &mac_shares[0], sizeof(TYPE_DATA));
+                    
+                    #if defined (RSSS) 
+                        memcpy(&evict_out[2][currBufferIdx], &data_shares[0], sizeof(TYPE_DATA));
+                        memcpy(&evict_out[2][currBufferIdx + BLOCK_SIZE], &mac_shares[0], sizeof(TYPE_DATA));
+                    #endif
                 #else // RSSS or SPDZ
-                    ORAM::createShares(this->STASH[0][u], data_shares, mac_shares); //!? Check THIS!
+                    ORAM::createShares(this->STASH[0][u], data_shares, mac_shares);
                     for(int k = 0; k < NUM_SERVERS; k++) 
                     {
                         memcpy(&evict_out[k][currBufferIdx], &data_shares[k], sizeof(TYPE_DATA));
                         memcpy(&evict_out[k][currBufferIdx + BLOCK_SIZE], &mac_shares[k], sizeof(TYPE_DATA));
+                        #if defined (RSSS)
+                            memcpy(&evict_out[k][(CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX))/2+currBufferIdx], &data_shares[(k+1)%3], sizeof(TYPE_DATA));
+                            memcpy(&evict_out[k][(CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX))/2+currBufferIdx + BLOCK_SIZE], &mac_shares[(k+1)%3], sizeof(TYPE_DATA));
+                        #endif                    
                     }
                 #endif
                 currBufferIdx += sizeof(TYPE_DATA);
@@ -315,7 +333,12 @@ int ClientKaryORAMC::evict()
             for (TYPE_INDEX y = 0 ; y < H+1; y++)
             {
                 memcpy(&evict_out[0][currBufferIdx + y*evictMatSize*sizeof(TYPE_DATA)], this->sharedMatrix[0][y], evictMatSize*sizeof(TYPE_DATA));
-               #if defined(SPDZ)
+
+                #if defined(RSSS)
+                    memcpy(&evict_out[2][currBufferIdx + y*evictMatSize*sizeof(TYPE_DATA)], this->sharedMatrix[0][y], evictMatSize*sizeof(TYPE_DATA));
+                #endif 
+ 
+                #if defined(SPDZ)
                     memcpy(&evict_out[0][currBufferIdx + (H+1+y)*evictMatSize*sizeof(TYPE_DATA)], this->sharedMatrix_MAC[0][y], evictMatSize*sizeof(TYPE_DATA));
                 #endif
             }
@@ -326,6 +349,9 @@ int ClientKaryORAMC::evict()
                 for (TYPE_INDEX y = 0 ; y < H+1; y++)
                 {
                     memcpy(&evict_out[i][currBufferIdx + y*evictMatSize*sizeof(TYPE_DATA)], this->sharedMatrix[i][y], evictMatSize*sizeof(TYPE_DATA));
+                    #if defined (RSSS)
+                        memcpy(&evict_out[i][(CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX))/2+currBufferIdx + y*evictMatSize*sizeof(TYPE_DATA)], this->sharedMatrix[(i+1)%3][y], evictMatSize*sizeof(TYPE_DATA));
+                    #endif
                     #if defined(SPDZ)
                         memcpy(&evict_out[i][currBufferIdx + (H+1+y)*evictMatSize*sizeof(TYPE_DATA)], this->sharedMatrix_MAC[i][y], evictMatSize*sizeof(TYPE_DATA));
                     #endif
@@ -349,18 +375,28 @@ int ClientKaryORAMC::evict()
     {
         #if defined(SEEDING)
             if(i==0)
+            {
                 #if defined(SPDZ)
                     thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, lin_rand_com_in[i], 2*sizeof(TYPE_DATA), CMD_EVICT,  NULL);
                 #else // RSSS
                     thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, lin_rand_com_in[i], 4*sizeof(TYPE_DATA), CMD_EVICT,  NULL);
                 #endif
-
+            }
             else
+            {
                 #if defined(SPDZ)
                     thread_socket_args[i] = struct_socket(i, evict_out[i], sizeof(TYPE_INDEX), lin_rand_com_in[i], 2*sizeof(TYPE_DATA), CMD_EVICT,  NULL);
                 #else // RSSS
-                    thread_socket_args[i] = struct_socket(i, evict_out[i], sizeof(TYPE_INDEX), lin_rand_com_in[i], 4*sizeof(TYPE_DATA), CMD_EVICT,  NULL);
+                    if(i==2)
+                    {
+                        thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, lin_rand_com_in[i], 4*sizeof(TYPE_DATA), CMD_EVICT,  NULL);
+                    }
+                    else
+                    {
+                        thread_socket_args[i] = struct_socket(i, evict_out[i], sizeof(TYPE_INDEX), lin_rand_com_in[i], 4*sizeof(TYPE_DATA), CMD_EVICT,  NULL);
+                    }
                 #endif
+            }
         #else // RSSS or SPDZ    
             #if defined(SPDZ)
                 thread_socket_args[i] = struct_socket(i, evict_out[i], CLIENT_EVICTION_OUT_LENGTH, lin_rand_com_in[i], 2*sizeof(TYPE_DATA), CMD_EVICT,  NULL);

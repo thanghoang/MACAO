@@ -65,7 +65,7 @@ protected:
     //variables for eviction
     unsigned char* evict_in;
     //this is only for RSSS with 3 servers
-    unsigned char* client_evict_in;
+    //unsigned char* client_evict_in;
     
     vector<zz_p***> vecReShares;
     vector<zz_p***> vecReShares_MAC;

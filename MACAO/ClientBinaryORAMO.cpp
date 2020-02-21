@@ -157,6 +157,9 @@ int ClientBinaryORAMO::evict()
         for (TYPE_INDEX y = 0 ; y < H+1; y++)
         {
             memcpy(&evict_out[i][curBufferIdx + y*evictMatSize*sizeof(TYPE_DATA)], this->sharedMatrix[i][y], evictMatSize*sizeof(TYPE_DATA));
+            #if (defined(RSSS) && !defined(SEEDING))
+                memcpy(&evict_out[i][(CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX))/2+curBufferIdx + y*evictMatSize*sizeof(TYPE_DATA)], this->sharedMatrix[(i+1)%3][y], evictMatSize*sizeof(TYPE_DATA));
+            #endif
             #if defined (SPDZ)
               memcpy(&evict_out[i][curBufferIdx + (y+H+1)*evictMatSize*sizeof(TYPE_DATA)], this->sharedMatrix_MAC[i][y], evictMatSize*sizeof(TYPE_DATA));
             #endif
@@ -165,6 +168,10 @@ int ClientBinaryORAMO::evict()
             break;
         #endif   
     }
+    #if defined(SEEDING) && defined(RSSS)
+        memcpy(evict_out[2],evict_out[0],CLIENT_EVICTION_OUT_LENGTH);
+    #endif
+    
     long long n = CLIENT_EVICTION_OUT_LENGTH;
     #if defined (SPDZ)
         int m = 2*sizeof(TYPE_DATA);
@@ -178,6 +185,10 @@ int ClientBinaryORAMO::evict()
     
         #if defined(SEEDING)
             n = sizeof(TYPE_INDEX);
+            #if defined(RSSS)
+            if(i==1)
+                n = CLIENT_EVICTION_OUT_LENGTH;
+            #endif
         #endif
     }
     for (int i = 0; i < NUM_SERVERS; i++)

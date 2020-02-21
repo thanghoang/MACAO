@@ -56,7 +56,9 @@ int ServerBinaryORAMO::prepareEvictComputation()
                 if(serverNo==0)
                 {
                     memcpy(this->vecEvictMatrix[0][y][i], &evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
-                    memcpy(this->vecEvictMatrix_MAC[0][y][i], &evict_in[currBufferIdx+(H+1)*evictMatSize*sizeof(TYPE_DATA)], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));                    
+                    #if defined(SPDZ)
+                        memcpy(this->vecEvictMatrix_MAC[0][y][i], &evict_in[currBufferIdx+(H+1)*evictMatSize*sizeof(TYPE_DATA)], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));                    
+                    #endif
                 }
                 else
                 {
@@ -75,7 +77,7 @@ int ServerBinaryORAMO::prepareEvictComputation()
                 #if defined(RSSS)
                     if(serverNo==2)
                     {
-                        memcpy(this->vecEvictMatrix[1][y][i], &client_evict_in[currBufferIdx-sizeof(TYPE_DATA)], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
+                        memcpy(this->vecEvictMatrix[1][y][i], &evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
                     }
                     else
                     {
@@ -89,7 +91,7 @@ int ServerBinaryORAMO::prepareEvictComputation()
             #else 
                 memcpy(this->vecEvictMatrix[0][y][i], &evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
                 #if defined(RSSS)
-                    memcpy(this->vecEvictMatrix[1][y][i], &client_evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
+                    memcpy(this->vecEvictMatrix[1][y][i], &evict_in[(CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX))/2+currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
                 #endif
                 
                 #if defined(SPDZ)

@@ -67,7 +67,7 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
         }
     #endif
     //this is for RSSS with 3 servers
-    this->client_evict_in = new unsigned char[CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX)];
+    //this->client_evict_in = new unsigned char[CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX)];
 
 
 
@@ -1093,16 +1093,23 @@ int ServerORAM::recvClientEvictData(zmq::socket_t& socket)
 	cout<< "	[evict] Receiving Evict Matrix..." <<endl;;
 	auto start = time_now;
     #if defined(SEEDING)
-        if(serverNo==0)
-            socket.recv(evict_in, CLIENT_EVICTION_OUT_LENGTH, 0);
-        else
-            socket.recv(evict_in, sizeof(TYPE_INDEX), 0);
+        #if defined (RSSS)
+            if(serverNo==0 || serverNo==2)
+                socket.recv(evict_in, CLIENT_EVICTION_OUT_LENGTH, 0);
+            else
+                socket.recv(evict_in, sizeof(TYPE_INDEX), 0);
+        #else
+            if(serverNo==0)
+                socket.recv(evict_in, CLIENT_EVICTION_OUT_LENGTH, 0);
+            else
+                socket.recv(evict_in, sizeof(TYPE_INDEX), 0);
+        #endif
         auto end = time_now;
         cout<< "	[evict] RECEIVED! in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count() <<endl;
         server_logs[6] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
 
 
-        #if defined(RSSS)
+        /*#if defined(RSSS)
             // send client data to other servers (this is due to RSSS)
             if(serverNo==2)
             {
@@ -1119,7 +1126,7 @@ int ServerORAM::recvClientEvictData(zmq::socket_t& socket)
                 pthread_join(thread_send[0], NULL);
 
             }
-        #endif
+        #endif*/
 
 
 
@@ -1134,7 +1141,7 @@ int ServerORAM::recvClientEvictData(zmq::socket_t& socket)
         server_logs[6] = std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count();
 
 
-        #if defined(RSSS)
+        /*#if defined(RSSS)
             // send client data to other servers (this is due to RSSS)
             cout<< "	[evict] Creating Threads for Receiving..." << endl;
             recvSocket_args[0] = struct_socket(0, NULL, 0, client_evict_in, CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX), NULL,false);
@@ -1149,7 +1156,7 @@ int ServerORAM::recvClientEvictData(zmq::socket_t& socket)
 
             pthread_join(thread_send[0], NULL);
             pthread_join(thread_recv[0], NULL);
-        #endif
+        #endif*/
 
         memcpy(&n_evict, &evict_in[CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX)], sizeof(TYPE_INDEX));
 	#endif

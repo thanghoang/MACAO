@@ -54,8 +54,8 @@ int ServerKaryORAMC::prepareEvictComputation()
                 #if defined(RSSS)
                     if(serverNo==2)
                     {
-                        memcpy(this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER+1][i],&client_evict_in[currBufferIdx-sizeof(TYPE_DATA)],sizeof(TYPE_DATA));
-                        memcpy(this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER+1][i],&client_evict_in[currBufferIdx+BLOCK_SIZE-sizeof(TYPE_DATA)],sizeof(TYPE_DATA));
+                        memcpy(this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER+1][i],&evict_in[currBufferIdx],sizeof(TYPE_DATA));
+                        memcpy(this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER+1][i],&evict_in[currBufferIdx+BLOCK_SIZE],sizeof(TYPE_DATA));
                     }
                     else
                     {
@@ -100,7 +100,7 @@ int ServerKaryORAMC::prepareEvictComputation()
                     #if defined(RSSS)
                         if(serverNo==2)
                         {
-                            memcpy(this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER+1][y][i], &client_evict_in[currBufferIdx-sizeof(TYPE_DATA)], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
+                            memcpy(this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER+1][y][i], &evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
                         }
                         else
                         {
@@ -134,8 +134,9 @@ int ServerKaryORAMC::prepareEvictComputation()
                     memcpy(this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER][i],&evict_in[currBufferIdx ],sizeof(TYPE_DATA));
                     memcpy(this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER][i],&evict_in[currBufferIdx+BLOCK_SIZE],sizeof(TYPE_DATA));
                 #if defined(RSSS)    
-                    memcpy(this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER+1][i],&client_evict_in[currBufferIdx],sizeof(TYPE_DATA));
-                    memcpy(this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER+1][i],&client_evict_in[currBufferIdx+BLOCK_SIZE],sizeof(TYPE_DATA));
+                
+                    memcpy(this->vecEvictPath_db[e*NUM_SHARE_PER_SERVER+1][i],&evict_in[(CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX))/2+currBufferIdx],sizeof(TYPE_DATA));
+                    memcpy(this->vecEvictPath_MAC[e*NUM_SHARE_PER_SERVER+1][i],&evict_in[(CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX))/2+currBufferIdx+BLOCK_SIZE],sizeof(TYPE_DATA));
                 #endif 
                 currBufferIdx +=sizeof(TYPE_DATA);
             }
@@ -148,7 +149,8 @@ int ServerKaryORAMC::prepareEvictComputation()
                     
                         memcpy(this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER][y][i], &evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
                     #if defined(RSSS)
-                        memcpy(this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER+1][y][i], &client_evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
+                        //memcpy(this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER+1][y][i], &client_evict_in[currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
+                        memcpy(this->vecEvictMatrix[e*NUM_SHARE_PER_SERVER+1][y][i], &evict_in[(CLIENT_EVICTION_OUT_LENGTH-sizeof(TYPE_INDEX))/2+currBufferIdx], EVICT_MAT_NUM_COL*sizeof(TYPE_DATA));
                     #endif
                     currBufferIdx += EVICT_MAT_NUM_COL*sizeof(TYPE_DATA);
                 }
