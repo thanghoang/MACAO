@@ -22,6 +22,21 @@ All MACAO Framework configurations are located in ```MACAO/config.h```.
 ## Using eviction paradigms
 In ```MACAO/config.h```, enable either the macro ``#define CORAM_LAYOUT``  to use Circuit-ORAM eviction principle, or macro ``#define TRIPLET_EVICTION`` to use triplet eviction principle
 
+## Using different MACAO schemes
+In ```MACAO/config.h```, enable the macros ``#define XOR_PIR`` and  ``#define RSSS`` (and disable ``#define SPDZ``) to use *XOR-PIR for retrieval*, and *replicated sercret sharing scheme (RSSS)'s multiplication for eviction*. 
+
+Enable macro  ``#define RSSS`` (and disable ``#define SPDZ`` and ``#define XOR_PIR``) to use *RSSS for both retrieval and eviction*.
+
+Enable macro ``#define SPDZ`` (and disable ``#define RSSS`` and ``#define XOR_PIR``) to use *SPDZ for both retrieval and eviction*.
+
+Enable macro ``#define SEEDING`` to use PRF to generate additive shares locally in each server machine.
+
+
+
+
+
+
+
 ## Some Important  Parameters:
 ```
 
@@ -37,6 +52,13 @@ static const unsigned long long P = 1073742353;       -> Prime field (size shoul
 const std::string SERVER_ADDR[NUM_SERVERS]            -> Server IP addresses
 #define SERVER_PORT 5555                              -> Define the first port for incremental to generate other ports for client-server / server-server communications
 
+const TYPE_DATA GLOBAL_MAC_KEY                        -> Define global MAC key
+
+const TYPE_DATA MAC_KEY[NUM_SERVERS]                  -> Define shares of global MAC key (sum of shares_mac_key = global MAC key)
+
+static string CLIENT_SERVER_SEED[NUM_SERVERS]         -> seed being shared between the cliet and each server for additive secret share generation by PRF
+static string SERVER_SERVER_SEED[NUM_SERVER][NUM_SERVERS] -> seed being shared between the servers for additive secret share generation by PRF (used in RSSS)
+
 ```
 
 
@@ -49,6 +71,9 @@ make
 ```
 
 , which produces the binary executable file named ```MACAO``` in ``MACAO/Debug/``.
+
+# Data location
+All necessary data by the client setup phase are output to the MACAO/data folder (by default, which can be changed by editing the ``config.h`` under ``PATHS`` section). Refer to the ``data.zip`` file to see as example the structure of the folder.
 
 # Usage
 
