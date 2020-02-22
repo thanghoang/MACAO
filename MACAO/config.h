@@ -42,10 +42,6 @@ static inline std::string to_string(T value)
 #define CORAM_LAYOUT
 //#define TRIPLET_EVICTION
 
-#if defined(SEEDING)
-    static std::string CLIENT_SERVER_SEED[NUM_SERVERS] = {"abcdefghijklmn", "12345678910112", "mnlkjihgfedcba"};
-    static std::string SERVER_SERVER_SEED[NUM_SERVERS][NUM_SERVERS] = {{"12110987654321", "12131415161718", "cjhuipjoqjvcki"}, {"20212223242526", "27282930313233", "8102jdcxkjioqu"}, {"34353637383940", "41424344454647", "10s0219287dakc"}};
-#endif
 
 //=== SECRET SHARING PARAMETER================================================
 typedef long long TYPE_DATA;
@@ -58,6 +54,11 @@ static const unsigned long long P = 1073742353; //288230376152137729; //prime fi
     #define NUM_SERVERS 3
     const TYPE_DATA GLOBAL_MAC_KEY = 683828274;                               // 12574462961634974;
     const TYPE_DATA MAC_KEY[NUM_SERVERS] = {881602428, 951697459, 998013093}; // {805873168, 951697459,};//{881602428, 951697459, 998013093};
+#endif
+
+#if defined(SEEDING)
+    static std::string CLIENT_SERVER_SEED[3] = {"abcdefghijklmn", "12345678910112", "mnlkjihgfedcba"};
+    static std::string SERVER_SERVER_SEED[3][3] = {{"12110987654321", "12131415161718", "cjhuipjoqjvcki"}, {"20212223242526", "27282930313233", "8102jdcxkjioqu"}, {"34353637383940", "41424344454647", "10s0219287dakc"}};
 #endif
 
 //=== ORAM PARAMETERS ============================================================
