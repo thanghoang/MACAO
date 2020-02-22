@@ -133,7 +133,7 @@ int main(int argc, char **argv)
         {
             for (int i = 1; i < NUM_BLOCK + 1; i++)
             {
-                client->access(1);
+                client->access(i);
                 //cin.get();
             }
         }
