@@ -157,6 +157,11 @@ ClientORAM::~ClientORAM()
  */
 int ClientORAM::init()
 {
+    #if defined(SPDZ)
+        ORAM::createRetrievalTriplets(1);
+        ORAM::createEvictionTriplets(1);
+    #endif
+
     this->numRead = 0;
     this->numEvict = 0;
 

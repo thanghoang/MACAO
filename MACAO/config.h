@@ -37,10 +37,10 @@ static inline std::string to_string(T value)
 //#define XOR_PIR
 #define RSSS
 //#define SPDZ
-#define SEEDING
+//#define SEEDING
 
-#define CORAM_LAYOUT
-//#define TRIPLET_EVICTION
+//#define CORAM_LAYOUT
+#define TRIPLET_EVICTION
 
 
 //=== SECRET SHARING PARAMETER================================================
