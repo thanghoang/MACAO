@@ -244,12 +244,7 @@ int ServerBinaryORAMO::evict(zmq::socket_t &socket)
         cout << "	[evict] TripletEviction-" << h + 1 << " COMPLETED!" << endl;
     }
 
-    memcpy(&lin_rand_com_out[0], &this->X1, sizeof(TYPE_DATA));
-    memcpy(&lin_rand_com_out[sizeof(TYPE_DATA)], &this->Y1, sizeof(TYPE_DATA));
-#if defined(RSSS)
-    memcpy(&lin_rand_com_out[2 * sizeof(TYPE_DATA)], &this->X2, sizeof(TYPE_DATA));
-    memcpy(&lin_rand_com_out[3 * sizeof(TYPE_DATA)], &this->Y2, sizeof(TYPE_DATA));
-#endif
+    prepareRandLinComb(lin_rand_com_out);
 
 #if defined(SPDZ)
     socket.send(lin_rand_com_out, 2 * sizeof(TYPE_DATA));

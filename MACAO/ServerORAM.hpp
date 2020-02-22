@@ -157,8 +157,10 @@ public:
     int readTriplets(zz_p **triplets, int row, int col, string file_name);
     int readTriplets(zz_p *triplets, int length, string file_name);
 
-    int share_random_number(TYPE_DATA &r1, TYPE_DATA &r2);
-    int share_random_number(TYPE_DATA &r1);
+    int share_random_number(zz_p &r1, zz_p &r2);
+    int share_random_number(zz_p &r1);
+
+    int prepareRandLinComb(unsigned char* lin_rand_com_out);
 
     //logs
     static unsigned long int server_logs[13];

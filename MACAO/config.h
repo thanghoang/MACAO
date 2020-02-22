@@ -39,8 +39,8 @@ static inline std::string to_string(T value)
 #define SPDZ
 //#define SEEDING
 
-//#define CORAM_LAYOUT
-#define TRIPLET_EVICTION
+#define CORAM_LAYOUT
+//#define TRIPLET_EVICTION
 
 #if defined(SEEDING)
     static std::string CLIENT_SERVER_SEED[3] = {"abcdefghijklmn", "12345678910112", "mnlkjihgfedcba"};

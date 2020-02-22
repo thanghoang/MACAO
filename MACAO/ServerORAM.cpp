@@ -766,7 +766,7 @@ int ServerORAM::retrieve(zmq::socket_t &socket)
     }
 
     // share the random number r
-    TYPE_DATA r1, r2;
+    zz_p r1, r2;
     share_random_number(r1, r2);
 
     zz_p x, y;
@@ -777,7 +777,6 @@ int ServerORAM::retrieve(zmq::socket_t &socket)
         {
             x += this->retrieval_path_db[0][i][j] * r1;
             y += this->retrieval_path_mac[0][i][j] * r1;
-            r1 = (r1 * r1) % P;
         }
     }
 
@@ -785,7 +784,6 @@ int ServerORAM::retrieve(zmq::socket_t &socket)
     {
         x += retrieval_query[0][i] * r2;
         y += retrieval_query_mac[0][i] * r2;
-        r2 = (r2 * r2) % P;
     }
 
     memcpy(&retrieval_answer_out[0], dotProd_output[0], BLOCK_SIZE);
@@ -1379,7 +1377,7 @@ int ServerORAM::postReSharing(int level, int es, int ee)
                 vecReShares_MAC[e][(this->serverNo + 1) % 3][u][j] += tmp2;
             }
         }
-        TYPE_DATA r1;
+        zz_p r1;
         share_random_number(r1);
 
         for (int u = 0; u < DATA_CHUNKS; u++)
@@ -1391,7 +1389,6 @@ int ServerORAM::postReSharing(int level, int es, int ee)
 
                 this->X2 += vecReShares[e][(this->serverNo + 1) % 3][u][j] * r1;
                 this->Y2 += vecReShares_MAC[e][(this->serverNo + 1) % 3][u][j] * r1;
-                r1 = (r1 * r1) % P;
             }
         }
     }
@@ -1426,7 +1423,7 @@ int ServerORAM::postReSharing(int level, int es, int ee)
         }
 
         // share the random number r
-        TYPE_DATA r1;
+        zz_p r1;
         share_random_number(r1);
 
         for (int u = 0; u < DATA_CHUNKS; u++)
@@ -1438,7 +1435,6 @@ int ServerORAM::postReSharing(int level, int es, int ee)
 
                 this->X2 += vecReShares[e][(this->serverNo + 1) % 3][u][j] * r1;
                 this->Y2 += vecReShares_MAC[e][(this->serverNo + 1) % 3][u][j] * r1;
-                r1 = (r1 * r1) % P;
             }
         }
         cin.get();
@@ -1546,7 +1542,7 @@ int ServerORAM::postReSharing(int level, int es, int ee)
         }
 
         // share the random number r
-        TYPE_DATA r1, r2;
+        zz_p r1, r2;
         share_random_number(r1, r2);
 
         for (int i = 0; i < DATA_CHUNKS; i++)
@@ -1555,7 +1551,6 @@ int ServerORAM::postReSharing(int level, int es, int ee)
             {
                 this->X1 += vecEvictPath_db[e][i][j] * r1;
                 this->Y1 += vecEvictPath_MAC[e][i][j] * r1;
-                r1 = (r1 * r1) % P; // optimize it later
             }
         }
 
@@ -1566,7 +1561,6 @@ int ServerORAM::postReSharing(int level, int es, int ee)
 
                 this->X1 += vecEvictMatrix[e][level][i][j] * r2;
                 this->Y1 += vecEvictMatrix_MAC[e][level][i][j] * r2;
-                r2 = (r2 * r2) % P;
             }
         }
     }
@@ -1652,10 +1646,10 @@ int ServerORAM::readTriplets(zz_p *data, int length, string file_name)
     fclose(file_in);
 }
 
-int ServerORAM::share_random_number(TYPE_DATA &r1, TYPE_DATA &r2)
+int ServerORAM::share_random_number(zz_p &r1, zz_p &r2)
 {
-    r1 = rand();
-    r2 = rand();
+    NTL::random(r1);
+    NTL::random(r2);
     memcpy(&random_shares_out[0], &r1, sizeof(TYPE_DATA));
     memcpy(&random_shares_out[sizeof(TYPE_DATA)], &r2, sizeof(TYPE_DATA));
     for (int s = 0; s < NUM_SERVERS - 1; s++)
@@ -1679,14 +1673,12 @@ int ServerORAM::share_random_number(TYPE_DATA &r1, TYPE_DATA &r2)
     {
         r1 += *((TYPE_DATA *)&random_shares_in[s][0]);
         r2 += *((TYPE_DATA *)&random_shares_in[s][sizeof(TYPE_DATA)]);
-        r1 %= P;
-        r2 %= P;
     }
 }
 
-int ServerORAM::share_random_number(TYPE_DATA &r1)
+int ServerORAM::share_random_number(zz_p &r1)
 {
-    r1 = rand();
+    NTL::random(r1);
     memcpy(&random_shares_out[0], &r1, sizeof(TYPE_DATA));
     for (int s = 0; s < NUM_SERVERS - 1; s++)
     {
@@ -1708,6 +1700,16 @@ int ServerORAM::share_random_number(TYPE_DATA &r1)
     for (int s = 0; s < NUM_SERVERS - 1; s++)
     {
         r1 += *((TYPE_DATA *)&random_shares_in[s][0]);
-        r1 %= P;
     }
+}
+
+int ServerORAM::prepareRandLinComb(unsigned char* lin_rand_com_out)
+{
+    memcpy(&lin_rand_com_out[0], &this->X1, sizeof(TYPE_DATA));
+    memcpy(&lin_rand_com_out[sizeof(TYPE_DATA)], &this->Y1, sizeof(TYPE_DATA));
+    #if defined(RSSS)
+        memcpy(&lin_rand_com_out[2 * sizeof(TYPE_DATA)], &this->X2, sizeof(TYPE_DATA));
+        memcpy(&lin_rand_com_out[3 * sizeof(TYPE_DATA)], &this->Y2, sizeof(TYPE_DATA));
+    #endif
+
 }
