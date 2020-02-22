@@ -28,7 +28,6 @@
     <File Name="Utils.cpp"/>
     <File Name="struct_socket.h"/>
     <File Name="struct_thread_computation.h"/>
-    <File Name="struct_thread_loadData.h"/>
   </VirtualDirectory>
   <Settings Type="Executable">
     <GlobalSettings>

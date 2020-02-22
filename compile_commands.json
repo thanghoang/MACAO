@@ -15,10 +15,6 @@
   "directory": "/scratch/MACAO/MACAO",
   "command": "clang  -c /scratch/MACAO/MACAO/ORAM.hpp -o /scratch/MACAO/MACAO/ORAM.hpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
  }, {
-  "file": "/scratch/MACAO/MACAO/struct_thread_loadData.h",
-  "directory": "/scratch/MACAO/MACAO",
-  "command": "clang  -c /scratch/MACAO/MACAO/struct_thread_loadData.h -o /scratch/MACAO/MACAO/struct_thread_loadData.h.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"
- }, {
   "file": "/scratch/MACAO/MACAO/ClientBinaryORAMO.cpp",
   "directory": "/scratch/MACAO/MACAO",
   "command": "clang  -c /scratch/MACAO/MACAO/ClientBinaryORAMO.cpp -o /scratch/MACAO/MACAO/ClientBinaryORAMO.cpp.o  -I/usr/include/c++/5 -I/usr/include/x86_64-linux-gnu/c++/5 -I/usr/include/c++/5/backward -I/usr/lib/gcc/x86_64-linux-gnu/5/include -I/usr/local/include -I/usr/lib/gcc/x86_64-linux-gnu/5/include-fixed -I/usr/include/x86_64-linux-gnu -I/usr/include -I.  -g  -O0  -std=c++11  -Wall  -libstdc++  -c  -fPIC"

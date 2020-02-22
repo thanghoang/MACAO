@@ -33,9 +33,9 @@ int ClientKaryORAMC::init()
 }
 
 /**
- * Function Name: load (inherent+specific)
+ * Function Name: loadState
  *
- * Description: Loads client storage data from disk for previously generated ORAM structure 
+ * Description: Loads client state stored from disk previously
  * in order to continue ORAM operations. Loaded data includes postion map, current number of evictions,
  * current number of reads/writes.
  * 
@@ -66,6 +66,14 @@ int ClientKaryORAMC::loadState()
     return 0;
 }
 
+
+/**
+ * Function Name: saveState
+ *
+ * Description: Save the current client state to disk to be later used
+ * 
+ * @return 0 if successful
+ */
 int ClientKaryORAMC::saveState()
 {
     ClientORAM::saveState();
@@ -90,6 +98,13 @@ int ClientKaryORAMC::saveState()
     return 0;
 }
 
+/**
+ * Function Name: countNumBlockInStash
+ *
+ * Description: Count the number of actual blocks currently in the stash
+ * 
+ * @return number of actual blocks
+ */
 int ClientKaryORAMC::countNumBlockInStash()
 {
     int count = 0;
@@ -102,6 +117,15 @@ int ClientKaryORAMC::countNumBlockInStash()
     }
     return count;
 }
+
+
+/**
+ * Function Name: isRetrievedBlockInStash
+ *
+ * Description: Check whether the block to be retrieved available in the stash
+ * 
+ * @return the index of the block (if found), or -1 (indicating the block is not found)
+ */
 int ClientKaryORAMC::isRetrievedBlockInStash(TYPE_INDEX blockID)
 {
     for (int i = 0; i < STASH_SIZE; i++)
@@ -115,12 +139,12 @@ int ClientKaryORAMC::isRetrievedBlockInStash(TYPE_INDEX blockID)
 }
 
 /**
- * Function Name: access (specific)
+ * Function Name: access
  *
  * Description: Starts access operation for a block with its ID to be retrived from distributed servers. 
  * This operations consists of several subroutines: generating shares for logical access vector, 
  * retrieving shares from servers, recovering secret block from shares, assigning new path for the block,
- * re-share/upload the block back to servers, run eviction subroutine acc. to EVICT_RATE
+ * re-share/upload the block back to servers, run eviction subroutine 
  * 
  * @param blockID: (input) ID of the block to be retrieved
  * @return 0 if successful
@@ -163,6 +187,13 @@ int ClientKaryORAMC::access(TYPE_INDEX blockID)
     return 0;
 }
 
+/**
+ * Function Name: evict
+ *
+ * Description: Perform Circuit-ORAM eviction principle
+ * 
+ * @return 0 if successful
+ */
 int ClientKaryORAMC::evict()
 {
     auto start = time_now, end = time_now;
@@ -423,10 +454,9 @@ int ClientKaryORAMC::updatePosMap(TYPE_INDEX blockID)
 }
 
 /**
- * Function Name: getEvictMatrix (specific)
+ * Function Name: getEvictMatrix
  *
- * Description: Generates logical eviction matrix to evict blocks from root to leaves according to 
- * eviction number and source, destination and sibling buckets by scanning position map.
+ * Description: Generates logical permutation matrix for circuit-oram eviction principle.
  * 
  * @return 0 if successful
  */

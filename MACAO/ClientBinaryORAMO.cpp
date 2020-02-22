@@ -70,14 +70,31 @@ int ClientBinaryORAMO::access(TYPE_INDEX blockID)
     return 0;
 }
 
+/**
+ * Function Name: updatePosMap
+ *
+ * Description: Update the position of a block
+ * 
+ * @param blockID: (input) ID of the block
+ * @return 0 if successful
+ */
 int ClientBinaryORAMO::updatePosMap(TYPE_INDEX blockID)
 {
     ClientORAM::updatePosMap(blockID);
 
     pos_map[blockID].pathIdx = numRead;
     this->metaData[0][numRead] = blockID;
+    return 0;
 }
 
+
+/**
+ * Function Name: evict
+ *
+ * Description: Perform ORAM triplet eviction
+ * 
+ * @return 0 if successful
+ */
 int ClientBinaryORAMO::evict()
 {
     cout << "================================================================" << endl;
@@ -201,8 +218,17 @@ int ClientBinaryORAMO::evict()
     cout << "================================================================" << endl;
     cout << "EVICTION-" << this->numEvict + 1 << " COMPLETED" << endl;
     cout << "================================================================" << endl;
+    return 0;
 }
 
+
+/**
+ * Function Name: writeRoot
+ *
+ * Description: write a block to the root
+ * 
+ * @return 0 if successful
+ */
 int ClientBinaryORAMO::writeRoot()
 {
     TYPE_DATA data_shares[NUM_SERVERS];
@@ -288,13 +314,14 @@ int ClientBinaryORAMO::writeRoot()
         pthread_join(thread_sockets[i], NULL);
         cout << "	[ClientBinaryORAMO] Block upload completed!" << endl;
     }
+    return 0;
 }
+
 
 /**
  * Function Name: getEvictMatrix
  *
- * Description: Generates logical eviction matrix to evict blocks from root to leaves according to 
- * eviction number and source, destination and sibling buckets by scanning position map.
+ * Description: Generates logical permutation matrix for triplet eviction principle.
  * 
  * @return 0 if successful
  */

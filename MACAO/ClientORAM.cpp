@@ -147,6 +147,14 @@ ClientORAM::~ClientORAM()
 {
 }
 
+/**
+ * Function Name: init
+ *
+ * Description: Setup all ORAM data structure components
+ * current number of reads/writes.
+ * 
+ * @return 0 if successful
+ */
 int ClientORAM::init()
 {
     this->numRead = 0;
@@ -190,8 +198,17 @@ int ClientORAM::init()
 
     //save state
     saveState();
+    return 0;
 }
 
+
+/**
+ * Function Name: saveState
+ *
+ * Description: Save the current client state to disk to be later used
+ * 
+ * @return 0 if successful
+ */
 int ClientORAM::saveState()
 {
     // 11. store local info to disk
@@ -210,10 +227,11 @@ int ClientORAM::saveState()
     return 0;
 }
 
+
 /**
- * Function Name: load 
+ * Function Name: loadState
  *
- * Description: Loads client storage data from disk for previously generated ORAM structure 
+ * Description: Loads client state stored from disk previously
  * in order to continue ORAM operations. Loaded data includes postion map, current number of evictions,
  * current number of reads/writes.
  * 
@@ -252,7 +270,7 @@ int ClientORAM::loadState()
 /**
  * Function Name: sendORAMTree
  *
- * Description: Distributes generated and shared ORAM buckets to servers over network
+ * Description: Send ORAM tree to corresponding server over the network (NOT WORKING so far)
  * 
  * @return 0 if successful
  */
@@ -311,11 +329,10 @@ int ClientORAM::sendORAMTree()
 }
 
 /**
- * Function Name: thread_socket_func & send
+ * Function Name: thread_socket_func
  *
  * Description: Generic threaded socket function for send and receive operations
  * 
- * @return 0 if successful
  */
 void *ClientORAM::thread_socket_func(void *args)
 {
@@ -325,6 +342,20 @@ void *ClientORAM::thread_socket_func(void *args)
 
     pthread_exit((void *)opt);
 }
+
+/**
+ * Function Name: sendNrecv
+ *
+ * Description: Send and Receive operations over the network
+ * 
+ * @param peer_idx: server ID
+ * @param data_out: data to be sent
+ * @param data_out_size: length of data to be sent
+ * @param data_in: data to be received
+ * @param blockID: length of data to be received
+ * @param CMD:  command code (refer to config.h)
+ * @return 0 if successful 
+ */
 int ClientORAM::sendNrecv(int peer_idx, unsigned char *data_out, size_t data_out_size, unsigned char *data_in, size_t data_in_size, int CMD)
 {
 
@@ -360,6 +391,12 @@ int ClientORAM::sendNrecv(int peer_idx, unsigned char *data_out, size_t data_out
     return 0;
 }
 
+/**
+ * Function Name: recoverRetrievedBlock
+ *
+ * Description: Recover the retrieved block to obtain the original block to be accessed
+ * 
+ */
 void ClientORAM::recoverRetrievedBlock()
 {
 
@@ -416,6 +453,13 @@ void ClientORAM::recoverRetrievedBlock()
 #endif
 }
 
+/**
+ * Function Name: retrieve 
+ *
+ * Description: Retrieve subroutine in ORAM access
+ * @return 0 if successful 
+ * 
+ */
 int ClientORAM::retrieve(TYPE_INDEX blockID)
 {
     auto start = time_now;
@@ -496,6 +540,12 @@ int ClientORAM::updatePosMap(TYPE_INDEX blockID)
     pos_map[blockID].pathID = Utils::RandBound(N_leaf) + (N_leaf - 1);
 }
 
+/**
+ * Function Name: checkRandLinCom 
+ *
+ * Description: Create a retrieval (PIR) query
+ * @return 0 if successful 
+ */
 int ClientORAM::createRetrievalQuery(int pIdx, TYPE_INDEX pID)
 {
 #if defined(XOR_PIR)
@@ -548,6 +598,12 @@ int ClientORAM::createRetrievalQuery(int pIdx, TYPE_INDEX pID)
     return 0;
 }
 
+/**
+ * Function Name: checkRandLinCom 
+ *
+ * Description: Verify the authenticaty of random linear combination (MACCheck)
+ * @return 0 if successful 
+ */
 int ClientORAM::checkRandLinCom()
 {
 #if defined(SPDZ)

@@ -9,7 +9,6 @@
 #include <sys/types.h>
 
 #include "struct_thread_computation.h"
-#include "struct_thread_loadData.h"
 
 ServerKaryORAMC::ServerKaryORAMC(TYPE_INDEX serverNo, int selectedThreads) : ServerORAM(serverNo, selectedThreads)
 {
@@ -23,6 +22,13 @@ ServerKaryORAMC::~ServerKaryORAMC()
 {
 }
 
+/**
+* Function Name: prepareEvictComputation 
+*
+* Description: Prepare data to be used for eviction computation
+*
+* @return 0 if successful
+*/
 int ServerKaryORAMC::prepareEvictComputation()
 {
 #if defined(SEEDING)
@@ -344,6 +350,17 @@ int ServerKaryORAMC::evict(zmq::socket_t &socket)
     return 0;
 }
 
+/**
+ * Function Name: readBucket_evict
+ *
+ * Description: Read the buckets for eviction
+ * 
+ * @param bucketIDs: list of buckets to be read
+ * @param shareID: share ID to be read
+ * @param output_data: bucket data
+ * @param output_mac: bucket mac
+ * @return 0 if successful
+ */
 int ServerKaryORAMC::readBucket_evict(TYPE_INDEX bucketID, int shareID, zz_p **output_data, zz_p **output_mac)
 {
     FILE *file_in = NULL;
@@ -392,6 +409,7 @@ int ServerKaryORAMC::readBucket_evict(TYPE_INDEX bucketID, int shareID, zz_p **o
 #endif
     fclose(file_in);
 }
+
 int ServerKaryORAMC::writeRoot(zmq::socket_t &socket)
 {
 }

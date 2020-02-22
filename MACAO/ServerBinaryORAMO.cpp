@@ -14,7 +14,6 @@
 #include <sys/types.h>
 
 #include "struct_thread_computation.h"
-#include "struct_thread_loadData.h"
 
 ServerBinaryORAMO::ServerBinaryORAMO(TYPE_INDEX serverNo, int selectedThreads) : ServerORAM(serverNo, selectedThreads)
 {
@@ -33,6 +32,13 @@ ServerBinaryORAMO::~ServerBinaryORAMO()
 {
 }
 
+/**
+* Function Name: prepareEvictComputation 
+*
+* Description: Prepare data to be used for eviction computation
+*
+* @return 0 if successful
+*/
 int ServerBinaryORAMO::prepareEvictComputation()
 {
 #if defined(SEEDING)
@@ -94,6 +100,7 @@ int ServerBinaryORAMO::prepareEvictComputation()
             currBufferIdx += EVICT_MAT_NUM_COL * sizeof(TYPE_DATA);
         }
     }
+    return 0;
 }
 
 /**
@@ -257,6 +264,17 @@ int ServerBinaryORAMO::evict(zmq::socket_t &socket)
     return 0;
 }
 
+/**
+ * Function Name: readBucket_evict
+ *
+ * Description: Read the buckets for eviction
+ * 
+ * @param bucketIDs: list of buckets to be read
+ * @param shareID: share ID to be read
+ * @param output_data: bucket data
+ * @param output_mac: bucket mac
+ * @return 0 if successful
+ */
 int ServerBinaryORAMO::readBucket_evict(TYPE_INDEX bucketIDs[], int shareID, zz_p **output_data, zz_p **output_mac)
 {
 
@@ -310,8 +328,18 @@ int ServerBinaryORAMO::readBucket_evict(TYPE_INDEX bucketIDs[], int shareID, zz_
 #endif
         fclose(file_in_mac);
     }
+    return 0;
 }
 
+
+/**
+ * Function Name: readBucket_evict
+ *
+ * Description: receive the block and write it to the root
+ * 
+ * @param socket: zeromq connection socket 
+ * @return 0 if successful
+ */
 int ServerBinaryORAMO::writeRoot(zmq::socket_t &socket)
 {
     cout << "	[recvBlock] Receiving Block Data..." << endl;

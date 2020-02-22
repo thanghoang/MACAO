@@ -407,6 +407,14 @@ int ServerORAM::start()
     return ret;
 }
 
+/**
+ * Function Name: retrieve
+ *
+ * Description: ORAM retrieval protocol at the server side
+ * 
+ * @param socket: zeromq connection from client
+ * @return 0 if successful
+ */
 int ServerORAM::retrieve(zmq::socket_t &socket)
 {
     TYPE_INDEX fullPathIdx[H + 1];
@@ -904,7 +912,9 @@ int ServerORAM::recvClientEvictData(zmq::socket_t &socket)
 
     memcpy(&n_evict, &evict_in[CLIENT_EVICTION_OUT_LENGTH - sizeof(TYPE_INDEX)], sizeof(TYPE_INDEX));
 #endif
+    return 0;
 }
+
 /**
  * Function Name: thread_crossProduct_func //inherent
  *
@@ -927,9 +937,9 @@ void *ServerORAM::thread_matProd_func(void *args)
 }
 
 /**
- * Function Name: sendORAMTree
+ * Function Name: recvORAMTree
  *
- * Description: Distributes generated and shared ORAM buckets to servers over network
+ * Description: receive ORAM tree structure from client (not working yet)
  *
  * @return 0 if successful
  */
@@ -958,7 +968,20 @@ int ServerORAM::recvORAMTree(zmq::socket_t &socket)
     return ret;
 }
 
-//only for SSS Retrieval
+
+/**
+ * Function Name: readBucket
+ *
+ * Description: read bucket data from disk to be used in retrieval phase
+ * 
+ * @param bucketID: ID of bucket to be read
+ * @param bucketIdx: index of bucket (along the retrieval path) to be read
+ * @param shareID: shareID of bucket to be read
+ * @param output_data: (output) bucket data
+ * @param output_mac: (output) bucket mac
+ *
+ * @return 0 if successful
+ */
 int ServerORAM::readBucket(TYPE_INDEX bucketID, int BucketIdx, int shareID, zz_p **output_data, zz_p **output_mac)
 {
     FILE *file_in = NULL;
@@ -1042,8 +1065,22 @@ int ServerORAM::readBucket(TYPE_INDEX bucketID, int BucketIdx, int shareID, zz_p
 #endif
 #endif
     fclose(file_in);
+    return 0;
 }
 
+
+/**
+ * Function Name: updateRoot
+ *
+ * Description: write the block to a slot in root bucket
+ * 
+ * @param shareID: shareID of bucket to be read
+ * @param slotIdx: index of the slot
+ * @param input: block to be written
+ * @param mac: mac of the block to be written
+ *
+ * @return 0 if successful
+ */
 int ServerORAM::updateRoot(int shareID, unsigned long long slotIdx, unsigned char *input, unsigned char *mac)
 {
     string path = myStoragePath + to_string(shareID) + "/0";
@@ -1085,8 +1122,20 @@ int ServerORAM::updateRoot(int shareID, unsigned long long slotIdx, unsigned cha
     }
 #endif
     fclose(f_mac);
+    return 0;
 }
 
+/**
+ * Function Name: copyBucket
+ *
+ * Description: copy a bucket to another bucket
+ * 
+ * @param shareID: shareID of bucket to be read
+ * @param srcBucketID: ID of source bucket
+ * @param destBucketID: ID of destination bucket
+ *
+ * @return 0 if successful
+ */
 int ServerORAM::copyBucket(int shareID, TYPE_INDEX srcBucketID, TYPE_INDEX destBucketID)
 {
     string src_path = myStoragePath + to_string(shareID) + "/" + to_string(srcBucketID);
@@ -1131,6 +1180,16 @@ void *ServerORAM::thread_retrieval_by_dotProd_func(void *args)
     }
 }
 
+/**
+ * Function Name: preResharing
+ *
+ * Description: pre-resharing phase of additive secret sharing
+ * 
+ * @param level: level of the eviction path which is considering
+ * @param es,es: these two only used in circuit-oram eviction (since it needs to do two evictions per access)
+ *
+ * @return 0 if successful
+ */
 int ServerORAM::preReSharing(int level, int es, int ee)
 {
 // implement the RSSS multiplication first
@@ -1237,6 +1296,16 @@ int ServerORAM::preReSharing(int level, int es, int ee)
     return 0;
 }
 
+/**
+ * Function Name: reShare
+ *
+ * Description: resharing phase of additive secret sharing
+ * 
+ * @param level: level of the eviction path which is considering
+ * @param es,es: these two only used in circuit-oram eviction (since it needs to do two evictions per access)
+ *
+ * @return 0 if successful
+ */
 int ServerORAM::reShare(int level, int es, int ee)
 {
 #if defined(SEEDING) && defined(RSSS)
@@ -1321,6 +1390,16 @@ int ServerORAM::reShare(int level, int es, int ee)
     return 0;
 }
 
+/**
+ * Function Name: postReSharing
+ *
+ * Description: Post-resharing phase of additive secret sharing
+ * 
+ * @param level: level of the eviction path which is considering
+ * @param es,es: these two only used in circuit-oram eviction (since it needs to do two evictions per access)
+ *
+ * @return 0 if successful
+ */
 int ServerORAM::postReSharing(int level, int es, int ee)
 {
 #if (defined(SEEDING) && defined(RSSS))
@@ -1437,8 +1516,6 @@ int ServerORAM::postReSharing(int level, int es, int ee)
                 this->Y2 += vecReShares_MAC[e][(this->serverNo + 1) % 3][u][j] * r1;
             }
         }
-        cin.get();
-        cout << serverNo << " " << X1 << " " << X2 << endl;
     }
 #else               // SPDZ with/without-seeding
     //recover rho & epsilon
@@ -1566,8 +1643,21 @@ int ServerORAM::postReSharing(int level, int es, int ee)
     }
 
 #endif
+    return 0;
 }
 
+/**
+ * Function Name: writeBucket
+ *
+ * Description: write bucket to file
+ * 
+ * @param bucketID: ID of bucket to be written
+ * @param shareID: share ID of bucket to be written
+ * @param data: bucket data to be written
+ * @param mac: bucket mac to be written
+ *
+ * @return 0 if successful
+ */
 int ServerORAM::writeBucket(int bucketID, int shareID, zz_p **data, zz_p **mac)
 {
     string path = myStoragePath + to_string(shareID) + "/" + to_string(bucketID);
@@ -1607,8 +1697,21 @@ int ServerORAM::writeBucket(int bucketID, int shareID, zz_p **data, zz_p **mac)
 
     //MAC
     fclose(file_out_MAC);
+    return 0;
 }
 
+/**
+ * Function Name: readTriplets
+ *
+ * Description: read a matrix triplet from file
+ * 
+ * @param data: matrix triplet data 
+ * @param row: number of rows in matrix triplet
+ * @param col: number of cols in matrix triplet
+ * @param file_name: file name that stores matrix triplet data
+ *
+ * @return 0 if successful
+ */
 int ServerORAM::readTriplets(zz_p **data, int row, int col, string file_name)
 {
     FILE *file_in = NULL;
@@ -1627,8 +1730,20 @@ int ServerORAM::readTriplets(zz_p **data, int row, int col, string file_name)
         }
     }
     fclose(file_in);
+    return 0;
 }
 
+/**
+ * Function Name: readTriplets
+ *
+ * Description: read a vector triplet from file
+ * 
+ * @param data: vector triplet data 
+ * @param length: length of vector triplet
+ * @param file_name: file name that stores matrix triplet data
+ *
+ * @return 0 if successful
+ */
 int ServerORAM::readTriplets(zz_p *data, int length, string file_name)
 {
     FILE *file_in = NULL;
@@ -1644,8 +1759,19 @@ int ServerORAM::readTriplets(zz_p *data, int length, string file_name)
         fread(&data[i], 1, sizeof(TYPE_DATA), file_in);
     }
     fclose(file_in);
+    return 0;
 }
 
+/**
+ * Function Name: share_random_number
+ *
+ * Description: share two random number with other servers
+ * 
+ * @param r1: random 1
+ * @param r2: random 2
+ *
+ * @return 0 if successful
+ */
 int ServerORAM::share_random_number(zz_p &r1, zz_p &r2)
 {
     NTL::random(r1);
@@ -1674,8 +1800,18 @@ int ServerORAM::share_random_number(zz_p &r1, zz_p &r2)
         r1 += *((TYPE_DATA *)&random_shares_in[s][0]);
         r2 += *((TYPE_DATA *)&random_shares_in[s][sizeof(TYPE_DATA)]);
     }
+    return 0;
 }
 
+/**
+ * Function Name: share_random_number
+ *
+ * Description: share a random number with other servers
+ * 
+ * @param r1: random 1
+ *
+ * @return 0 if successful
+ */
 int ServerORAM::share_random_number(zz_p &r1)
 {
     NTL::random(r1);
@@ -1701,8 +1837,19 @@ int ServerORAM::share_random_number(zz_p &r1)
     {
         r1 += *((TYPE_DATA *)&random_shares_in[s][0]);
     }
+    return 0;
 }
 
+
+/**
+ * Function Name: prepareRandLinComb
+ *
+ * Description: serialize the random linear combination to be sent over the network
+ * 
+ * @param lin_rand_com_out: serialized_output
+ *
+ * @return 0 if successful
+ */
 int ServerORAM::prepareRandLinComb(unsigned char* lin_rand_com_out)
 {
     memcpy(&lin_rand_com_out[0], &this->X1, sizeof(TYPE_DATA));
@@ -1711,5 +1858,6 @@ int ServerORAM::prepareRandLinComb(unsigned char* lin_rand_com_out)
         memcpy(&lin_rand_com_out[2 * sizeof(TYPE_DATA)], &this->X2, sizeof(TYPE_DATA));
         memcpy(&lin_rand_com_out[3 * sizeof(TYPE_DATA)], &this->Y2, sizeof(TYPE_DATA));
     #endif
-
+    
+    return -0;
 }

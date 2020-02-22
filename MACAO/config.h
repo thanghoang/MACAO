@@ -35,9 +35,9 @@ static inline std::string to_string(T value)
 }
 
 //#define XOR_PIR
-//#define RSSS
-#define SPDZ
-//#define SEEDING
+#define RSSS
+//#define SPDZ
+#define SEEDING
 
 #define CORAM_LAYOUT
 //#define TRIPLET_EVICTION

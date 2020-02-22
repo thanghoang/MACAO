@@ -251,7 +251,7 @@ int ORAM::build(TYPE_POS_MAP *pos_map, TYPE_INDEX **metaData)
  * Function Name: getEvictIdx
  *
  * Description: Determine the indices of source bucket, destination bucket and sibling bucket 
- * residing on the eviction path
+ * residing on the eviction path (used in Triplet Eviction)
  * 
  * @param srcIdx: (output) source bucket index array
  * @param destIdx: (output) destination bucket index array
@@ -348,10 +348,11 @@ int ORAM::getFullPathIdx(TYPE_INDEX *fullPath, TYPE_INDEX pathID)
 /**
  * Function Name: createShares
  *
- * Description: Creates shares from an input based on Shamir's Secret Sharing algorithm
+ * Description: Creates additive shares for a secret
  * 
- * @param input: (input) The secret to be shared
- * @param output: (output) The array of shares generated from the secret
+ * @param secret: (input) The secret to be shared
+ * @param secret_shares: (output) The additive shares of the secret
+ * @param mac_shares: (output) The additive shares of the mac of the secret
  * @return 0 if successful
  */
 int ORAM::createShares(TYPE_DATA secret, TYPE_DATA *secret_shares, TYPE_DATA *mac_shares)
@@ -383,7 +384,19 @@ int ORAM::createShares(TYPE_DATA secret, TYPE_DATA *secret_shares, TYPE_DATA *ma
     return 0;
 }
 
-// For Computational
+
+/**
+ * Function Name: createShares
+ *
+ * Description: Creates additive shares for a secret using PRF function
+ * 
+ * @param secret: (input) The secret to be shared
+ * @param secret_shares: (output) The additive shares of the secret
+ * @param mac_shares: (output) The additive shares of the mac of the secret
+ * @param pseudo_state: (input) PRF seed
+ * @param secretShareIdx: (input) the ID of the server which needs the real share (instead of using PRF)
+ * @return 0 if successful
+ */
 int ORAM::createShares(TYPE_DATA secret, TYPE_DATA *secret_shares, TYPE_DATA *mac_shares, prng_state *pseudo_state, int secretShareIdx)
 {
     zz_p rand;
@@ -436,12 +449,14 @@ int ORAM::createShares(TYPE_DATA secret, TYPE_DATA *secret_shares, TYPE_DATA *ma
 }
 
 /**
- * Function Name: recoverSecret (for replies from XOR computation)
+ * Function Name: recoverSecret 
  *
- * Description: Recovers the secret from SSS_PRIVACY_LEVEL+1 shares 
+ * Description: Recovers the secret from additive shares 
  * 
- * @param shares: (input) Array of shared secret as data chunks
- * @param result: (output) Recovered secret from given shares
+ * @param secret_shares: (input) shares of the secret
+ * @param mac_shares: (input) shares of the MAC of the secret
+ * @secret secret: (output) the secret
+ * @param mac: (output) MAC of the secret
  * @return 0 if successful
  */
 int ORAM::recoverSecret(zz_p **secret_shares, zz_p **mac_shares, zz_p *secret, zz_p *mac)
@@ -460,12 +475,12 @@ int ORAM::recoverSecret(zz_p **secret_shares, zz_p **mac_shares, zz_p *secret, z
 }
 
 /**
- * Function Name: recoverSecret (for replies from SSS computation)
+ * Function Name: recoverSecret 
  *
- * Description: Recovers the secret from SSS_PRIVACY_LEVEL+1 shares 
+ * Description: Recovers the secret from additive shares (without recovering MAC) 
  * 
- * @param shares: (input) Array of shared secret as data chunks
- * @param result: (output) Recovered secret from given shares
+ * @param retrieval_in: (input) shares of the secret
+ * @secret secret: (output) the secret
  * @return 0 if successful
  */
 int ORAM::recoverSecret(unsigned char **retrieval_in, zz_p *secret)
@@ -481,6 +496,15 @@ int ORAM::recoverSecret(unsigned char **retrieval_in, zz_p *secret)
     return 0;
 }
 
+/**
+ * Function Name: checkRandLinComb 
+ *
+ * Description: Check the authenticaty of random linear combination (MACCheck)
+ * 
+ * @param input: (input) share of random linear combination inputs
+ * @secret input_mac: (input) share of mac of random linear combination inputs
+ * @return 0 if passed, -1 if not passed
+ */
 int ORAM::checkRandLinComb(zz_p *input, zz_p *input_mac)
 {
     zz_p X1, Y1;
@@ -496,6 +520,17 @@ int ORAM::checkRandLinComb(zz_p *input, zz_p *input_mac)
 
     return 0;
 }
+
+/**
+ * Function Name: recoverSecret 
+ *
+ * Description: Recovers the secret from additive shares 
+ * 
+ * @param retrieval_in: (input) shares of the secret and the MAC
+ * @secret secret: (output) the secret
+ * @param mac: (output) MAC of the secret
+ * @return 0 if successful
+ */
 int ORAM::recoverSecret(unsigned char **retrieval_in, zz_p *secret, zz_p *mac)
 {
     for (int i = 0, ii = 0; i < BLOCK_SIZE; i += sizeof(zz_p), ii++)
@@ -518,6 +553,17 @@ int ORAM::recoverSecret(unsigned char **retrieval_in, zz_p *secret, zz_p *mac)
     return 0;
 }
 
+
+/**
+ * Function Name: xor_createQuery  
+ *
+ * Description: Create retrieval XOR-PIR  query
+ * 
+ * @param idx: (input) ID of the database item to be privately retrieved
+ * @secret DB_SIZE: (input) number of database items
+ * @param output: (output) xor-pir queries
+ * @return 0 if successful
+ */
 int ORAM::xor_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char **output)
 {
     int byte_len = ceil((double)DB_SIZE / 8.0);
@@ -564,6 +610,16 @@ int ORAM::xor_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char **
     return 0;
 }
 
+/**
+ * Function Name: xor_createQuery  
+ *
+ * Description: Create retrieval PIR  query based on additive secret sharing
+ * 
+ * @param idx: (input) ID of the database item to be privately retrieved
+ * @secret DB_SIZE: (input) number of database items
+ * @param output: (output) pir queries based on additive secret sharing
+ * @return 0 if successful
+ */
 int ORAM::sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char **output)
 {
 
@@ -604,7 +660,17 @@ int ORAM::sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char **
     return 0;
 }
 
-// For Computational
+/**
+ * Function Name: xor_createQuery  
+ *
+ * Description: Create retrieval PIR  query based on additive secret sharing using PRF function
+ * 
+ * @param idx: (input) ID of the database item to be privately retrieved
+ * @secret DB_SIZE: (input) number of database items
+ * @param output: (output) pir queries based on additive secret sharing
+ * @param prng: (input) prf seed
+ * @return 0 if successful
+ */
 int ORAM::sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char **output, prng_state *prng)
 {
 
@@ -642,6 +708,17 @@ int ORAM::sss_createQuery(TYPE_INDEX idx, unsigned int DB_SIZE, unsigned char **
     return 0;
 }
 
+
+/**
+ * Function Name: xor_reconstruct  
+ *
+ * Description: Recover the database item from XOR-PIR replies
+ * 
+ * @param input: (input) ID XOR-PIR replies
+ * @param output: (output) the database item
+ * @param output_mac: (input) the mac of the database item
+ * @return 0 if successful
+ */
 int ORAM::xor_reconstruct(unsigned char **input, zz_p *output, zz_p *output_mac)
 {
     memset(output, 0, BLOCK_SIZE);
@@ -665,6 +742,20 @@ int ORAM::xor_reconstruct(unsigned char **input, zz_p *output, zz_p *output_mac)
     }
     return 0;
 }
+/**
+ * Function Name: xor_reconstruct  
+ *
+ * Description: Perform XOR-PIR computation (at the server)
+ * 
+ * @param query: (input) XOR-PIR queries
+ * @param db: (input) the database
+ * @param db_mac: (input) the mac of the database
+ * @param start_db_idx: (input) the starting idx of database item to be computed (for multi-threading)
+ * @param end_db_idx: (input) the ending idx of database item to be computed (for multi-threading)
+ * @param output: (output) output of computation over database
+ * @param output_mac: (output) output of computation over mac of database
+ * @return 0 if successful
+ */
 int ORAM::xor_retrieve(unsigned char *query, zz_p **db, zz_p **db_mac, int start_db_idx, int end_db_idx, unsigned char *output, unsigned char *output_mac)
 {
     unsigned long long *s1, *s2;
@@ -690,18 +781,16 @@ int ORAM::xor_retrieve(unsigned char *query, zz_p **db, zz_p **db_mac, int start
     return 0;
 }
 
-// Circuit-ORAM layout
 
+
+// Below are circuit-oram eviction subroutines 
 /**
-* Function Name: getFullEvictPathIdx (!!? Combine with getEvictIdx in ORAM )
+* Function Name: getFullEvictPathIdx 
 *
-* Description: Determine the indices of source bucket, destination bucket and sibling bucket
-* residing on the eviction path
+* Description: Get the full eviction path from reverse-lexicographical order eviction order
 *
-* @param srcIdx: (output) source bucket index array
-* @param destIdx: (output) destination bucket index array
-* @param siblIdx: (output) sibling bucket index array
-* @param str_evict: (input) eviction edges calculated by binary ReverseOrder of the eviction number
+* @param fullPathIdx: (output) ID of bucket along the eviction path
+* @param str_evict: (input) eviction order
 * @return 0 if successful
 */
 int ORAM::getFullEvictPathIdx(TYPE_INDEX *fullPathIdx, string str_evict)
@@ -851,6 +940,15 @@ int ORAM::prepareTarget(TYPE_INDEX *meta_path, TYPE_INDEX pathID, int *deepest, 
     return 0;
 }
 
+
+/**
+* Function Name: createRetrievalTriplets 
+*
+* Description: Precompute the triplets being used in ORAM retrieval subroutine (if used SPDZ)
+*
+* @param n: (input) Number of triplets needed
+* @return 0 if successful
+*/
 int ORAM::createRetrievalTriplets(int n)
 {
     srand(time(NULL));
@@ -993,6 +1091,14 @@ int ORAM::createRetrievalTriplets(int n)
     return 0;
 }
 
+/**
+* Function Name: createEvictionTriplets 
+*
+* Description: Precompute the triplets being used in ORAM eviction subroutine (if used SPDZ)
+*
+* @param n: (input) Number of triplets needed
+* @return 0 if successful
+*/
 int ORAM::createEvictionTriplets(int n)
 {
     srand(time(NULL));
@@ -1151,6 +1257,18 @@ int ORAM::createEvictionTriplets(int n)
     return 0;
 }
 
+/**
+* Function Name: perform_dot_product 
+*
+* Description: Compute the dot product between two vectors
+*
+* @param A: (input) vector 1
+* @param B: (input) vector 2
+* @param C: (input) output
+* @param input_length: length of vector 1 and vector 2
+* @return 0 if successful
+*/
+
 int ORAM::perform_dot_product(zz_p **A, zz_p *B, zz_p *C, int row, int input_length)
 {
     for (int l = 0; l < row; l++)
@@ -1160,6 +1278,19 @@ int ORAM::perform_dot_product(zz_p **A, zz_p *B, zz_p *C, int row, int input_len
     return 0;
 }
 
+/**
+* Function Name: perform_cross_product 
+*
+* Description: Compute the cross product between two matrices
+*
+* @param A: (input) matrix 1
+* @param B: (input) matrix 2
+* @param C: (output) matrix output
+* @param row: (input) num of row of input
+* @param output_length: num of column of output
+* @param input_length: number of column of input
+* @return 0 if successful
+*/
 int ORAM::perform_cross_product(zz_p **A, zz_p **B, zz_p **C, int row, int output_length, int input_length)
 {
     for (int l = 0; l < row; l++)
@@ -1173,6 +1304,18 @@ int ORAM::perform_cross_product(zz_p **A, zz_p **B, zz_p **C, int row, int outpu
     return 0;
 }
 
+/**
+* Function Name: writeTriplets 
+*
+* Description: Write (matrix) triplets to file
+*
+* @param data: (input) triplets
+* @param n: (input) number of matrix triplets
+* @param row: (input) number of rows in each matrix
+* @param col: (input) num of columns  in each matrix
+* @param file_name: filename to be written
+* @return 0 if successful
+*/
 int ORAM::writeTriplets(zz_p ****data, int n, int row, int col, string file_name)
 {
     string path;
@@ -1197,6 +1340,17 @@ int ORAM::writeTriplets(zz_p ****data, int n, int row, int col, string file_name
     return 0;
 }
 
+/**
+* Function Name: writeTriplets 
+*
+* Description: Write (vector) triplets to file
+*
+* @param data: (input) triplets
+* @param n: (input) number of vector triplets
+* @param col: (input) length of vector
+* @param file_name: filename to be written
+* @return 0 if successful
+*/
 int ORAM::writeTriplets(zz_p ***data, int n, int col, string file_name)
 {
     string path;
