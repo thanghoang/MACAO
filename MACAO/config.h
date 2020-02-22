@@ -57,9 +57,10 @@ static const unsigned long long P = 1073742353; //288230376152137729; //prime fi
 #endif
 
 #if defined(SEEDING)
-    static std::string CLIENT_SERVER_SEED[3] = {"abcdefghijklmn", "12345678910112", "mnlkjihgfedcba"};
-    static std::string SERVER_SERVER_SEED[3][3] = {{"12110987654321", "12131415161718", "cjhuipjoqjvcki"}, {"20212223242526", "27282930313233", "8102jdcxkjioqu"}, {"34353637383940", "41424344454647", "10s0219287dakc"}};
+    static std::string CLIENT_SERVER_SEED[NUM_SERVERS] = {"abcdefghijklmn", "12345678910112", "mnlkjihgfedcba"};
+    static std::string SERVER_SERVER_SEED[NUM_SERVERS][NUM_SERVERS] = {{"12110987654321", "12131415161718", "cjhuipjoqjvcki"}, {"20212223242526", "27282930313233", "8102jdcxkjioqu"}, {"34353637383940", "41424344454647", "10s0219287dakc"}};
 #endif
+
 
 //=== ORAM PARAMETERS ============================================================
 

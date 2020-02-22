@@ -406,11 +406,11 @@ int ServerBinaryORAMO::writeRoot(zmq::socket_t &socket)
     {
         for (int i = 0; i < DATA_CHUNKS; i++)
         {
-            sober128_read((unsigned char *)&tmp, sizeof(TYPE_DATA), &prng_client[(serverNo) % 3]);
+            sober128_read((unsigned char *)&tmp, sizeof(TYPE_DATA), &prng_client[serverNo]);
             tmp2 = tmp;
             memcpy(&write_root_in[sizeof(TYPE_DATA) + i * sizeof(TYPE_DATA)], &tmp2, sizeof(TYPE_DATA));
 
-            sober128_read((unsigned char *)&tmp, sizeof(TYPE_DATA), &prng_client[(serverNo) % 3]);
+            sober128_read((unsigned char *)&tmp, sizeof(TYPE_DATA), &prng_client[serverNo]);
             tmp2 = tmp;
             memcpy(&write_root_in[sizeof(TYPE_DATA) + i * sizeof(TYPE_DATA) + BLOCK_SIZE], &tmp2, sizeof(TYPE_DATA));
         }
