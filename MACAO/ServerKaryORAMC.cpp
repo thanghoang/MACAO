@@ -248,7 +248,7 @@ int ServerKaryORAMC::evict(zmq::socket_t &socket)
 #endif
         }
         auto end = time_now;
-        long load_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+        long load_time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
         cout << "	[evict] Evict Nodes READ from Disk in " << load_time << endl;
         server_logs[7] += load_time;
 
@@ -257,15 +257,15 @@ int ServerKaryORAMC::evict(zmq::socket_t &socket)
         start = time_now;
         this->preReSharing(h, es, ee); // SERVER SIDE COMPUTATION
         end = time_now;
-        cout << "	[evict] Multiplied in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << endl;
-        server_logs[8] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+        cout << "	[evict] Multiplied in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << endl;
+        server_logs[8] += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
         start = time_now;
         cout << "	[evict] ReSharing..." << endl;
         this->reShare(h, es, ee);
         end = time_now;
-        cout << "	[evict] Reshared CREATED in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << endl;
-        server_logs[9] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+        cout << "	[evict] Reshared CREATED in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << endl;
+        server_logs[9] += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
         //== THREADS FOR SENDING ============================================================================================
         cout << "	[evict] Creating Threads for Sending Shares..." << endl;
@@ -330,7 +330,7 @@ int ServerKaryORAMC::evict(zmq::socket_t &socket)
         }
 
         end = time_now;
-        server_logs[12] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+        server_logs[12] += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
         if (h == 0 && es == 0)
         {
             es = 1;

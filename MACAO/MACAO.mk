@@ -50,8 +50,8 @@ LibPath                := $(LibraryPathSwitch). $(LibraryPathSwitch)/usr/local/l
 AR       := /usr/bin/ar rcu
 CXX      := /usr/bin/g++
 CC       := /usr/bin/gcc
-CXXFLAGS :=  -g -O0 -std=c++11 -Wall -libstdc++ -c -fPIC $(Preprocessors)
-CFLAGS   :=  -g -O0 -Wall $(Preprocessors)
+CXXFLAGS :=  -g -O1 -std=c++11 -Wall -libstdc++ -c -fPIC $(Preprocessors)
+CFLAGS   :=  -g -O1 -Wall $(Preprocessors)
 ASFLAGS  := 
 AS       := /usr/bin/as
 

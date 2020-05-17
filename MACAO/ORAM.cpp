@@ -216,7 +216,7 @@ int ORAM::build(TYPE_POS_MAP *pos_map, TYPE_INDEX **metaData)
         ++show_progress;
     }
 
-    cout << "[ORAM] Elapsed Time for Init on Disk: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << endl;
+    cout << "[ORAM] Elapsed Time for Init on Disk: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " ns" << endl;
 
     for (TYPE_INDEX k = 0; k < NUM_SERVERS; k++)
     {

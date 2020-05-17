@@ -119,8 +119,10 @@ int ServerBinaryORAMO::evict(zmq::socket_t &socket)
 {
 
     recvClientEvictData(socket);
-
+    auto start = time_now;
     prepareEvictComputation();
+    auto end = time_now;
+    server_logs[10]=std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
     TYPE_INDEX srcIdx[H];
     TYPE_INDEX destIdx[H];
@@ -167,24 +169,24 @@ int ServerBinaryORAMO::evict(zmq::socket_t &socket)
 #endif
         auto end = time_now;
 
-        long load_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+        long load_time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
         cout << "	[evict] Evict Nodes READ from Disk in " << load_time << endl;
-        server_logs[7] += load_time;
+        server_logs[11] += load_time;
 
         //perform matrix product
         cout << "	[evict] Multiplying Evict Matrix..." << endl;
         start = time_now;
         this->preReSharing(h, 0, 1); // SERVER SIDE COMPUTATION
         end = time_now;
-        cout << "	[evict] Multiplied in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << endl;
-        server_logs[8] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+        cout << "	[evict] Multiplied in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << endl;
+        server_logs[12] += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
         start = time_now;
         cout << "	[evict] ReSharing..." << endl;
         this->reShare(h, 0, 1);
         end = time_now;
-        cout << "	[evict] Reshared CREATED in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << endl;
-        server_logs[9] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+        cout << "	[evict] Reshared CREATED in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << endl;
+        //server_logs[13] += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
         //== THREADS FOR SENDING ============================================================================================
         cout << "	[evict] Creating Threads for Sending Shares..." << endl;
@@ -213,7 +215,7 @@ int ServerBinaryORAMO::evict(zmq::socket_t &socket)
         }
 #endif
         cout << "	[evict] DONE!" << endl;
-        server_logs[10] += thread_max;
+        server_logs[14] += thread_max;
         thread_max = 0;
 
         start = time_now;
@@ -222,7 +224,7 @@ int ServerBinaryORAMO::evict(zmq::socket_t &socket)
         this->postReSharing(h, 0, 1);
 
         end = time_now;
-        server_logs[11] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+        server_logs[15] += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
         //write to file
         start = time_now;
@@ -244,13 +246,14 @@ int ServerBinaryORAMO::evict(zmq::socket_t &socket)
         this->writeBucket(curDestIdx, (serverNo + 1) % 3, vecReShares[0][(serverNo + 1) % 3], vecReShares_MAC[0][(serverNo + 1) % 3]);
 #endif
         end = time_now;
-        server_logs[12] += std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+        server_logs[16] += std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
         cout << "	[evict] Reduction DONE in " << server_logs[11] << endl;
         cout << "	[evict] Written to Disk in " << server_logs[12] << endl;
         cout << "	[evict] TripletEviction-" << h + 1 << " COMPLETED!" << endl;
     }
-
+    Utils::write_list_to_file(to_string(HEIGHT)+"_" + to_string(BLOCK_SIZE)+"_server_" + to_string(this->serverNo) + "_" + timestamp + ".txt",logDir, server_logs, 17);
+	memset(server_logs, 0, sizeof(unsigned long int)*17);
     prepareRandLinComb(lin_rand_com_out);
 
 #if defined(SPDZ)
@@ -366,8 +369,8 @@ int ServerBinaryORAMO::writeRoot(zmq::socket_t &socket)
     TYPE_INDEX slotIdx;
     memcpy(&slotIdx, &write_root_in[0], sizeof(TYPE_INDEX));
 
-    cout << "	[recvBlock] Block Data RECV in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << endl;
-    server_logs[4] = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    cout << "	[recvBlock] Block Data RECV in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << endl;
+    server_logs[4] = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
     start = time_now;
     zz_p tmp2;
@@ -418,8 +421,8 @@ int ServerBinaryORAMO::writeRoot(zmq::socket_t &socket)
     this->updateRoot(serverNo, slotIdx, &write_root_in[sizeof(TYPE_INDEX)], &write_root_in[BLOCK_SIZE + sizeof(TYPE_INDEX)]);
 
     end = time_now;
-    cout << "	[recvBlock] Block STORED in Disk in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << endl;
-    server_logs[5] = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    cout << "	[recvBlock] Block STORED in Disk in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << endl;
+    server_logs[5] = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
     socket.send((unsigned char *)CMD_SUCCESS, sizeof(CMD_SUCCESS));
     cout << "	[recvBlock] ACK is SENT!" << endl;
@@ -430,8 +433,8 @@ int ServerBinaryORAMO::writeRoot(zmq::socket_t &socket)
     TYPE_INDEX slotIdx;
     memcpy(&slotIdx, &write_root_in[n], sizeof(TYPE_INDEX));
 
-    cout << "	[recvBlock] Block Data RECV in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << endl;
-    server_logs[4] = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    cout << "	[recvBlock] Block Data RECV in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << endl;
+    server_logs[4] = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
     start = time_now;
     this->updateRoot(serverNo, slotIdx, &write_root_in[0], &write_root_in[BLOCK_SIZE]);
@@ -439,8 +442,8 @@ int ServerBinaryORAMO::writeRoot(zmq::socket_t &socket)
     this->updateRoot((serverNo + 1) % 3, slotIdx, &write_root_in[n / 2], &write_root_in[n / 2 + BLOCK_SIZE]);
 #endif
     end = time_now;
-    cout << "	[recvBlock] Block STORED in Disk in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << endl;
-    server_logs[5] = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    cout << "	[recvBlock] Block STORED in Disk in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << endl;
+    server_logs[8] = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
     socket.send((unsigned char *)CMD_SUCCESS, sizeof(CMD_SUCCESS));
     cout << "	[recvBlock] ACK is SENT!" << endl;

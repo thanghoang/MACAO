@@ -226,8 +226,8 @@ int ClientKaryORAMC::evict()
         start = time_now;
         this->getEvictMatrix();
         end = time_now;
-        cout << "	[ClientKaryORAMC] Evict Matrix Created in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << endl;
-        exp_logs[5] = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+        cout << "	[ClientKaryORAMC] Evict Matrix Created in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " ns" << endl;
+        exp_logs[5] = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
 #if !defined(SEEDING)
         // 9.2. create shares of  permutation matrices
@@ -257,8 +257,8 @@ int ClientKaryORAMC::evict()
             }
         }
         end = time_now;
-        cout << "	[ClientKaryORAMC] Shared Matrix Created in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << endl;
-        exp_logs[6] = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+        cout << "	[ClientKaryORAMC] Shared Matrix Created in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " ns" << endl;
+        exp_logs[6] = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 #endif
 
         // 9.3. create shares of a selected block in stash
@@ -330,8 +330,8 @@ int ClientKaryORAMC::evict()
             }
         }
         end = time_now;
-        cout << "	[ClientKaryORAMC] Shared Matrix Created in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << endl;
-        exp_logs[6] = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+        cout << "	[ClientKaryORAMC] Shared Matrix Created in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " ns" << endl;
+        exp_logs[6] = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
         for (TYPE_INDEX y = 0; y < H + 1; y++)
         {
@@ -417,7 +417,7 @@ int ClientKaryORAMC::evict()
     checkRandLinCom();
 
     end = time_now;
-    cout << "	[ClientKaryORAMC] Eviction DONE in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << endl;
+    cout << "	[ClientKaryORAMC] Eviction DONE in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " ns" << endl;
 
     exp_logs[8] = thread_max;
     thread_max = 0;

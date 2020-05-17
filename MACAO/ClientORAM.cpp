@@ -180,10 +180,10 @@ int ClientORAM::init()
     for (int i = 0; i < NUM_SERVERS; i++)
     {
         string copy_cmd = "cp ";
-        for (int j = 0; j < NUM_SERVERS; j++)
-        {
-            copy_cmd += " ../data/" + to_string(j);
-        }
+        //for (int j = 0; j < NUM_SERVERS; j++)
+        //{
+            copy_cmd += " ../data/" + to_string(i);
+        //}
         copy_cmd += " ../data/S" + to_string(i) + "/ -rf";
         cout << copy_cmd << endl;
         system(copy_cmd.c_str());
@@ -191,7 +191,7 @@ int ClientORAM::init()
 
     end = time_now;
     cout << endl;
-    cout << "Elapsed Time for Setup on Disk: " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << endl;
+    cout << "Elapsed Time for Setup on Disk: " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " ns" << endl;
     cout << endl;
     std::ofstream output;
     string path2 = clientLocalDir + "lastest_config";
@@ -385,8 +385,8 @@ int ClientORAM::sendNrecv(int peer_idx, unsigned char *data_out, size_t data_out
             socket[peer_idx]->recv(data_in, data_in_size);
 
         auto end = time_now;
-        if (thread_max < std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count())
-            thread_max = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+        if (thread_max < std::chrono::duration_cast<std::chrono::microseconds>(end - start).count())
+            thread_max = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     }
     catch (exception &ex)
     {
@@ -481,8 +481,8 @@ int ClientORAM::retrieve(TYPE_INDEX blockID)
     this->createRetrievalQuery(pos_map[blockID].pathIdx, pathID);
 
     end = time_now;
-    cout << "	[ClientORAM] Retrieval Query Created in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << endl;
-    exp_logs[1] = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    cout << "	[ClientORAM] Retrieval Query Created in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " ns" << endl;
+    exp_logs[0] = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
     // 4. send to server & receive the answer
     start = time_now;
@@ -518,16 +518,16 @@ int ClientORAM::retrieve(TYPE_INDEX blockID)
         pthread_join(thread_sockets[i], NULL);
     }
     end = time_now;
-    cout << "	[ClientORAM] All Shares Retrieved in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << endl;
-    exp_logs[2] = thread_max;
+    cout << "	[ClientORAM] All Shares Retrieved in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " ns" << endl;
+    exp_logs[1] = thread_max;
     thread_max = 0;
 
     // 5. recover the block
     start = time_now;
     this->recoverRetrievedBlock();
     end = time_now;
-    cout << "	[ClientORAM] Recovery Done in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << endl;
-    exp_logs[3] = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    cout << "	[ClientORAM] Recovery Done in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " ns" << endl;
+    exp_logs[2] = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
     cout << "	[ClientORAM] Block-" << recoveredBlock[0] << " is Retrieved" << endl;
 }

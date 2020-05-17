@@ -131,11 +131,11 @@ int main(int argc, char **argv)
              << endl;
         for (int j = 0; j < 10; j++)
         {
-            for (int i = 1; i < NUM_BLOCK + 1; i++)
-            {
-                client->access(i);
+            // for (int i = 1; i < NUM_BLOCK + 1; i++)
+            // {
+                client->access(1);
                 //cin.get();
-            }
+            // }
         }
         cout << "Done!";
     }

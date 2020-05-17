@@ -35,8 +35,8 @@ static inline std::string to_string(T value)
 }
 
 //#define XOR_PIR
-#define RSSS
-//#define SPDZ
+//#define RSSS
+#define SPDZ
 //#define SEEDING
 
 //#define CORAM_LAYOUT
@@ -64,8 +64,8 @@ static const unsigned long long P = 1073742353; //288230376152137729; //prime fi
 
 //=== ORAM PARAMETERS ============================================================
 
-#define BLOCK_SIZE 64 //data block size
-#define HEIGHT 2      // height of ORAM tree
+#define BLOCK_SIZE 4096 //data block size
+#define HEIGHT 6     // height of ORAM tree
 
 // Other ORAM parameters -> can be changed but be careful as it may impact the failure probability of ORAM.
 #if defined(CORAM_LAYOUT)
@@ -107,7 +107,7 @@ const std::string clientTempPath = rootPath + "client_local/local_data";
 const std::string logDir = "../" + to_string(H) + "_" + to_string(BLOCK_SIZE) + "/" + "log/";
 //=============================================================================
 
-//#define REVERSE_STORAGE_LAYOUT // enabled: block _size x bucket_size - disabled: bucket_size x block_size
+#define REVERSE_STORAGE_LAYOUT // enabled: block _size x bucket_size - disabled: bucket_size x block_size
 
 //=== NON-MODIFIABLE PARAMETER ================================================
 

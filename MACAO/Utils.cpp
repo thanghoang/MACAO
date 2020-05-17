@@ -50,7 +50,7 @@ int Utils::write_list_to_file(string filename, string path, vector<unsigned long
     TYPE_INDEX i;
     for (i = 0; i < lst.size(); i++)
     {
-        output << lst[i] << " ";
+        output << lst[i] << "\t";
     }
     output << "\n";
     output.close();
@@ -65,7 +65,7 @@ int Utils::write_list_to_file(string filename, string path, unsigned long int *l
     TYPE_INDEX i;
     for (i = 0; i < lst_size; i++)
     {
-        output << lst[i] << " ";
+        output << lst[i] << "\t";
     }
     output << "\n";
     output.close();

@@ -163,7 +163,7 @@ public:
     int prepareRandLinComb(unsigned char* lin_rand_com_out);
 
     //logs
-    static unsigned long int server_logs[13];
+    static unsigned long int server_logs[17];
     static unsigned long int thread_max;
     static char timestamp[16];
 

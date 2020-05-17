@@ -57,13 +57,15 @@ int ClientBinaryORAMO::access(TYPE_INDEX blockID)
     this->writeRoot();
 
     // 9. Perform eviction
-    if (this->numRead == 0)
-    {
+    // if (this->numRead == 0)
+    // {
         this->evict();
 
-        this->numEvict = (numEvict + 1) % N_leaf;
-    }
+    //     this->numEvict = (numEvict + 1) % N_leaf;
+    // }
 
+    Utils::write_list_to_file(to_string(HEIGHT)+"_" + to_string(BLOCK_SIZE)+"_client_" + timestamp + ".txt",logDir, exp_logs, 9);
+	memset(exp_logs, 0, sizeof(unsigned long int)*9);
     //save state
     this->saveState();
 
@@ -80,10 +82,15 @@ int ClientBinaryORAMO::access(TYPE_INDEX blockID)
  */
 int ClientBinaryORAMO::updatePosMap(TYPE_INDEX blockID)
 {
+    auto start = time_now;
     ClientORAM::updatePosMap(blockID);
 
     pos_map[blockID].pathIdx = numRead;
     this->metaData[0][numRead] = blockID;
+    auto end = time_now;
+    unsigned long pos_map = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	cout<< "	[ClientBinaryORAMO] Evict Matrix Created in " << pos_map << " ms"<<endl;
+	exp_logs[3] = pos_map;
     return 0;
 }
 
@@ -110,8 +117,8 @@ int ClientBinaryORAMO::evict()
     auto start = time_now;
     this->getEvictMatrix();
     auto end = time_now;
-    cout << "	[ClientBinaryORAMO] Evict Matrix Created in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << endl;
-    exp_logs[5] = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    cout << "	[ClientBinaryORAMO] Evict Matrix Created in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " ns" << endl;
+    exp_logs[6] = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
     // 9.2. create shares of  permutation matrices
     cout << "	[ClientBinaryORAMO] Sharing Evict Matrix..." << endl;
@@ -148,8 +155,8 @@ int ClientBinaryORAMO::evict()
         }
     }
     end = time_now;
-    cout << "	[ClientBinaryORAMO] Shared Matrix Created in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << endl;
-    exp_logs[6] = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    cout << "	[ClientBinaryORAMO] Shared Matrix Created in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " ns" << endl;
+    exp_logs[7] = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
     // 9.3. send permutation matrices to servers
     start = time_now;
@@ -208,7 +215,7 @@ int ClientBinaryORAMO::evict()
         pthread_join(thread_sockets[i], NULL);
     }
     end = time_now;
-    cout << "	[ClientBinaryORAMO] Eviction DONE in " << std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() << " ns" << endl;
+    cout << "	[ClientBinaryORAMO] Eviction DONE in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " ns" << endl;
 
     exp_logs[8] = thread_max;
     thread_max = 0;
@@ -238,7 +245,7 @@ int ClientBinaryORAMO::writeRoot()
 #else // RSSS or SPDZ
     unsigned long long currBufferIdx = 0;
 #endif
-
+    auto start = time_now;
     for (int u = 0; u < DATA_CHUNKS; u++)
     {
 
@@ -266,6 +273,10 @@ int ClientBinaryORAMO::writeRoot()
 #endif
         currBufferIdx += sizeof(TYPE_DATA);
     }
+    auto end = time_now;
+    unsigned long creat_query = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	cout<< "	[ClientBinaryORAMO] Write back query Created in " << creat_query << " ms"<<endl;
+	exp_logs[4] = creat_query;
     long long n = 2 * BLOCK_SIZE;
     ;
 #if (defined(RSSS) && !defined(SEEDING))
@@ -282,6 +293,7 @@ int ClientBinaryORAMO::writeRoot()
     }
     // 8. upload the share to numRead-th slot in root bucket
     long m = sizeof(TYPE_DATA);
+    start = time_now;
     for (TYPE_INDEX k = 0; k < NUM_SERVERS; k++)
     {
 #if defined(SEEDING)
@@ -305,6 +317,11 @@ int ClientBinaryORAMO::writeRoot()
 
         pthread_create(&thread_sockets[k], NULL, &ClientBinaryORAMO::thread_socket_func, (void *)&thread_socket_args[k]);
     }
+    end = time_now;
+   unsigned long comm = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	cout<< "	[ClientBinaryORAMO] Communication in " << comm << " ms"<<endl;
+	exp_logs[5] = thread_max;
+    thread_max = 0;
 
     this->numRead = (this->numRead + 1) % EVICT_RATE;
     cout << "	[ClientBinaryORAMO] Number of Read = " << this->numRead << endl;
