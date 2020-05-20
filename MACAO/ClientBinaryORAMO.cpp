@@ -282,6 +282,7 @@ int ClientBinaryORAMO::writeRoot()
 #if (defined(RSSS) && !defined(SEEDING))
     n = n * 2;
 #endif
+start = time_now;
 
     for (int k = 0; k < NUM_SERVERS; k++)
     {
@@ -293,7 +294,7 @@ int ClientBinaryORAMO::writeRoot()
     }
     // 8. upload the share to numRead-th slot in root bucket
     long m = sizeof(TYPE_DATA);
-    start = time_now;
+    
     for (TYPE_INDEX k = 0; k < NUM_SERVERS; k++)
     {
 #if defined(SEEDING)
@@ -317,11 +318,7 @@ int ClientBinaryORAMO::writeRoot()
 
         pthread_create(&thread_sockets[k], NULL, &ClientBinaryORAMO::thread_socket_func, (void *)&thread_socket_args[k]);
     }
-    end = time_now;
-   unsigned long comm = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
-	cout<< "	[ClientBinaryORAMO] Communication in " << comm << " ms"<<endl;
-	exp_logs[5] = thread_max;
-    thread_max = 0;
+
 
     this->numRead = (this->numRead + 1) % EVICT_RATE;
     cout << "	[ClientBinaryORAMO] Number of Read = " << this->numRead << endl;
@@ -331,6 +328,11 @@ int ClientBinaryORAMO::writeRoot()
         pthread_join(thread_sockets[i], NULL);
         cout << "	[ClientBinaryORAMO] Block upload completed!" << endl;
     }
+        end = time_now;
+    unsigned long comm = std::chrono::duration_cast<std::chrono::microseconds>(end-start).count();
+	cout<< "	[ClientBinaryORAMO] Communication in " << std::chrono::duration_cast<std::chrono::microseconds>(end-start).count() << " ms"<<endl;
+	exp_logs[5] =  thread_max;
+    thread_max = 0;
     return 0;
 }
 

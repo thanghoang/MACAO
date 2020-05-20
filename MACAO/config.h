@@ -37,7 +37,7 @@ static inline std::string to_string(T value)
 //#define XOR_PIR
 //#define RSSS
 #define SPDZ
-//#define SEEDING
+#define SEEDING
 
 //#define CORAM_LAYOUT
 #define TRIPLET_EVICTION
@@ -64,8 +64,8 @@ static const unsigned long long P = 1073742353; //288230376152137729; //prime fi
 
 //=== ORAM PARAMETERS ============================================================
 
-#define BLOCK_SIZE 4096 //data block size
-#define HEIGHT 6     // height of ORAM tree
+#define BLOCK_SIZE 64 //data block size
+#define HEIGHT 8     // height of ORAM tree
 
 // Other ORAM parameters -> can be changed but be careful as it may impact the failure probability of ORAM.
 #if defined(CORAM_LAYOUT)

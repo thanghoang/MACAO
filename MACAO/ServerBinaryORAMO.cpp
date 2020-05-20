@@ -131,8 +131,9 @@ int ServerBinaryORAMO::evict(zmq::socket_t &socket)
     string evict_str = ORAM::getEvictString(n_evict);
     ORAM::getEvictIdx(srcIdx, destIdx, siblIdx, evict_str);
 
-    for (int h = 0; h < H + 1; h++)
+    for (int h = 0; h < H + 1; ++h)
     {
+        cout<<h <<" "<< H <<endl;
         cout << endl;
         cout << "	==============================================================" << endl;
         cout << "	[evict] Starting TripletEviction-" << h + 1 << endl;
@@ -200,6 +201,7 @@ int ServerBinaryORAMO::evict(zmq::socket_t &socket)
         pthread_join(thread_send[1], NULL);
         pthread_join(thread_recv[0], NULL);
 #else
+        start = time_now;
         for (int i = 0; i < NUM_SERVERS - 1; i++)
         {
             sendSocket_args[i] = struct_socket(i, reshares_out[i], SERVER_RESHARE_IN_OUT_LENGTH, NULL, 0, NULL, true);
@@ -214,6 +216,7 @@ int ServerBinaryORAMO::evict(zmq::socket_t &socket)
             pthread_join(thread_recv[i], NULL);
         }
 #endif
+        end = time_now;
         cout << "	[evict] DONE!" << endl;
         server_logs[14] += thread_max;
         thread_max = 0;
@@ -422,7 +425,7 @@ int ServerBinaryORAMO::writeRoot(zmq::socket_t &socket)
 
     end = time_now;
     cout << "	[recvBlock] Block STORED in Disk in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << endl;
-    server_logs[5] = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    server_logs[8] = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
     socket.send((unsigned char *)CMD_SUCCESS, sizeof(CMD_SUCCESS));
     cout << "	[recvBlock] ACK is SENT!" << endl;

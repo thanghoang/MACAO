@@ -268,17 +268,6 @@ ServerORAM::ServerORAM(TYPE_INDEX serverNo, int selectedThreads)
 
     this->CLIENT_ADDR = "tcp://*:" + std::to_string(SERVER_PORT + (serverNo)*NUM_SERVERS + serverNo);
 
-    #if defined(SPDZ)
-        readTriplets(RetrievalShares_a, DATA_CHUNKS, PATH_LENGTH, "/retrieval_triplet_a");
-        readTriplets(RetrievalShares_b, PATH_LENGTH, "/retrieval_triplet_b");
-        readTriplets(RetrievalShares_c, DATA_CHUNKS, "/retrieval_triplet_c");
-
-        readTriplets(RetrievalShares_a_mac, DATA_CHUNKS, PATH_LENGTH, "/retrieval_triplet_a_mac");
-        readTriplets(RetrievalShares_b_mac, PATH_LENGTH, "/retrieval_triplet_b_mac");
-        readTriplets(RetrievalShares_c_mac, DATA_CHUNKS, "/retrieval_triplet_c_mac");
-
-    #endif
-
     cout << endl;
     cout << "=================================================================" << endl;
     cout << "Starting Server-" << serverNo + 1 << endl;
@@ -535,11 +524,9 @@ int ServerORAM::retrieve(zmq::socket_t &socket)
 #endif
 #else // NO SEEDING
 
-    start = time_now;
+    
     socket.recv(retrieval_query_in, CLIENT_RETRIEVAL_OUT_LENGTH, 0);
-    end = time_now;
-    cout << "	[SendBlock] PathID and Logical Vector RECEIVED in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " ns" << endl;
-    server_logs[0] = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+   
 
     memcpy(&pathID, &retrieval_query_in[CLIENT_RETRIEVAL_OUT_LENGTH - sizeof(TYPE_INDEX)], sizeof(pathID));
     cout << "	[SendBlock] PathID is " << pathID << endl;
@@ -559,7 +546,9 @@ int ServerORAM::retrieve(zmq::socket_t &socket)
 #endif
 #endif
 #endif
-
+     end = time_now;
+    cout << "	[SendBlock] PathID and Logical Vector RECEIVED in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " ns" << endl;
+    server_logs[0] = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     
     ORAM::getFullPathIdx(fullPathIdx, pathID);
 
@@ -667,6 +656,14 @@ int ServerORAM::retrieve(zmq::socket_t &socket)
     memcpy(&retrieval_answer_out[BLOCK_SIZE], dotProd_mac_output[0], BLOCK_SIZE);
 
 #else //SPDZ
+    readTriplets(RetrievalShares_a, DATA_CHUNKS, PATH_LENGTH, "/retrieval_triplet_a");
+    readTriplets(RetrievalShares_b, PATH_LENGTH, "/retrieval_triplet_b");
+    readTriplets(RetrievalShares_c, DATA_CHUNKS, "/retrieval_triplet_c");
+
+    readTriplets(RetrievalShares_a_mac, DATA_CHUNKS, PATH_LENGTH, "/retrieval_triplet_a_mac");
+    readTriplets(RetrievalShares_b_mac, PATH_LENGTH, "/retrieval_triplet_b_mac");
+    readTriplets(RetrievalShares_c_mac, DATA_CHUNKS, "/retrieval_triplet_c_mac");
+
     unsigned long long currBufferIdx = 0;
     start = time_now;
     for (int i = 0; i < DATA_CHUNKS; i++)
@@ -912,7 +909,7 @@ int ServerORAM::recvClientEvictData(zmq::socket_t &socket)
 #endif
     auto end = time_now;
     cout << "	[evict] RECEIVED! in " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << endl;
-    server_logs[6] = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    server_logs[9] = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
     memcpy(&n_evict, &evict_in[0], sizeof(TYPE_INDEX));
 
@@ -1273,7 +1270,10 @@ int ServerORAM::preReSharing(int level, int es, int ee)
     unsigned long long currBufferIdx = 0;
     for (int e = es; e < ee; e++)
     {
-        
+        // readTriplets(this->vecShares_a[e], DATA_CHUNKS, MAT_PRODUCT_INPUT_DB_LENGTH, "/evict_triplet_a");
+        // readTriplets(this->vecShares_b[e][level], EVICT_MAT_NUM_ROW, EVICT_MAT_NUM_COL, "/evict_triplet_b");
+        // readTriplets(this->vecShares_a_MAC[e], DATA_CHUNKS, MAT_PRODUCT_INPUT_DB_LENGTH, "/evict_triplet_a_mac");
+        // readTriplets(this->vecShares_b_MAC[e][level], EVICT_MAT_NUM_ROW, EVICT_MAT_NUM_COL, "/evict_triplet_b_mac");
         for (int i = 0; i < DATA_CHUNKS; i++)
         {
             for (int j = 0; j < MAT_PRODUCT_INPUT_DB_LENGTH; j++)
